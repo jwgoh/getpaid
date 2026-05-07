@@ -33,9 +33,6 @@ services:
       # Optional: uncomment to enable email sending
       # RESEND_API_KEY: "${RESEND_API_KEY}"
       # EMAIL_FROM: "${EMAIL_FROM}"
-      # Optional: uncomment to enable banking integration
-      # SALT_EDGE_APP_ID: "${SALT_EDGE_APP_ID}"
-      # SALT_EDGE_SECRET: "${SALT_EDGE_SECRET}"
 
 volumes:
   pgdata:
