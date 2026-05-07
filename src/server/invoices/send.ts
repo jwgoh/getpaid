@@ -1,7 +1,7 @@
 import type { SenderProfile } from "@prisma/client";
 import { customAlphabet } from "nanoid";
 
-import { BANKING, BRANDING } from "@app/shared/config/config";
+import { BRANDING, INVOICE } from "@app/shared/config/config";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 
 import { prisma } from "@app/server/db";
@@ -12,7 +12,7 @@ import { ITEM_GROUPS_INCLUDE } from "@app/server/invoices/item-groups";
 
 const generateReference = customAlphabet(
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-  BANKING.PAYMENT_REFERENCE_LENGTH
+  INVOICE.PAYMENT_REFERENCE_LENGTH
 );
 
 export class InvoiceNotFoundError extends Error {
@@ -50,7 +50,7 @@ function resolveSenderInfo(profile: SenderProfile | null, userEmail: string) {
   return {
     name: profile?.companyName || profile?.displayName || userEmail,
     email: profile?.emailFrom || userEmail,
-    prefix: profile?.invoicePrefix || BANKING.PAYMENT_REFERENCE_PREFIX,
+    prefix: profile?.invoicePrefix || INVOICE.PAYMENT_REFERENCE_PREFIX,
   };
 }
 

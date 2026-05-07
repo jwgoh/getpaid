@@ -24,6 +24,8 @@ export const INVOICE = {
   DEFAULT_DUE_DAYS: 30,
   MAX_TAX_RATE: 100,
   MIN_TAX_RATE: 0,
+  PAYMENT_REFERENCE_LENGTH: 6,
+  PAYMENT_REFERENCE_PREFIX: "INV",
 } as const;
 
 export const AUTH = {
@@ -75,15 +77,6 @@ export const REMINDER = {
 
 export type FormMode = "create" | "edit";
 
-export {
-  BANKING,
-  CALLBACK_STAGE,
-  type CallbackStageValue,
-  CONNECTION_STATUS,
-  type ConnectionStatusValue,
-  TRANSACTION_STATUS,
-  type TransactionStatusValue,
-} from "./banking";
 export { BRANDING, EMAIL, FONT_FAMILY_MAP } from "./email";
 export { PAYMENT_METHOD, PAYMENT_METHOD_LABELS, type PaymentMethodValue } from "./payment-method";
 export { SHORTCUTS, STORAGE_KEYS } from "./shortcuts";
