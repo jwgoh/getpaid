@@ -14,7 +14,6 @@ Simple, self-hosted invoice management for freelancers. No bloat, no hidden fees
 - **Dashboard** — revenue, outstanding amounts, and payment trends at a glance
 - **Templates** — reusable invoice templates for repeat work
 - **Client Management** — client directory with contact details and invoice history
-- **Banking** _(optional)_ — connect bank accounts via Salt Edge for automatic payment matching
 - **Light & Dark themes** — full theme support out of the box
 
 ## Quick Start (Docker)
@@ -88,9 +87,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | `APP_URL` | No | App base URL (default: `http://localhost:3000`) |
 | `RESEND_API_KEY` | No | [Resend](https://resend.com) API key for sending emails |
 | `EMAIL_FROM` | No | Sender email address (default: `invoices@example.com`) |
-| `SALT_EDGE_APP_ID` | No | [Salt Edge](https://www.saltedge.com) app ID for banking |
-| `SALT_EDGE_SECRET` | No | Salt Edge secret |
-| `CRON_SECRET` | No | Secret for cron sync endpoint authentication |
 
 ## Tech Stack
 
@@ -113,7 +109,7 @@ The project follows [Feature-Sliced Design](https://feature-sliced.design/) (FSD
 ```
 src/
 ├── app/           # Next.js routing only (pages, layouts, API routes)
-├── features/      # Domain slices (invoices, clients, settings, banking, ...)
+├── features/      # Domain slices (invoices, clients, settings, ...)
 │   └── {name}/
 │       ├── api/         # API client functions
 │       ├── hooks/       # React Query hooks
@@ -128,7 +124,6 @@ src/
 │   └── layout/    # Layout components
 ├── server/        # Server-side services (sole Prisma consumer)
 │   ├── invoices/  # Invoice CRUD, sending, payments
-│   ├── banking/   # Salt Edge integration, matching
 │   ├── email/     # Transactional email
 │   ├── auth/      # Auth config
 │   └── db/        # Prisma client
