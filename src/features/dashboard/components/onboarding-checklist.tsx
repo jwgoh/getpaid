@@ -18,7 +18,7 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { STORAGE_KEYS, UI } from "@app/shared/config/config";
+import { PERCENT, STORAGE_KEYS, UI } from "@app/shared/config/config";
 import { storage } from "@app/shared/lib/storage";
 
 const COLLAPSED_KEY = STORAGE_KEYS.ONBOARDING_DISMISSED;
@@ -86,18 +86,18 @@ function ChecklistSteps({
 export function OnboardingChecklist({ steps, isLoading, onNavigate }: OnboardingChecklistProps) {
   const theme = useTheme();
   const [expanded, setExpanded] = React.useState(true);
-  const [mounted, setMounted] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
     setExpanded(storage.get(COLLAPSED_KEY) !== "true");
-    setMounted(true);
+    setIsMounted(true);
   }, []);
 
   const completedCount = steps.filter((s) => s.completed).length;
-  const allComplete = completedCount === steps.length;
-  const progress = (completedCount / steps.length) * 100;
+  const isAllComplete = completedCount === steps.length;
+  const progress = (completedCount / steps.length) * PERCENT.DIVISOR;
 
-  if (!mounted || isLoading || allComplete) {
+  if (!isMounted || isLoading || isAllComplete) {
     return null;
   }
 

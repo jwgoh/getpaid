@@ -73,7 +73,7 @@ export function InvoiceForm({
     <>
       {mode === "create" && (
         <InvoiceFormDraftBanner
-          showBanner={form.showDraftBanner}
+          isVisible={form.isDraftBannerVisible}
           lastSaved={form.lastSaved}
           isDirty={form.isDirty}
           onRestore={form.handleRestoreDraft}

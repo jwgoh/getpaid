@@ -12,7 +12,7 @@ interface PageTransitionProps {
 
 export function PageTransition({ children }: PageTransitionProps) {
   const theme = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+  const [isMounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -21,8 +21,8 @@ export function PageTransition({ children }: PageTransitionProps) {
   return (
     <Box
       sx={{
-        opacity: mounted ? 1 : 0,
-        transform: mounted ? "none" : `translateY(${UI.PAGE_TRANSITION_OFFSET}px)`,
+        opacity: isMounted ? 1 : 0,
+        transform: isMounted ? "none" : `translateY(${UI.PAGE_TRANSITION_OFFSET}px)`,
         transition: theme.transitions.create(["opacity", "transform"], {
           duration: UI.PAGE_TRANSITION_DURATION,
           easing: theme.transitions.easing.easeOut,

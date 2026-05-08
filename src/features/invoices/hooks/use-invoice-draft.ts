@@ -22,7 +22,7 @@ interface UseInvoiceDraftOptions {
 
 export function useInvoiceDraft({ mode, formValues, isDirty, reset }: UseInvoiceDraftOptions) {
   const toast = useToast();
-  const [showDraftBanner, setShowDraftBanner] = React.useState(false);
+  const [isDraftBannerVisible, setIsDraftBannerVisible] = React.useState(false);
   const isCreateMode = mode === "create";
 
   const { restoreDraft, clearDraft, lastSaved } = useAutosave({
@@ -41,22 +41,22 @@ export function useInvoiceDraft({ mode, formValues, isDirty, reset }: UseInvoice
     }
 
     if (storage.get(DRAFT_KEY)) {
-      setShowDraftBanner(true);
+      setIsDraftBannerVisible(true);
     }
   }, [isCreateMode]);
 
   const handleRestoreDraft = React.useCallback(() => {
     restoreDraft();
-    setShowDraftBanner(false);
+    setIsDraftBannerVisible(false);
   }, [restoreDraft]);
 
   const handleDiscardDraft = React.useCallback(() => {
     clearDraft();
-    setShowDraftBanner(false);
+    setIsDraftBannerVisible(false);
   }, [clearDraft]);
 
   return {
-    showDraftBanner,
+    isDraftBannerVisible,
     lastSaved,
     clearDraft,
     handleRestoreDraft,

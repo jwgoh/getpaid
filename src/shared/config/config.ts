@@ -16,6 +16,10 @@ export const CURRENCY = {
   CENTS_MULTIPLIER: 100,
 } as const;
 
+export const PERCENT = {
+  DIVISOR: 100,
+} as const;
+
 export const NANOID = {
   PUBLIC_ID_LENGTH: 10,
 } as const;

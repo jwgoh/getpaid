@@ -110,7 +110,7 @@ export function useInvoiceForm({
     error,
     clientDialogOpen: clientDialog.open,
     setClientDialogOpen: clientDialog.setOpen,
-    showDraftBanner: draft.showDraftBanner,
+    isDraftBannerVisible: draft.isDraftBannerVisible,
     isPending,
     subtotal,
     currency,

@@ -48,7 +48,7 @@ export default function SignUpPage() {
   const theme = useTheme();
   const toast = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
 
   const {
     register,
@@ -149,7 +149,7 @@ export default function SignUpPage() {
             <TextField
               {...register("password")}
               label="Password"
-              type={showPassword ? "text" : "password"}
+              type={isPasswordVisible ? "text" : "password"}
               fullWidth
               margin="normal"
               error={!!errors.password}
@@ -165,11 +165,11 @@ export default function SignUpPage() {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                         edge="end"
                         size="small"
                       >
-                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                        {isPasswordVisible ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
                   ),

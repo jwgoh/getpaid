@@ -16,7 +16,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, illustration, title, description, action }: EmptyStateProps) {
   const theme = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+  const [isMounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -33,7 +33,7 @@ export function EmptyState({ icon, illustration, title, description, action }: E
       }}
       elevation={0}
     >
-      <Grow in={mounted} timeout={ANIMATION.NORMAL}>
+      <Grow in={isMounted} timeout={ANIMATION.NORMAL}>
         <Box sx={{ mb: 3 }}>
           {illustration ? (
             <Box sx={{ mx: "auto", mb: 1, maxWidth: 200 }}>{illustration}</Box>
@@ -63,7 +63,7 @@ export function EmptyState({ icon, illustration, title, description, action }: E
           )}
         </Box>
       </Grow>
-      <Fade in={mounted} timeout={ANIMATION.SLOW} style={{ transitionDelay: "100ms" }}>
+      <Fade in={isMounted} timeout={ANIMATION.SLOW} style={{ transitionDelay: "100ms" }}>
         <Box>
           <Typography variant="h6" fontWeight={600} gutterBottom>
             {title}

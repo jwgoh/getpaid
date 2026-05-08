@@ -20,6 +20,9 @@ const GRADIENT_POSITIONS: Record<Exclude<GradientCorner, "none">, React.CSSPrope
   "bottom-left": { bottom: "-20%", left: "-10%" },
 };
 
+const AUTH_GRADIENT_ALPHA = 0.06;
+const AUTH_GRADIENT_FALLOFF_PERCENT = 70;
+
 function GradientBackdrop({ corner }: { corner: Exclude<GradientCorner, "none"> }) {
   const theme = useTheme();
 
@@ -31,7 +34,7 @@ function GradientBackdrop({ corner }: { corner: Exclude<GradientCorner, "none"> 
         width: "50%",
         height: "60%",
         borderRadius: "50%",
-        background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.06)} 0%, transparent 70%)`,
+        background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, AUTH_GRADIENT_ALPHA)} 0%, transparent ${AUTH_GRADIENT_FALLOFF_PERCENT}%)`,
         pointerEvents: "none",
       }}
     />
