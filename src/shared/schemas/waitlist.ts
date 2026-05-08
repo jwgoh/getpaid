@@ -1,7 +1,9 @@
 import { z } from "zod";
 
+import { SCHEMA_LIMITS } from "./limits";
+
 export const waitlistSchema = z.object({
-  email: z.email("Invalid email address"),
+  email: z.email("Invalid email address").max(SCHEMA_LIMITS.EMAIL_MAX),
 });
 
 export type WaitlistInput = z.infer<typeof waitlistSchema>;
