@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, withAdmin } from "@app/shared/api/route-helpers";
-
+import { notFoundResponse, withAdmin } from "@app/server/api/route-helpers";
 import { deleteWaitlistEntry } from "@app/server/waitlist";
 
 export const DELETE = withAdmin(async (_user, _request, context) => {

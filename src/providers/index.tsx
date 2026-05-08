@@ -15,7 +15,7 @@ import { ToastProvider } from "./toast";
 
 export { QueryProvider } from "./query";
 export { SessionProvider } from "./session-provider";
-export { ThemeRegistry, useThemeMode } from "./theme/registry";
+export { type ThemeMode, ThemeRegistry, useThemeMode } from "./theme/registry";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

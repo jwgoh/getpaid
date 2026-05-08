@@ -3,7 +3,7 @@
 import { Alert, Button, Stack, Typography } from "@mui/material";
 
 interface DraftBannerProps {
-  showBanner: boolean;
+  isVisible: boolean;
   lastSaved: Date | null;
   isDirty: boolean;
   onRestore: () => void;
@@ -11,7 +11,7 @@ interface DraftBannerProps {
 }
 
 export function InvoiceFormDraftBanner({
-  showBanner,
+  isVisible,
   lastSaved,
   isDirty,
   onRestore,
@@ -19,7 +19,7 @@ export function InvoiceFormDraftBanner({
 }: DraftBannerProps) {
   return (
     <>
-      {showBanner && (
+      {isVisible && (
         <Alert
           severity="info"
           sx={{ mb: 3 }}

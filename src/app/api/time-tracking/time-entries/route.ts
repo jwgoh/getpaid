@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 
 import { z } from "zod";
 
-import { parseBody, withAuth } from "@app/shared/api/route-helpers";
-
+import { parseBody, withAuth } from "@app/server/api/route-helpers";
 import { getTimeEntries } from "@app/server/time-tracking";
 
 const timeEntriesSchema = z.object({

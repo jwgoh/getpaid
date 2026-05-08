@@ -11,7 +11,7 @@ import { alpha, Box, IconButton, Stack, useTheme } from "@mui/material";
 import { UI } from "@app/shared/config/config";
 import { Logo } from "@app/shared/ui/logo";
 
-import { useThemeMode } from "@app/providers/theme/registry";
+import { useThemeMode } from "@app/providers";
 
 import { AccountMenu } from "./components/account-menu";
 import { DesktopNav } from "./components/desktop-nav";

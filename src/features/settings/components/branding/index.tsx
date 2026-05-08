@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { Divider, MenuItem, Stack, TextField, Typography } from "@mui/material";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { BRANDING, FONT_FAMILY_MAP, VALIDATION } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import type { SenderProfile } from "@app/shared/schemas/api";
@@ -70,7 +70,7 @@ export function BrandingTab({ profile }: BrandingTabProps) {
         setIsDirty(false);
       },
       onError: (err) => {
-        toast.error(err instanceof ApiError ? err.message : "Failed to save branding");
+        toast.error(extractApiErrorMessage(err, "Failed to save branding"));
       },
     });
   };

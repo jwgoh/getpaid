@@ -2,12 +2,18 @@ import { nanoid } from "nanoid";
 
 import { INVOICE, NANOID, TIME } from "@app/shared/config/config";
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import { parseInvoiceTags } from "@app/shared/schemas/invoice";
+import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
 import { createItemGroups, ITEM_GROUPS_INCLUDE } from "./item-groups";
+import type { InvoiceWithRelations } from "./mutations";
 
-export async function duplicateInvoice(id: string, userId: string) {
+export async function duplicateInvoice(
+  id: InvoiceId,
+  userId: UserId
+): Promise<InvoiceWithRelations | null> {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
     include: {
@@ -36,7 +42,7 @@ export async function duplicateInvoice(id: string, userId: string) {
       subtotal: invoice.subtotal,
       total: invoice.total,
       message: invoice.message,
-      tags: invoice.tags as string[],
+      tags: parseInvoiceTags(invoice.tags),
       items: {
         create: ungroupedItems.map((item) => ({
           title: item.title,

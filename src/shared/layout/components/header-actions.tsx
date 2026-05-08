@@ -10,7 +10,7 @@ import { Button, IconButton, Stack, Tooltip } from "@mui/material";
 
 import { RESPONSIVE_SX } from "@app/shared/config/config";
 
-import type { ThemeMode } from "@app/providers/theme/registry";
+import type { ThemeMode } from "@app/providers";
 
 interface HeaderActionsProps {
   mode: ThemeMode;
@@ -33,7 +33,12 @@ export function HeaderActions({ mode, onToggleTheme, onMenuOpen }: HeaderActions
       </Button>
 
       <Tooltip title={mode === "dark" ? "Light mode" : "Dark mode"}>
-        <IconButton size="small" onClick={onToggleTheme} sx={{ color: "text.secondary" }}>
+        <IconButton
+          size="small"
+          onClick={onToggleTheme}
+          sx={{ color: "text.secondary" }}
+          aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
           {mode === "dark" ? (
             <Brightness7Icon fontSize="small" />
           ) : (
@@ -43,7 +48,12 @@ export function HeaderActions({ mode, onToggleTheme, onMenuOpen }: HeaderActions
       </Tooltip>
 
       <Tooltip title="Account">
-        <IconButton size="small" onClick={onMenuOpen} sx={{ color: "text.secondary" }}>
+        <IconButton
+          size="small"
+          onClick={onMenuOpen}
+          sx={{ color: "text.secondary" }}
+          aria-label="Open account menu"
+        >
           <AccountCircleIcon fontSize="small" />
         </IconButton>
       </Tooltip>

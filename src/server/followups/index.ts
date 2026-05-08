@@ -1,4 +1,4 @@
-import { FollowUpMode, Prisma } from "@prisma/client";
+import { FollowUpMode, FollowUpRule, Prisma } from "@prisma/client";
 
 import { REMINDER, REMINDER_MODE } from "@app/shared/config/config";
 import { FOLLOWUP_STATUS } from "@app/shared/config/invoice-status";
@@ -15,7 +15,7 @@ export function parseDelaysDays(value: unknown): number[] {
   return [...REMINDER.DEFAULT_DAYS];
 }
 
-export async function getFollowUpRule(userId: string) {
+export async function getFollowUpRule(userId: string): Promise<FollowUpRule | null> {
   return prisma.followUpRule.findFirst({
     where: { userId },
   });
@@ -28,7 +28,7 @@ export async function createOrUpdateFollowUpRule(
     mode: FollowUpMode;
     delaysDays: number[];
   }
-) {
+): Promise<FollowUpRule> {
   const existing = await prisma.followUpRule.findFirst({
     where: { userId },
   });

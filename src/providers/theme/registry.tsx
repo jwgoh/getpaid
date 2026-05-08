@@ -25,19 +25,31 @@ export function useThemeMode() {
   return React.useContext(ThemeContext);
 }
 
+function readInitialMode(): ThemeMode {
+  if (typeof window === "undefined") {
+    return "light";
+  }
+
+  const stored = storage.get(STORAGE_KEYS.THEME_MODE);
+
+  if (stored === "light" || stored === "dark") {
+    return stored;
+  }
+
+  if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+
+  return "light";
+}
+
 export function ThemeRegistry({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = React.useState<ThemeMode>("light");
-  const [mounted, setMounted] = React.useState(false);
+  const [mode, setMode] = React.useState<ThemeMode>(readInitialMode);
 
   React.useEffect(() => {
-    setMounted(true);
-    const stored = storage.get(STORAGE_KEYS.THEME_MODE);
+    const next = readInitialMode();
 
-    if (stored === "light" || stored === "dark") {
-      setMode(stored);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setMode("dark");
-    }
+    setMode((prev) => (prev === next ? prev : next));
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Tab") {
@@ -69,10 +81,6 @@ export function ThemeRegistry({ children }: { children: React.ReactNode }) {
   }, []);
 
   const theme = mode === "dark" ? darkTheme : lightTheme;
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <ThemeContext.Provider value={{ mode, toggleTheme }}>

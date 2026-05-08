@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 
 import { z } from "zod";
 
-import { errorResponse, parseBody, withAuth } from "@app/shared/api/route-helpers";
-
+import { errorResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
 import { connectProvider, getConnections } from "@app/server/time-tracking";
 
 const connectSchema = z.object({

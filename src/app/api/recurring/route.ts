@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { createRecurringApiSchema } from "@app/shared/schemas";
 
+import { notFoundResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
 import {
   ClientNotFoundError,
   createRecurringInvoice,

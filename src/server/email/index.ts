@@ -179,8 +179,6 @@ export function buildReminderEmailPayload(data: ReminderEmailData): ResendEmailP
   };
 }
 
-const WAITLIST_COLOR = "#0d9488";
-
 export function buildWaitlistConfirmationPayload(email: string): ResendEmailPayload {
   const title = `You're on the ${SEO.SITE_NAME} waitlist!`;
 
@@ -188,7 +186,7 @@ export function buildWaitlistConfirmationPayload(email: string): ResendEmailPayl
     <p>Hi there,</p>
     <p>Thanks for your interest in <strong>${SEO.SITE_NAME}</strong>! We've added you to our waitlist.</p>
     <p>We'll notify you as soon as your account is ready.</p>
-    <p>${buildEmailButton(SEO.SITE_URL, `Visit ${SEO.SITE_NAME}`, WAITLIST_COLOR)}</p>`;
+    <p>${buildEmailButton(SEO.SITE_URL, `Visit ${SEO.SITE_NAME}`, EMAIL.WAITLIST_COLOR)}</p>`;
 
   const text = `${title}\n\nThanks for your interest in ${SEO.SITE_NAME}! We've added you to our waitlist.\n\nWe'll notify you as soon as your account is ready.\n\nVisit ${SEO.SITE_NAME}: ${SEO.SITE_URL}`;
 
@@ -196,7 +194,7 @@ export function buildWaitlistConfirmationPayload(email: string): ResendEmailPayl
     from: env.EMAIL_FROM,
     to: email,
     subject: title,
-    html: buildEmailLayout(title, WAITLIST_COLOR, bodyHtml),
+    html: buildEmailLayout(title, EMAIL.WAITLIST_COLOR, bodyHtml),
     text,
   };
 }
@@ -218,7 +216,7 @@ export function buildWaitlistNotificationPayload(email: string): ResendEmailPayl
     from: env.EMAIL_FROM,
     to: env.ADMIN_EMAIL,
     subject: `[${SEO.SITE_NAME}] ${title}: ${email}`,
-    html: buildEmailLayout(title, WAITLIST_COLOR, bodyHtml),
+    html: buildEmailLayout(title, EMAIL.WAITLIST_COLOR, bodyHtml),
     text,
   };
 }
@@ -231,7 +229,7 @@ export function buildWaitlistApprovalPayload(email: string): ResendEmailPayload 
     <p>Hi there,</p>
     <p>Great news — your access to <strong>${SEO.SITE_NAME}</strong> has been approved!</p>
     <p>Click the button below to create your account:</p>
-    <p>${buildEmailButton(signUpUrl, "Create Your Account", WAITLIST_COLOR)}</p>`;
+    <p>${buildEmailButton(signUpUrl, "Create Your Account", EMAIL.WAITLIST_COLOR)}</p>`;
 
   const text = `${title}\n\nGreat news — your access to ${SEO.SITE_NAME} has been approved!\n\nCreate your account: ${signUpUrl}`;
 
@@ -239,7 +237,7 @@ export function buildWaitlistApprovalPayload(email: string): ResendEmailPayload 
     from: env.EMAIL_FROM,
     to: email,
     subject: title,
-    html: buildEmailLayout(title, WAITLIST_COLOR, bodyHtml),
+    html: buildEmailLayout(title, EMAIL.WAITLIST_COLOR, bodyHtml),
     text,
   };
 }

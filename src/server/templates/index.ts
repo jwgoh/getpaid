@@ -1,8 +1,11 @@
+import { Prisma } from "@prisma/client";
+
 import { BRANDING, INVOICE } from "@app/shared/config/config";
 import type { DiscountInput } from "@app/shared/lib/calculations";
 import type { LineItemGroupInput, LineItemInput } from "@app/shared/schemas";
 
 import { prisma } from "@app/server/db";
+import { buildItemRowBase, createItemGroupsGeneric } from "@app/server/invoices/item-groups";
 
 export interface CreateTemplateInput {
   name: string;
@@ -29,14 +32,18 @@ export interface UpdateTemplateInput {
 }
 
 const ITEMS_INCLUDE = {
-  items: { orderBy: { sortOrder: "asc" as const } },
+  items: { orderBy: { sortOrder: "asc" } },
   itemGroups: {
-    include: { items: { orderBy: { sortOrder: "asc" as const } } },
-    orderBy: { sortOrder: "asc" as const },
+    include: { items: { orderBy: { sortOrder: "asc" } } },
+    orderBy: { sortOrder: "asc" },
   },
-};
+} as const satisfies Prisma.InvoiceTemplateInclude;
 
-export async function getTemplates(userId: string) {
+export type TemplateWithRelations = Prisma.InvoiceTemplateGetPayload<{
+  include: typeof ITEMS_INCLUDE;
+}>;
+
+export async function getTemplates(userId: string): Promise<TemplateWithRelations[]> {
   return prisma.invoiceTemplate.findMany({
     where: { userId },
     include: ITEMS_INCLUDE,
@@ -44,7 +51,10 @@ export async function getTemplates(userId: string) {
   });
 }
 
-export async function getTemplate(id: string, userId: string) {
+export async function getTemplate(
+  id: string,
+  userId: string
+): Promise<TemplateWithRelations | null> {
   return prisma.invoiceTemplate.findFirst({
     where: { id, userId },
     include: ITEMS_INCLUDE,
@@ -52,30 +62,16 @@ export async function getTemplate(id: string, userId: string) {
 }
 
 async function createTemplateItemGroups(templateId: string, groups: LineItemGroupInput[]) {
-  for (let gi = 0; gi < groups.length; gi++) {
-    const group = groups[gi];
-    const created = await prisma.invoiceTemplateItemGroup.create({
-      data: {
-        templateId,
-        title: group.title,
-        sortOrder: gi,
-      },
-    });
-
-    if (group.items.length > 0) {
-      await prisma.invoiceTemplateItem.createMany({
-        data: group.items.map((item, ii) => ({
-          templateId,
-          groupId: created.id,
-          title: item.title,
-          description: item.description ?? null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          sortOrder: ii,
-        })),
-      });
-    }
-  }
+  await createItemGroupsGeneric({
+    groups,
+    createGroup: ({ title, sortOrder }) =>
+      prisma.invoiceTemplateItemGroup.create({ data: { templateId, title, sortOrder } }),
+    buildItemRow: (item, groupId, sortOrder) => ({
+      ...buildItemRowBase(item, groupId, sortOrder),
+      templateId,
+    }),
+    createManyItems: (data) => prisma.invoiceTemplateItem.createMany({ data }),
+  });
 }
 
 async function deleteTemplateItems(templateId: string) {
@@ -83,7 +79,10 @@ async function deleteTemplateItems(templateId: string) {
   await prisma.invoiceTemplateItemGroup.deleteMany({ where: { templateId } });
 }
 
-export async function createTemplate(userId: string, data: CreateTemplateInput) {
+export async function createTemplate(
+  userId: string,
+  data: CreateTemplateInput
+): Promise<TemplateWithRelations> {
   const template = await prisma.invoiceTemplate.create({
     data: {
       userId,
@@ -149,7 +148,11 @@ function buildItemsCreate(items: NonNullable<UpdateTemplateInput["items"]>) {
   };
 }
 
-export async function updateTemplate(id: string, userId: string, data: UpdateTemplateInput) {
+export async function updateTemplate(
+  id: string,
+  userId: string,
+  data: UpdateTemplateInput
+): Promise<TemplateWithRelations | null> {
   const template = await prisma.invoiceTemplate.findFirst({
     where: { id, userId },
   });
@@ -185,7 +188,10 @@ export async function updateTemplate(id: string, userId: string, data: UpdateTem
   return updated;
 }
 
-export async function deleteTemplate(id: string, userId: string) {
+export async function deleteTemplate(
+  id: string,
+  userId: string
+): Promise<{ success: true } | null> {
   const template = await prisma.invoiceTemplate.findFirst({
     where: { id, userId },
   });

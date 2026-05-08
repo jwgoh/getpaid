@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { withIdempotency } from "@app/shared/api/idempotency";
+import { recordPaymentApiSchema } from "@app/shared/schemas";
+
 import {
   errorResponse,
   notFoundResponse,
   parseBody,
   withAuth,
-} from "@app/shared/api/route-helpers";
-import { recordPaymentApiSchema } from "@app/shared/schemas";
-
-import { deletePayment, getPayments, recordPayment } from "@app/server/invoices";
+} from "@app/server/api/route-helpers";
+import {
+  deletePayment,
+  getPayments,
+  PaymentExceedsBalanceError,
+  recordPayment,
+} from "@app/server/invoices";
 
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
@@ -32,17 +37,29 @@ export const POST = withAuth(
         return error;
       }
 
-      const invoice = await recordPayment(id, user.id, data);
+      try {
+        const invoice = await recordPayment(id, user.id, data);
 
-      if (!invoice) {
-        return errorResponse(
-          "BAD_REQUEST",
-          "Cannot record payment. Invoice may not exist, be a draft, or payment exceeds balance.",
-          400
-        );
+        if (!invoice) {
+          return errorResponse(
+            "BAD_REQUEST",
+            "Cannot record payment. Invoice may not exist or be a draft.",
+            400
+          );
+        }
+
+        return NextResponse.json(invoice);
+      } catch (error) {
+        if (error instanceof PaymentExceedsBalanceError) {
+          return errorResponse(
+            "PAYMENT_EXCEEDS_BALANCE",
+            "Payment amount exceeds the remaining invoice balance.",
+            400
+          );
+        }
+
+        throw error;
       }
-
-      return NextResponse.json(invoice);
     },
     { endpoint: "POST /api/invoices/:id/payments" }
   )

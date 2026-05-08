@@ -1,53 +1,13 @@
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import type { AnalyticsData, CurrencyMetrics, MonthlyRevenue } from "@app/shared/schemas/api";
 
 import { prisma } from "@app/server/db";
-
-interface MonthlyRevenue {
-  month: string;
-  revenue: number;
-}
-
-interface CurrencyMetrics {
-  totalRevenue: number;
-  revenueThisMonth: number;
-  revenueLastMonth: number;
-  outstandingBalance: number;
-  overdueAmount: number;
-  monthlyRevenue: MonthlyRevenue[];
-}
-
-interface RecentInvoice {
-  id: string;
-  publicId: string;
-  status: string;
-  total: number;
-  currency: string;
-  clientName: string;
-  createdAt: string;
-}
 
 interface InvoiceForMetrics {
   status: string;
   total: number;
   paidAt: Date | null;
   dueDate: Date;
-}
-
-export interface AnalyticsData {
-  currencies: string[];
-  byCurrency: Record<string, CurrencyMetrics>;
-  totalRevenue: number;
-  revenueThisMonth: number;
-  revenueLastMonth: number;
-  outstandingBalance: number;
-  overdueAmount: number;
-  totalInvoices: number;
-  paidInvoices: number;
-  overdueInvoices: number;
-  statusCounts: Record<string, number>;
-  monthlyRevenue: MonthlyRevenue[];
-  clientCount: number;
-  recentInvoices: RecentInvoice[];
 }
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;

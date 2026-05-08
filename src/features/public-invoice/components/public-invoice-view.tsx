@@ -29,7 +29,6 @@ import { PaymentReferenceBlock } from "./payment-reference-block";
 import { SenderBillTo } from "./sender-bill-to";
 
 interface Invoice {
-  id: string;
   publicId: string;
   status: string;
   currency: string;
@@ -72,14 +71,14 @@ interface Props {
 const PUBLIC_VISIBLE_STATUSES: Set<string> = new Set([INVOICE_STATUS.PAID, INVOICE_STATUS.OVERDUE]);
 
 export default function PublicInvoiceView({ publicId, invoice, branding, justPaid }: Props) {
-  const [viewTracked, setViewTracked] = React.useState(false);
+  const [isViewTracked, setIsViewTracked] = React.useState(false);
 
   React.useEffect(() => {
-    if (!viewTracked) {
+    if (!isViewTracked) {
       publicApi.markViewed(publicId).catch(console.error);
-      setViewTracked(true);
+      setIsViewTracked(true);
     }
-  }, [publicId, viewTracked]);
+  }, [publicId, isViewTracked]);
 
   const isPaid = invoice.status === INVOICE_STATUS.PAID;
   const isOverdue = invoice.status === INVOICE_STATUS.OVERDUE;
@@ -91,7 +90,7 @@ export default function PublicInvoiceView({ publicId, invoice, branding, justPai
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         bgcolor: "background.default",
         py: 4,
         ...(fontStack && {

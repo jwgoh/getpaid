@@ -1,9 +1,10 @@
 import type { Prisma, SenderProfile } from "@prisma/client";
 import { customAlphabet } from "nanoid";
 
-import { BRANDING, INVOICE } from "@app/shared/config/config";
+import { INVOICE } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 import {
@@ -13,6 +14,11 @@ import {
   type ResendEmailPayload,
 } from "@app/server/email";
 import {
+  buildEmailBranding,
+  mapInvoiceItem,
+  mapInvoiceItemGroups,
+} from "@app/server/email/invoice-email-dto";
+import {
   buildOutboxIdempotencyKey,
   createEmailOutbox,
   dispatchOutbox,
@@ -20,6 +26,7 @@ import {
 import { getFollowUpRule, parseDelaysDays, scheduleFollowUps } from "@app/server/followups";
 import { logInvoiceEvent, updateInvoiceStatus } from "@app/server/invoices";
 import { ITEM_GROUPS_INCLUDE } from "@app/server/invoices/item-groups";
+import type { InvoiceWithRelations } from "@app/server/invoices/mutations";
 
 const generateReference = customAlphabet(
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
@@ -40,16 +47,6 @@ export class InvoiceAlreadySentError extends Error {
   }
 }
 
-function buildEmailBranding(profile: SenderProfile | null): EmailBranding {
-  return {
-    primaryColor: profile?.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR,
-    logoUrl: profile?.logoUrl || null,
-    fontFamily: profile?.fontFamily || null,
-    footerText: profile?.footerText || null,
-    companyAddress: profile?.address || null,
-  };
-}
-
 function resolveSenderInfo(profile: SenderProfile | null, userEmail: string) {
   return {
     name: profile?.companyName || profile?.displayName || userEmail,
@@ -67,7 +64,7 @@ const INVOICE_FOR_SEND_INCLUDE = {
 
 type InvoiceForSend = Prisma.InvoiceGetPayload<{ include: typeof INVOICE_FOR_SEND_INCLUDE }>;
 
-async function loadInvoiceForSend(invoiceId: string, userId: string): Promise<InvoiceForSend> {
+async function loadInvoiceForSend(invoiceId: InvoiceId, userId: UserId): Promise<InvoiceForSend> {
   const invoice = await prisma.invoice.findFirst({
     where: { id: invoiceId, userId },
     include: INVOICE_FOR_SEND_INCLUDE,
@@ -117,29 +114,14 @@ function buildInvoiceEmailData(invoice: InvoiceForSend, ctx: BuildEmailContext):
     message: invoice.message,
     branding: ctx.branding,
     paymentReference: ctx.paymentReference,
-    items: invoice.items.map((item) => ({
-      title: item.title,
-      description: item.description,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      amount: item.amount,
-    })),
-    itemGroups: invoice.itemGroups.map((group) => ({
-      title: group.title,
-      items: group.items.map((item) => ({
-        title: item.title,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        amount: item.amount,
-      })),
-    })),
+    items: invoice.items.map(mapInvoiceItem),
+    itemGroups: mapInvoiceItemGroups(invoice.itemGroups),
   };
 }
 
 interface CommitSendInvoiceInput {
   invoice: InvoiceForSend;
-  userId: string;
+  userId: UserId;
   paymentReference: string;
   sentAt: Date;
   payload: ResendEmailPayload;
@@ -193,7 +175,10 @@ async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string>
   });
 }
 
-export async function sendInvoice(invoiceId: string, userId: string) {
+export async function sendInvoice(
+  invoiceId: InvoiceId,
+  userId: UserId
+): Promise<InvoiceWithRelations | null> {
   const invoice = await loadInvoiceForSend(invoiceId, userId);
   const ctx = buildSendContext(invoice);
   const sentAt = new Date();

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { ApiError } from "@app/shared/api";
+import { ApiError, extractApiErrorMessage } from "@app/shared/api";
 import { PAGINATION, SEARCH } from "@app/shared/config/config";
 import { queryKeys } from "@app/shared/config/query";
 import {
@@ -77,9 +77,7 @@ export function useClientsPage() {
         return;
       }
 
-      toast.error(
-        err instanceof ApiError ? err.message : `Failed to delete ${entityName.toLowerCase()}`
-      );
+      toast.error(extractApiErrorMessage(err, `Failed to delete ${entityName.toLowerCase()}`));
     },
   });
 

@@ -1,8 +1,10 @@
+import { CURRENCY } from "@app/shared/config/config";
+
 export function formatCurrency(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-  }).format(amount / 100);
+  }).format(amount / CURRENCY.CENTS_MULTIPLIER);
 }
 
 export function formatCurrencyCompact(amount: number, currency = "USD"): string {
@@ -11,7 +13,7 @@ export function formatCurrencyCompact(amount: number, currency = "USD"): string 
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount / 100);
+  }).format(amount / CURRENCY.CENTS_MULTIPLIER);
 }
 
 export function formatDate(date: string | Date): string {

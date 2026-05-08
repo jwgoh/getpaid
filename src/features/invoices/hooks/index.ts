@@ -6,9 +6,10 @@ import { generateIdempotencyKey } from "@app/shared/api/idempotency-key";
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { queryKeys, STALE_TIME } from "@app/shared/config/query";
 import type { CreateInvoiceInput, UpdateInvoiceInput } from "@app/shared/schemas";
-import type { Invoice, InvoiceListItem } from "@app/shared/schemas/api";
+import type { InvoiceListItem } from "@app/shared/schemas/api";
 
 import { invoicesApi, type RecordPaymentInput } from "../api";
+import { useOptimisticInvoiceMutation } from "./use-optimistic-invoice-mutation";
 
 export function useInvoices() {
   return useQuery({
@@ -51,86 +52,16 @@ export function useUpdateInvoice() {
 }
 
 export function useSendInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => invoicesApi.send(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.invoices });
-      await queryClient.cancelQueries({ queryKey: queryKeys.invoice(id) });
-
-      const previousInvoices = queryClient.getQueryData<InvoiceListItem[]>(queryKeys.invoices);
-      const previousInvoice = queryClient.getQueryData<Invoice>(queryKeys.invoice(id));
-
-      queryClient.setQueryData<InvoiceListItem[]>(queryKeys.invoices, (old) =>
-        old?.map((invoice) =>
-          invoice.id === id
-            ? { ...invoice, status: INVOICE_STATUS.SENT, sentAt: new Date().toISOString() }
-            : invoice
-        )
-      );
-
-      queryClient.setQueryData<Invoice>(queryKeys.invoice(id), (old) =>
-        old ? { ...old, status: INVOICE_STATUS.SENT, sentAt: new Date().toISOString() } : old
-      );
-
-      return { previousInvoices, previousInvoice };
-    },
-    onError: (_, id, context) => {
-      if (context?.previousInvoices) {
-        queryClient.setQueryData(queryKeys.invoices, context.previousInvoices);
-      }
-
-      if (context?.previousInvoice) {
-        queryClient.setQueryData(queryKeys.invoice(id), context.previousInvoice);
-      }
-    },
-    onSettled: (_, __, id) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.invoice(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.invoices });
-    },
+  return useOptimisticInvoiceMutation({
+    mutationFn: (id) => invoicesApi.send(id),
+    buildPatch: () => ({ status: INVOICE_STATUS.SENT, sentAt: new Date().toISOString() }),
   });
 }
 
 export function useMarkInvoicePaid() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => invoicesApi.markPaid(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.invoices });
-      await queryClient.cancelQueries({ queryKey: queryKeys.invoice(id) });
-
-      const previousInvoices = queryClient.getQueryData<InvoiceListItem[]>(queryKeys.invoices);
-      const previousInvoice = queryClient.getQueryData<Invoice>(queryKeys.invoice(id));
-
-      queryClient.setQueryData<InvoiceListItem[]>(queryKeys.invoices, (old) =>
-        old?.map((invoice) =>
-          invoice.id === id
-            ? { ...invoice, status: INVOICE_STATUS.PAID, paidAt: new Date().toISOString() }
-            : invoice
-        )
-      );
-
-      queryClient.setQueryData<Invoice>(queryKeys.invoice(id), (old) =>
-        old ? { ...old, status: INVOICE_STATUS.PAID, paidAt: new Date().toISOString() } : old
-      );
-
-      return { previousInvoices, previousInvoice };
-    },
-    onError: (_, id, context) => {
-      if (context?.previousInvoices) {
-        queryClient.setQueryData(queryKeys.invoices, context.previousInvoices);
-      }
-
-      if (context?.previousInvoice) {
-        queryClient.setQueryData(queryKeys.invoice(id), context.previousInvoice);
-      }
-    },
-    onSettled: (_, __, id) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.invoice(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.invoices });
-    },
+  return useOptimisticInvoiceMutation({
+    mutationFn: (id) => invoicesApi.markPaid(id),
+    buildPatch: () => ({ status: INVOICE_STATUS.PAID, paidAt: new Date().toISOString() }),
   });
 }
 

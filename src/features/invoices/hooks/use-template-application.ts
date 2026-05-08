@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { CURRENCY } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import type { InvoiceFormInput } from "@app/shared/schemas";
 
@@ -11,14 +12,14 @@ import type { InvoiceFormMode, TemplateData } from "../types";
 export function useTemplateApplication(
   mode: InvoiceFormMode,
   template: TemplateData | undefined,
-  templateLoading: boolean,
+  isTemplateLoading: boolean,
   reset: (values: InvoiceFormInput) => void
 ) {
   const toast = useToast();
-  const [templateApplied, setTemplateApplied] = React.useState(false);
+  const [isTemplateApplied, setIsTemplateApplied] = React.useState(false);
 
   React.useEffect(() => {
-    if (mode === "create" && template && !templateApplied && !templateLoading) {
+    if (mode === "create" && template && !isTemplateApplied && !isTemplateLoading) {
       reset({
         clientId: "",
         currency: template.currency,
@@ -27,7 +28,7 @@ export function useTemplateApplication(
           title: item.title,
           description: item.description ?? "",
           quantity: item.quantity,
-          unitPrice: item.unitPrice / 100,
+          unitPrice: item.unitPrice / CURRENCY.CENTS_MULTIPLIER,
         })),
         itemGroups: template.itemGroups.map((group) => ({
           title: group.title,
@@ -35,13 +36,13 @@ export function useTemplateApplication(
             title: item.title,
             description: item.description ?? "",
             quantity: item.quantity,
-            unitPrice: item.unitPrice / 100,
+            unitPrice: item.unitPrice / CURRENCY.CENTS_MULTIPLIER,
           })),
         })),
         notes: template.notes || "",
       });
-      setTemplateApplied(true);
+      setIsTemplateApplied(true);
       toast.success(`Template "${template.name}" applied`);
     }
-  }, [mode, template, templateApplied, templateLoading, reset, toast]);
+  }, [mode, template, isTemplateApplied, isTemplateLoading, reset, toast]);
 }

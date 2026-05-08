@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { updateInvoiceSchema } from "@app/shared/schemas";
+import { asInvoiceId, asUserId } from "@app/shared/types/ids";
 
+import { notFoundResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
 import { deleteInvoice, getInvoice, updateInvoice } from "@app/server/invoices";
 
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
-  const invoice = await getInvoice(id, user.id);
+  const invoice = await getInvoice(asInvoiceId(id), asUserId(user.id));
 
   if (!invoice) {
     return notFoundResponse("Invoice");
@@ -24,7 +25,7 @@ export const PATCH = withAuth(async (user, request, context) => {
     return error;
   }
 
-  const invoice = await updateInvoice(id, user.id, data);
+  const invoice = await updateInvoice(asInvoiceId(id), asUserId(user.id), data);
 
   if (!invoice) {
     return notFoundResponse("Invoice");
@@ -35,7 +36,7 @@ export const PATCH = withAuth(async (user, request, context) => {
 
 export const DELETE = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
-  const result = await deleteInvoice(id, user.id);
+  const result = await deleteInvoice(asInvoiceId(id), asUserId(user.id));
 
   if (!result) {
     return notFoundResponse("Invoice");

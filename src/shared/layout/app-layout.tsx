@@ -14,7 +14,7 @@ import { ErrorBoundary } from "@app/shared/ui/error-boundary";
 import { KeyboardShortcutsDialog } from "@app/shared/ui/keyboard-shortcuts-dialog";
 import { PageTransition } from "@app/shared/ui/page-transition";
 
-import { useThemeMode } from "@app/providers/theme/registry";
+import { useThemeMode } from "@app/providers";
 
 import { buildShortcuts } from "./components/keyboard-shortcuts";
 import { MobileDrawer } from "./components/mobile-drawer";
@@ -77,7 +77,7 @@ export function AppLayout({ children, maxWidth = "lg", disablePadding = false }:
     <Stack
       direction="row"
       sx={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         bgcolor: "background.default",
       }}
     >
@@ -90,7 +90,7 @@ export function AppLayout({ children, maxWidth = "lg", disablePadding = false }:
           flex: 1,
           minWidth: 0,
           ml: { xs: 0, md: `${sidebarWidth}px` },
-          minHeight: "100vh",
+          minHeight: "100dvh",
           transition: (t) => t.transitions.create("margin-left"),
         }}
       >

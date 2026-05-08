@@ -1,4 +1,4 @@
-import { PaymentMethod } from "@prisma/client";
+import { PaymentMethod, Prisma } from "@prisma/client";
 
 import {
   FOLLOWUP_STATUS,
@@ -8,6 +8,42 @@ import {
 } from "@app/shared/config/invoice-status";
 
 import { prisma } from "@app/server/db";
+
+const PG_CHECK_VIOLATION = "23514";
+const INVOICE_PAID_AMOUNT_CHECK = "Invoice_paidAmount_lte_total_check";
+
+export class PaymentExceedsBalanceError extends Error {
+  constructor() {
+    super("Payment would cause paid amount to exceed invoice total");
+    this.name = "PaymentExceedsBalanceError";
+  }
+}
+
+function isPaidAmountCheckViolation(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) &&
+    !(error instanceof Prisma.PrismaClientUnknownRequestError) &&
+    !(error instanceof Error)
+  ) {
+    return false;
+  }
+
+  const meta =
+    error instanceof Prisma.PrismaClientKnownRequestError
+      ? ((error.meta ?? {}) as { code?: string; constraint?: string })
+      : {};
+
+  if (meta.constraint === INVOICE_PAID_AMOUNT_CHECK || meta.code === PG_CHECK_VIOLATION) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : "";
+
+  return (
+    message.includes(INVOICE_PAID_AMOUNT_CHECK) ||
+    (message.includes(PG_CHECK_VIOLATION) && message.includes("paidAmount"))
+  );
+}
 
 export interface RecordPaymentInput {
   amount: number;
@@ -19,6 +55,7 @@ export interface RecordPaymentInput {
 export async function recordPayment(id: string, userId: string, data: RecordPaymentInput) {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
+    select: { id: true, status: true },
   });
 
   if (!invoice) {
@@ -29,65 +66,71 @@ export async function recordPayment(id: string, userId: string, data: RecordPaym
     return null;
   }
 
-  const remainingBalance = invoice.total - invoice.paidAmount;
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const incremented = await tx.invoice.update({
+        where: { id },
+        data: { paidAmount: { increment: data.amount } },
+        select: { paidAmount: true, total: true },
+      });
 
-  if (data.amount > remainingBalance) {
-    return null;
-  }
+      const isFullyPaid = incremented.paidAmount >= incremented.total;
 
-  const newPaidAmount = invoice.paidAmount + data.amount;
-  const isFullyPaid = newPaidAmount >= invoice.total;
-
-  return prisma.$transaction(async (tx) => {
-    const payment = await tx.payment.create({
-      data: {
-        invoiceId: id,
-        amount: data.amount,
-        method: data.method,
-        note: data.note,
-        paidAt: data.paidAt || new Date(),
-      },
-    });
-
-    const updatedInvoice = await tx.invoice.update({
-      where: { id },
-      data: {
-        paidAmount: newPaidAmount,
-        status: isFullyPaid ? INVOICE_STATUS.PAID : INVOICE_STATUS.PARTIALLY_PAID,
-        paidAt: isFullyPaid ? new Date() : null,
-        paymentMethod: isFullyPaid ? data.method : null,
-      },
-      include: {
-        client: true,
-        items: true,
-        payments: {
-          orderBy: { paidAt: "desc" },
-        },
-      },
-    });
-
-    await tx.invoiceEvent.create({
-      data: {
-        invoiceId: id,
-        type: INVOICE_EVENT.PAYMENT_RECORDED,
-        payload: {
+      const payment = await tx.payment.create({
+        data: {
+          invoiceId: id,
           amount: data.amount,
           method: data.method,
           note: data.note,
-          paymentId: payment.id,
+          paidAt: data.paidAt || new Date(),
         },
-      },
-    });
-
-    if (isFullyPaid) {
-      await tx.followUpJob.updateMany({
-        where: { invoiceId: id, status: FOLLOWUP_STATUS.PENDING },
-        data: { status: FOLLOWUP_STATUS.CANCELED },
       });
+
+      const updatedInvoice = await tx.invoice.update({
+        where: { id },
+        data: {
+          status: isFullyPaid ? INVOICE_STATUS.PAID : INVOICE_STATUS.PARTIALLY_PAID,
+          paidAt: isFullyPaid ? new Date() : null,
+          paymentMethod: isFullyPaid ? data.method : null,
+        },
+        include: {
+          client: true,
+          items: true,
+          payments: {
+            orderBy: { paidAt: "desc" },
+          },
+        },
+      });
+
+      await tx.invoiceEvent.create({
+        data: {
+          invoiceId: id,
+          type: INVOICE_EVENT.PAYMENT_RECORDED,
+          payload: {
+            amount: data.amount,
+            method: data.method,
+            note: data.note,
+            paymentId: payment.id,
+          },
+        },
+      });
+
+      if (isFullyPaid) {
+        await tx.followUpJob.updateMany({
+          where: { invoiceId: id, status: FOLLOWUP_STATUS.PENDING },
+          data: { status: FOLLOWUP_STATUS.CANCELED },
+        });
+      }
+
+      return updatedInvoice;
+    });
+  } catch (error) {
+    if (isPaidAmountCheckViolation(error)) {
+      throw new PaymentExceedsBalanceError();
     }
 
-    return updatedInvoice;
-  });
+    throw error;
+  }
 }
 
 export async function getPayments(invoiceId: string, userId: string) {
@@ -117,10 +160,6 @@ export async function deletePayment(paymentId: string, userId: string) {
     return null;
   }
 
-  if (payment.invoice.status === INVOICE_STATUS.PAID) {
-    return null;
-  }
-
   const newPaidAmount = payment.invoice.paidAmount - payment.amount;
 
   let newStatus: InvoiceStatusValue;
@@ -138,11 +177,13 @@ export async function deletePayment(paymentId: string, userId: string) {
       where: { id: paymentId },
     });
 
-    return tx.invoice.update({
+    const updatedInvoice = await tx.invoice.update({
       where: { id: payment.invoiceId },
       data: {
         paidAmount: newPaidAmount,
         status: newStatus,
+        paidAt: null,
+        paymentMethod: null,
       },
       include: {
         client: true,
@@ -152,5 +193,22 @@ export async function deletePayment(paymentId: string, userId: string) {
         },
       },
     });
+
+    await tx.invoiceEvent.create({
+      data: {
+        invoiceId: payment.invoiceId,
+        type: INVOICE_EVENT.PAYMENT_DELETED,
+        payload: {
+          paymentId,
+          amount: payment.amount,
+          method: payment.method,
+          actorUserId: userId,
+          previousStatus: payment.invoice.status,
+          newStatus,
+        },
+      },
+    });
+
+    return updatedInvoice;
   });
 }

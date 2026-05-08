@@ -19,7 +19,7 @@ import {
 
 import { UI } from "@app/shared/config/config";
 
-import { useThemeMode } from "@app/providers/theme/registry";
+import { useThemeMode } from "@app/providers";
 
 function getInitials(email: string): string {
   return email.charAt(0).toUpperCase();
@@ -85,7 +85,12 @@ export function SidebarUserProfile({ collapsed }: SidebarUserProfileProps) {
         }}
       >
         <Tooltip title={mode === "dark" ? "Light mode" : "Dark mode"}>
-          <IconButton size="small" onClick={toggleTheme} sx={{ color: "text.secondary" }}>
+          <IconButton
+            size="small"
+            onClick={toggleTheme}
+            sx={{ color: "text.secondary" }}
+            aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
             {mode === "dark" ? (
               <Brightness7Icon fontSize="small" />
             ) : (
@@ -100,6 +105,7 @@ export function SidebarUserProfile({ collapsed }: SidebarUserProfileProps) {
               size="small"
               onClick={() => signOut({ callbackUrl: "/auth/sign-in" })}
               sx={{ color: "text.secondary" }}
+              aria-label="Sign out"
             >
               <LogoutIcon fontSize="small" />
             </IconButton>

@@ -1,15 +1,12 @@
 import { prisma } from "@app/server/db";
+import {
+  RECURRING_INCLUDE,
+  type RecurringInvoiceWithRelations,
+} from "@app/server/recurring/include";
 
-const RECURRING_INCLUDE = {
-  client: { select: { id: true, name: true, email: true } },
-  items: { orderBy: { sortOrder: "asc" as const } },
-  itemGroups: {
-    include: { items: { orderBy: { sortOrder: "asc" as const } } },
-    orderBy: { sortOrder: "asc" as const },
-  },
-};
-
-export async function getRecurringInvoices(userId: string) {
+export async function getRecurringInvoices(
+  userId: string
+): Promise<RecurringInvoiceWithRelations[]> {
   return prisma.recurringInvoice.findMany({
     where: { userId },
     include: RECURRING_INCLUDE,
@@ -17,7 +14,10 @@ export async function getRecurringInvoices(userId: string) {
   });
 }
 
-export async function getRecurringInvoice(userId: string, id: string) {
+export async function getRecurringInvoice(
+  userId: string,
+  id: string
+): Promise<RecurringInvoiceWithRelations | null> {
   return prisma.recurringInvoice.findFirst({
     where: { id, userId },
     include: RECURRING_INCLUDE,

@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { queryKeys } from "@app/shared/config/query";
 import { useToast } from "@app/shared/hooks/use-toast";
 import type { CreateClientInput } from "@app/shared/schemas";
@@ -30,7 +30,7 @@ export function useClientDialog(createClientMutation: CreateClientMutation) {
       createClientMutation.mutate(data, {
         onSuccess: () => handleSuccess(),
         onError: (err) => {
-          setError(err instanceof ApiError ? err.message : "Failed to create client");
+          setError(extractApiErrorMessage(err, "Failed to create client"));
         },
       });
     },

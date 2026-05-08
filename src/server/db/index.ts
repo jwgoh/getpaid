@@ -7,8 +7,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+const SERVERLESS_POOL_MAX = 1;
+const SERVERLESS_IDLE_TIMEOUT_MS = 10_000;
+const SERVERLESS_CONNECTION_TIMEOUT_MS = 10_000;
+
 function createClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+  const adapter = new PrismaPg({
+    connectionString: env.DATABASE_URL,
+    max: SERVERLESS_POOL_MAX,
+    idleTimeoutMillis: SERVERLESS_IDLE_TIMEOUT_MS,
+    connectionTimeoutMillis: SERVERLESS_CONNECTION_TIMEOUT_MS,
+  });
 
   return new PrismaClient({
     adapter,

@@ -3,19 +3,28 @@ import { z } from "zod";
 import { BRANDING, INVOICE } from "@app/shared/config/config";
 import { DISCOUNT_TYPE } from "@app/shared/config/invoice-status";
 
+import { SCHEMA_LIMITS } from "./limits";
 import { lineItemGroupSchema, lineItemSchema } from "./line-item";
 
 export const invoiceItemSchema = lineItemSchema;
 export const invoiceItemGroupSchema = lineItemGroupSchema;
 
-const tagSchema = z.string().min(1).max(30);
+const tagSchema = z.string().min(1).max(SCHEMA_LIMITS.TAG_MAX);
+
+export const invoiceTagsSchema = z.array(z.string());
+
+export function parseInvoiceTags(value: unknown): string[] {
+  const result = invoiceTagsSchema.safeParse(value);
+
+  return result.success ? result.data : [];
+}
 
 export const discountTypeSchema = z.nativeEnum(DISCOUNT_TYPE);
 
 export const discountSchema = z
   .object({
     type: discountTypeSchema,
-    value: z.number().min(0),
+    value: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS),
   })
   .nullable()
   .optional();
@@ -23,14 +32,14 @@ export const discountSchema = z
 export const invoiceFormSchema = z
   .object({
     clientId: z.string().min(1, "Client is required"),
-    currency: z.string().min(1, "Currency is required"),
+    currency: z.string().min(1, "Currency is required").max(SCHEMA_LIMITS.CURRENCY_CODE_MAX),
     dueDate: z.string().min(1, "Due date is required"),
     periodStart: z.string().optional(),
     periodEnd: z.string().optional(),
     items: z.array(invoiceItemSchema),
     itemGroups: z.array(invoiceItemGroupSchema).optional(),
-    notes: z.string().optional(),
-    message: z.string().optional(),
+    notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional(),
+    message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional(),
     tags: z.array(tagSchema).optional(),
     discount: discountSchema,
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
@@ -65,7 +74,7 @@ const optionalDateTransform = z
 export const createInvoiceSchema = z
   .object({
     clientId: z.string().min(1, "Client is required"),
-    currency: z.string().default(BRANDING.DEFAULT_CURRENCY),
+    currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).default(BRANDING.DEFAULT_CURRENCY),
     dueDate: z
       .string()
       .or(z.date())
@@ -74,8 +83,8 @@ export const createInvoiceSchema = z
     periodEnd: optionalDateTransform,
     items: z.array(invoiceItemSchema),
     itemGroups: z.array(invoiceItemGroupSchema).optional(),
-    notes: z.string().optional(),
-    message: z.string().optional(),
+    notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional(),
+    message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional(),
     tags: z.array(tagSchema).optional(),
     discount: discountSchema,
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
@@ -92,7 +101,7 @@ export const createInvoiceSchema = z
 
 export const updateInvoiceSchema = z.object({
   clientId: z.string().optional(),
-  currency: z.string().optional(),
+  currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).optional(),
   dueDate: z
     .string()
     .or(z.date())
@@ -102,8 +111,8 @@ export const updateInvoiceSchema = z.object({
   periodEnd: optionalDateTransform,
   items: z.array(invoiceItemSchema).optional(),
   itemGroups: z.array(invoiceItemGroupSchema).optional(),
-  notes: z.string().optional().nullable(),
-  message: z.string().optional().nullable(),
+  notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional().nullable(),
+  message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional().nullable(),
   tags: z.array(tagSchema).optional(),
   discount: discountSchema,
   taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),

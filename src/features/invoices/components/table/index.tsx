@@ -74,7 +74,7 @@ export function InvoicesTable({
   onToggleSelectAll,
 }: InvoicesTableProps) {
   const displayedInvoices = showAll ? filteredInvoices : paginatedInvoices;
-  const { onKeyDown: tableKeyDown } = useTableKeyboardNav(displayedInvoices.length, {
+  const { onKeyDown: tableKeyDown, focusedIndex } = useTableKeyboardNav(displayedInvoices.length, {
     onActivate: (index) => {
       const invoice = displayedInvoices[index];
 
@@ -142,6 +142,7 @@ export function InvoicesTable({
           virtualItems={virtualItems}
           totalSize={totalSize}
           selectedIds={selectedIds}
+          focusedIndex={focusedIndex}
           onToggleSelect={onToggleSelect}
           onRowClick={onRowClick}
           onMenuOpen={onMenuOpen}
@@ -151,6 +152,7 @@ export function InvoicesTable({
         <PaginatedRows
           invoices={paginatedInvoices}
           selectedIds={selectedIds}
+          focusedIndex={focusedIndex}
           onToggleSelect={onToggleSelect}
           onRowClick={onRowClick}
           onMenuOpen={onMenuOpen}

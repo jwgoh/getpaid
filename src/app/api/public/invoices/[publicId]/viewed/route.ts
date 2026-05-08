@@ -1,28 +1,34 @@
 import { NextResponse } from "next/server";
 
+import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
+import { asPublicId } from "@app/shared/types/ids";
+
 import { getUser } from "@app/server/auth/require-user";
-import { getInvoiceByPublicId, markInvoiceViewed } from "@app/server/invoices";
+import { tryMarkViewed } from "@app/server/invoices";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ publicId: string }> }
 ) {
+  const { response: limited } = await applyRateLimit(request, {
+    bucket: "public.invoice.viewed",
+    ...RATE_LIMITS.PUBLIC_VIEW,
+  });
+
+  if (limited) {
+    return limited;
+  }
+
   try {
     const { publicId } = await params;
+    const user = await getUser();
+    const result = await tryMarkViewed(asPublicId(publicId), user?.id ?? null);
 
-    const invoice = await getInvoiceByPublicId(publicId);
-
-    if (!invoice) {
+    if (!result.found) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Invoice not found" } },
         { status: 404 }
       );
-    }
-
-    const user = await getUser();
-
-    if (user?.id !== invoice.userId) {
-      await markInvoiceViewed(publicId);
     }
 
     return NextResponse.json({ success: true });

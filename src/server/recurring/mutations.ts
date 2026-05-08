@@ -5,6 +5,11 @@ import type { DiscountInput } from "@app/shared/lib/calculations";
 import type { LineItemGroupInput, LineItemInput } from "@app/shared/schemas";
 
 import { prisma } from "@app/server/db";
+import { buildItemRowBase, createItemGroupsGeneric } from "@app/server/invoices/item-groups";
+import {
+  RECURRING_INCLUDE,
+  type RecurringInvoiceWithRelations,
+} from "@app/server/recurring/include";
 
 export class ClientNotFoundError extends Error {
   constructor() {
@@ -52,44 +57,23 @@ export interface UpdateRecurringInvoiceInput {
   itemGroups?: LineItemGroupInput[];
 }
 
-const RECURRING_INCLUDE = {
-  client: { select: { id: true, name: true, email: true } },
-  items: { orderBy: { sortOrder: "asc" as const } },
-  itemGroups: {
-    include: { items: { orderBy: { sortOrder: "asc" as const } } },
-    orderBy: { sortOrder: "asc" as const },
-  },
-};
-
 async function createRecurringItemGroups(
   tx: Prisma.TransactionClient,
   recurringInvoiceId: string,
   groups: LineItemGroupInput[]
 ) {
-  for (let gi = 0; gi < groups.length; gi++) {
-    const group = groups[gi];
-    const created = await tx.recurringInvoiceItemGroup.create({
-      data: {
-        recurringInvoiceId,
-        title: group.title,
-        sortOrder: gi,
-      },
-    });
-
-    if (group.items.length > 0) {
-      await tx.recurringInvoiceItem.createMany({
-        data: group.items.map((item, ii) => ({
-          recurringInvoiceId,
-          groupId: created.id,
-          title: item.title,
-          description: item.description ?? null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          sortOrder: ii,
-        })),
-      });
-    }
-  }
+  await createItemGroupsGeneric({
+    groups,
+    createGroup: ({ title, sortOrder }) =>
+      tx.recurringInvoiceItemGroup.create({
+        data: { recurringInvoiceId, title, sortOrder },
+      }),
+    buildItemRow: (item, groupId, sortOrder) => ({
+      ...buildItemRowBase(item, groupId, sortOrder),
+      recurringInvoiceId,
+    }),
+    createManyItems: (data) => tx.recurringInvoiceItem.createMany({ data }),
+  });
 }
 
 async function deleteRecurringItems(tx: Prisma.TransactionClient, recurringInvoiceId: string) {
@@ -97,7 +81,10 @@ async function deleteRecurringItems(tx: Prisma.TransactionClient, recurringInvoi
   await tx.recurringInvoiceItemGroup.deleteMany({ where: { recurringInvoiceId } });
 }
 
-export async function createRecurringInvoice(userId: string, data: CreateRecurringInvoiceInput) {
+export async function createRecurringInvoice(
+  userId: string,
+  data: CreateRecurringInvoiceInput
+): Promise<RecurringInvoiceWithRelations> {
   const client = await prisma.client.findFirst({
     where: { id: data.clientId, userId },
   });
@@ -152,7 +139,7 @@ export async function updateRecurringInvoice(
   userId: string,
   id: string,
   data: UpdateRecurringInvoiceInput
-) {
+): Promise<RecurringInvoiceWithRelations> {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.recurringInvoice.findFirst({
       where: { id, userId },
@@ -212,7 +199,10 @@ export async function updateRecurringInvoice(
   });
 }
 
-export async function deleteRecurringInvoice(userId: string, id: string) {
+export async function deleteRecurringInvoice(
+  userId: string,
+  id: string
+): Promise<{ success: true }> {
   const existing = await prisma.recurringInvoice.findFirst({
     where: { id, userId },
   });

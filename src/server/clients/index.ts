@@ -1,4 +1,7 @@
+import type { Client } from "@prisma/client";
+
 import { CreateClientInput, UpdateClientInput } from "@app/shared/schemas";
+import type { ClientId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -12,20 +15,20 @@ export class ClientHasDependentsError extends Error {
   }
 }
 
-export async function getClients(userId: string) {
+export async function getClients(userId: UserId): Promise<Client[]> {
   return prisma.client.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function getClient(id: string, userId: string) {
+export async function getClient(id: ClientId, userId: UserId): Promise<Client | null> {
   return prisma.client.findFirst({
     where: { id, userId },
   });
 }
 
-export async function createClient(userId: string, data: CreateClientInput) {
+export async function createClient(userId: UserId, data: CreateClientInput): Promise<Client> {
   return prisma.client.create({
     data: {
       userId,
@@ -36,7 +39,11 @@ export async function createClient(userId: string, data: CreateClientInput) {
   });
 }
 
-export async function updateClient(id: string, userId: string, data: UpdateClientInput) {
+export async function updateClient(
+  id: ClientId,
+  userId: UserId,
+  data: UpdateClientInput
+): Promise<Client | null> {
   const client = await prisma.client.findFirst({
     where: { id, userId },
   });
@@ -55,7 +62,7 @@ export async function updateClient(id: string, userId: string, data: UpdateClien
   });
 }
 
-export async function deleteClient(id: string, userId: string) {
+export async function deleteClient(id: ClientId, userId: UserId): Promise<Client | null> {
   const client = await prisma.client.findFirst({
     where: { id, userId },
   });

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { withIdempotency } from "@app/shared/api/idempotency";
-import { errorResponse, notFoundResponse, withAuth } from "@app/shared/api/route-helpers";
 
+import { errorResponse, notFoundResponse, withAuth } from "@app/server/api/route-helpers";
 import { generateInvoiceFromRecurring, getRecurringInvoice } from "@app/server/recurring";
 
 export const POST = withAuth(

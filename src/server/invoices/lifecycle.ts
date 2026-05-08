@@ -1,10 +1,25 @@
-import { InvoiceEventType, InvoiceStatus, PaymentMethod, Prisma } from "@prisma/client";
+import {
+  Invoice,
+  InvoiceEvent,
+  InvoiceEventType,
+  InvoiceStatus,
+  PaymentMethod,
+  Prisma,
+} from "@prisma/client";
 
 import { FOLLOWUP_STATUS, INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import type { InvoiceId, PublicId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
-export async function markInvoiceViewed(publicId: string) {
+const INVOICE_PAID_INCLUDE = {
+  client: true,
+  items: true,
+} as const satisfies Prisma.InvoiceInclude;
+
+export type InvoicePaidEntity = Prisma.InvoiceGetPayload<{ include: typeof INVOICE_PAID_INCLUDE }>;
+
+export async function markInvoiceViewed(publicId: PublicId): Promise<Invoice | null> {
   const invoice = await prisma.invoice.findUnique({
     where: { publicId },
   });
@@ -33,10 +48,10 @@ export async function markInvoiceViewed(publicId: string) {
 }
 
 export async function markInvoicePaid(
-  id: string,
-  userId: string,
+  id: InvoiceId,
+  userId: UserId,
   method: PaymentMethod = "MANUAL"
-) {
+): Promise<InvoicePaidEntity | null> {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
       where: { id, userId, paidAt: null },
@@ -53,10 +68,7 @@ export async function markInvoicePaid(
         paidAt: new Date(),
         paymentMethod: method,
       },
-      include: {
-        client: true,
-        items: true,
-      },
+      include: INVOICE_PAID_INCLUDE,
     });
 
     await tx.invoiceEvent.create({
@@ -83,7 +95,7 @@ export async function updateInvoiceStatus(
   status: InvoiceStatus,
   additionalData: Record<string, unknown> = {},
   client: InvoiceClient = prisma
-) {
+): Promise<Invoice> {
   return client.invoice.update({
     where: { id },
     data: {
@@ -98,7 +110,7 @@ export async function logInvoiceEvent(
   type: InvoiceEventType,
   payload: Prisma.InputJsonValue = {},
   client: InvoiceClient = prisma
-) {
+): Promise<InvoiceEvent> {
   return client.invoiceEvent.create({
     data: {
       invoiceId,

@@ -1,3 +1,4 @@
+import { PERCENT } from "@app/shared/config/config";
 import {
   DISCOUNT_NONE,
   DISCOUNT_TYPE,
@@ -33,14 +34,14 @@ export function calculateTotals(
 
   if (discount && discount.value > 0) {
     if (discount.type === DISCOUNT_TYPE.PERCENTAGE) {
-      discountAmount = Math.round((subtotal * discount.value) / 100);
+      discountAmount = Math.round((subtotal * discount.value) / PERCENT.DIVISOR);
     } else {
       discountAmount = discount.value;
     }
   }
 
   const afterDiscount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = taxRate ? Math.round((afterDiscount * taxRate) / 100) : 0;
+  const taxAmount = taxRate ? Math.round((afterDiscount * taxRate) / PERCENT.DIVISOR) : 0;
   const total = afterDiscount + taxAmount;
 
   return { subtotal, discountAmount, taxAmount, total };

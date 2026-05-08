@@ -57,6 +57,7 @@ interface DataTableRowProps {
   onClick?: () => void;
   onMouseEnter?: () => void;
   selected?: boolean;
+  focused?: boolean;
   height?: number;
   dataIndex?: number;
   sx?: Record<string, unknown>;
@@ -117,8 +118,15 @@ export function DataTable({
     <Paper sx={{ borderRadius: 3, overflow: "hidden" }} onKeyDown={onKeyDown}>
       <TableContainer
         ref={containerRef}
+        tabIndex={onKeyDown ? 0 : undefined}
         sx={{
           maxHeight,
+          outline: "none",
+          "&:focus-visible": {
+            outline: "2px solid",
+            outlineColor: "primary.main",
+            outlineOffset: -2,
+          },
           "& .MuiTableHead-root": {
             bgcolor: alpha(theme.palette.primary.main, UI.ALPHA_HOVER),
           },
@@ -169,6 +177,7 @@ export function DataTableRow({
   onClick,
   onMouseEnter,
   selected,
+  focused,
   height,
   dataIndex,
   sx,
@@ -180,12 +189,24 @@ export function DataTableRow({
       hover
       selected={selected}
       data-index={dataIndex}
+      data-focused={focused || undefined}
       sx={{
         cursor: onClick ? "pointer" : undefined,
         height,
         "&:hover": {
           bgcolor: alpha(theme.palette.primary.main, UI.ALPHA_HOVER),
         },
+        "&:focus-visible": {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: -2,
+        },
+        ...(focused && {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: -2,
+          bgcolor: alpha(theme.palette.primary.main, UI.ALPHA_HOVER),
+        }),
         ...sx,
       }}
       onClick={onClick}

@@ -132,7 +132,7 @@ function renderDates(doc: jsPDF, invoice: InvoicePdfData): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const hasPeriod = invoice.periodStart && invoice.periodEnd;
   const rowCount = hasPeriod ? 2 : 1;
-  const blockHeight = LAYOUT.DATES_HEIGHT + (rowCount > 1 ? 18 : 0);
+  const blockHeight = LAYOUT.DATES_HEIGHT + (rowCount > 1 ? LAYOUT.DATES_PERIOD_ROW_OFFSET : 0);
   const yPos = LAYOUT.DATES_Y;
 
   doc.setFillColor(...PDF_COLORS.background);
@@ -165,7 +165,7 @@ function renderDates(doc: jsPDF, invoice: InvoicePdfData): void {
   }
 
   if (hasPeriod && invoice.periodStart && invoice.periodEnd) {
-    const periodY = yPos + 18;
+    const periodY = yPos + LAYOUT.DATES_PERIOD_ROW_OFFSET;
 
     doc.setFontSize(LAYOUT.DATES_LABEL_SIZE);
     doc.setTextColor(...PDF_COLORS.muted);
@@ -330,7 +330,7 @@ export function generateInvoicePdf(invoice: InvoicePdfData): void {
   renderClientInfo(doc, invoice);
   renderDates(doc, invoice);
   const hasPeriod = invoice.periodStart && invoice.periodEnd;
-  const tableStartOffset = hasPeriod ? 18 : 0;
+  const tableStartOffset = hasPeriod ? LAYOUT.DATES_PERIOD_ROW_OFFSET : 0;
   const tableEndY = renderItemsTable(doc, invoice, tableStartOffset);
   const totalsEndY = renderTotals(doc, invoice, tableEndY);
 

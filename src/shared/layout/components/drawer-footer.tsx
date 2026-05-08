@@ -5,7 +5,7 @@ import Brightness7Icon from "@mui/icons-material/Brightness7";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { Box, Button, Divider, IconButton, Stack, Typography } from "@mui/material";
 
-import type { ThemeMode } from "@app/providers/theme/registry";
+import type { ThemeMode } from "@app/providers";
 
 interface DrawerFooterProps {
   mode: ThemeMode;
@@ -21,7 +21,11 @@ export function DrawerFooter({ mode, onToggleTheme, onSignOut }: DrawerFooterPro
         <Typography variant="body2" color="text.secondary">
           {mode === "dark" ? "Dark Mode" : "Light Mode"}
         </Typography>
-        <IconButton onClick={onToggleTheme} size="small">
+        <IconButton
+          onClick={onToggleTheme}
+          size="small"
+          aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
           {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
         </IconButton>
       </Stack>

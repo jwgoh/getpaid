@@ -7,7 +7,7 @@ import { Alert, Box, Stack } from "@mui/material";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { BRANDING } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { SenderProfileFormInput, senderProfileFormSchema } from "@app/shared/schemas";
@@ -76,7 +76,7 @@ export function BusinessProfileTab({ profile }: BusinessProfileTabProps) {
         setError(null);
       },
       onError: (err) => {
-        const message = err instanceof ApiError ? err.message : "Failed to update profile";
+        const message = extractApiErrorMessage(err, "Failed to update profile");
 
         setError(message);
         toast.error(message);

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { withAuth } from "@app/shared/api/route-helpers";
-
 import { getAnalytics } from "@app/server/analytics";
+import { withAuth } from "@app/server/api/route-helpers";
 
 export const GET = withAuth(async (user) => {
   const analytics = await getAnalytics(user.id);

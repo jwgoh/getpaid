@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { withAuth } from "@app/shared/api/route-helpers";
-
+import { withAuth } from "@app/server/api/route-helpers";
 import { getAllProviders } from "@app/server/time-tracking";
 
 export const GET = withAuth(async () => {

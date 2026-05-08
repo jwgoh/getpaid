@@ -17,7 +17,7 @@ import {
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import type { FormMode } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { type Client, ClientFormInput, clientFormSchema } from "@app/shared/schemas";
@@ -79,7 +79,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
           onClose();
         },
         onError: (err) => {
-          setError(err instanceof ApiError ? err.message : "Failed to create client");
+          setError(extractApiErrorMessage(err, "Failed to create client"));
         },
       });
     } else if (client) {
@@ -91,7 +91,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
             onClose();
           },
           onError: (err) => {
-            setError(err instanceof ApiError ? err.message : "Failed to update client");
+            setError(extractApiErrorMessage(err, "Failed to update client"));
           },
         }
       );
