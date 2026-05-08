@@ -4,6 +4,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CreateIcon from "@mui/icons-material/Create";
 import HistoryIcon from "@mui/icons-material/History";
 import MailIcon from "@mui/icons-material/Mail";
+import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PaymentIcon from "@mui/icons-material/Payment";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -43,6 +44,11 @@ export const EVENT_CONFIG: Record<string, { icon: React.ReactNode; label: string
       icon: <PaymentIcon fontSize="small" />,
       label: "Payment recorded",
       color: "success.main",
+    },
+    PAYMENT_DELETED: {
+      icon: <MoneyOffIcon fontSize="small" />,
+      label: "Payment deleted",
+      color: "warning.main",
     },
     STATUS_CHANGED: {
       icon: <HistoryIcon fontSize="small" />,
