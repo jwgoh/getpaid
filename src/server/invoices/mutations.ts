@@ -98,78 +98,81 @@ export async function createInvoice(userId: string, data: CreateInvoiceInput) {
   );
   const publicId = nanoid(NANOID.PUBLIC_ID_LENGTH);
 
-  const invoice = await prisma.invoice.create({
-    data: {
-      userId,
-      clientId: data.clientId,
-      publicId,
-      currency: data.currency,
-      dueDate: data.dueDate,
-      periodStart: data.periodStart ?? null,
-      periodEnd: data.periodEnd ?? null,
-      notes: data.notes,
-      message: data.message,
-      tags: data.tags || [],
-      subtotal,
-      discountType: data.discount?.type || null,
-      discountValue: data.discount?.value || 0,
-      discountAmount,
-      taxRate: data.taxRate || 0,
-      taxAmount,
-      total,
-      status: INVOICE_STATUS.DRAFT,
-      items: {
-        create: data.items.map((item, index) => ({
-          title: item.title,
-          description: item.description ?? null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          amount: Math.round(item.quantity * item.unitPrice),
-          sortOrder: index,
-        })),
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.create({
+      data: {
+        userId,
+        clientId: data.clientId,
+        publicId,
+        currency: data.currency,
+        dueDate: data.dueDate,
+        periodStart: data.periodStart ?? null,
+        periodEnd: data.periodEnd ?? null,
+        notes: data.notes,
+        message: data.message,
+        tags: data.tags || [],
+        subtotal,
+        discountType: data.discount?.type || null,
+        discountValue: data.discount?.value || 0,
+        discountAmount,
+        taxRate: data.taxRate || 0,
+        taxAmount,
+        total,
+        status: INVOICE_STATUS.DRAFT,
+        items: {
+          create: data.items.map((item, index) => ({
+            title: item.title,
+            description: item.description ?? null,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            amount: Math.round(item.quantity * item.unitPrice),
+            sortOrder: index,
+          })),
+        },
       },
-    },
-    include: {
-      client: true,
-      items: true,
-      itemGroups: ITEM_GROUPS_INCLUDE,
-    },
-  });
+      include: {
+        client: true,
+        items: true,
+        itemGroups: ITEM_GROUPS_INCLUDE,
+      },
+    });
 
-  if (data.itemGroups?.length) {
-    await createItemGroups(invoice.id, data.itemGroups);
-  }
+    if (data.itemGroups?.length) {
+      await createItemGroups(tx, invoice.id, data.itemGroups);
+    }
 
-  await prisma.invoiceEvent.create({
-    data: {
-      invoiceId: invoice.id,
-      type: INVOICE_EVENT.CREATED,
-      payload: {},
-    },
-  });
+    await tx.invoiceEvent.create({
+      data: {
+        invoiceId: invoice.id,
+        type: INVOICE_EVENT.CREATED,
+        payload: {},
+      },
+    });
 
-  return prisma.invoice.findUniqueOrThrow({
-    where: { id: invoice.id },
-    include: {
-      client: true,
-      items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
-      itemGroups: ITEM_GROUPS_INCLUDE,
-    },
+    return tx.invoice.findUniqueOrThrow({
+      where: { id: invoice.id },
+      include: {
+        client: true,
+        items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
+        itemGroups: ITEM_GROUPS_INCLUDE,
+      },
+    });
   });
 }
 
 async function getItemsForCalculation(
+  tx: Prisma.TransactionClient,
   id: string,
   data: UpdateInvoiceInput
 ): Promise<InvoiceItemInput[]> {
   const hasItemChanges = data.items || data.itemGroups;
 
   if (hasItemChanges) {
-    await prisma.invoiceItem.deleteMany({ where: { invoiceId: id } });
-    await prisma.invoiceItemGroup.deleteMany({ where: { invoiceId: id } });
+    await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
+    await tx.invoiceItemGroup.deleteMany({ where: { invoiceId: id } });
 
     if (data.items) {
-      await prisma.invoiceItem.createMany({
+      await tx.invoiceItem.createMany({
         data: data.items.map((item, index) => ({
           invoiceId: id,
           title: item.title,
@@ -183,13 +186,13 @@ async function getItemsForCalculation(
     }
 
     if (data.itemGroups?.length) {
-      await createItemGroups(id, data.itemGroups);
+      await createItemGroups(tx, id, data.itemGroups);
     }
 
     return [...(data.items ?? []), ...(data.itemGroups?.flatMap((g) => g.items) ?? [])];
   }
 
-  const existingItems = await prisma.invoiceItem.findMany({ where: { invoiceId: id } });
+  const existingItems = await tx.invoiceItem.findMany({ where: { invoiceId: id } });
 
   return existingItems.map((item) => ({
     title: item.title,
@@ -200,41 +203,43 @@ async function getItemsForCalculation(
 }
 
 export async function updateInvoice(id: string, userId: string, data: UpdateInvoiceInput) {
-  const invoice = await prisma.invoice.findFirst({
-    where: { id, userId, status: INVOICE_STATUS.DRAFT },
-  });
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findFirst({
+      where: { id, userId, status: INVOICE_STATUS.DRAFT },
+    });
 
-  if (!invoice) {
-    return null;
-  }
+    if (!invoice) {
+      return null;
+    }
 
-  const updateData: Prisma.InvoiceUncheckedUpdateInput = {
-    ...buildBasicUpdateFields(data),
-    ...buildDiscountFields(data),
-  };
+    const updateData: Prisma.InvoiceUncheckedUpdateInput = {
+      ...buildBasicUpdateFields(data),
+      ...buildDiscountFields(data),
+    };
 
-  const needsRecalc = data.items || data.discount !== undefined || data.taxRate !== undefined;
+    const needsRecalc = data.items || data.discount !== undefined || data.taxRate !== undefined;
 
-  if (needsRecalc) {
-    const discount = resolveDiscount(data, invoice);
-    const taxRate = data.taxRate !== undefined ? data.taxRate : invoice.taxRate;
-    const itemsForCalc = await getItemsForCalculation(id, data);
-    const totals = calculateTotals(itemsForCalc, discount, taxRate);
+    if (needsRecalc) {
+      const discount = resolveDiscount(data, invoice);
+      const taxRate = data.taxRate !== undefined ? data.taxRate : invoice.taxRate;
+      const itemsForCalc = await getItemsForCalculation(tx, id, data);
+      const totals = calculateTotals(itemsForCalc, discount, taxRate);
 
-    updateData.subtotal = totals.subtotal;
-    updateData.discountAmount = totals.discountAmount;
-    updateData.taxAmount = totals.taxAmount;
-    updateData.total = totals.total;
-  }
+      updateData.subtotal = totals.subtotal;
+      updateData.discountAmount = totals.discountAmount;
+      updateData.taxAmount = totals.taxAmount;
+      updateData.total = totals.total;
+    }
 
-  return prisma.invoice.update({
-    where: { id },
-    data: updateData,
-    include: {
-      client: true,
-      items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
-      itemGroups: ITEM_GROUPS_INCLUDE,
-    },
+    return tx.invoice.update({
+      where: { id },
+      data: updateData,
+      include: {
+        client: true,
+        items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
+        itemGroups: ITEM_GROUPS_INCLUDE,
+      },
+    });
   });
 }
 

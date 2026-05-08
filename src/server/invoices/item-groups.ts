@@ -1,11 +1,19 @@
+import { Prisma } from "@prisma/client";
+
 import { InvoiceItemGroupInput } from "@app/shared/schemas";
 
 import { prisma } from "@app/server/db";
 
-export async function createItemGroups(invoiceId: string, groups: InvoiceItemGroupInput[]) {
+type PrismaClientLike = Prisma.TransactionClient | typeof prisma;
+
+export async function createItemGroups(
+  tx: PrismaClientLike,
+  invoiceId: string,
+  groups: InvoiceItemGroupInput[]
+) {
   for (let gi = 0; gi < groups.length; gi++) {
     const group = groups[gi];
-    const created = await prisma.invoiceItemGroup.create({
+    const created = await tx.invoiceItemGroup.create({
       data: {
         invoiceId,
         title: group.title,
@@ -14,7 +22,7 @@ export async function createItemGroups(invoiceId: string, groups: InvoiceItemGro
     });
 
     if (group.items.length > 0) {
-      await prisma.invoiceItem.createMany({
+      await tx.invoiceItem.createMany({
         data: group.items.map((item, ii) => ({
           invoiceId,
           groupId: created.id,

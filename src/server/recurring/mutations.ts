@@ -1,4 +1,4 @@
-import type { RecurringFrequency, RecurringStatus } from "@prisma/client";
+import { Prisma, type RecurringFrequency, type RecurringStatus } from "@prisma/client";
 
 import { BRANDING, INVOICE } from "@app/shared/config/config";
 import type { DiscountInput } from "@app/shared/lib/calculations";
@@ -61,10 +61,14 @@ const RECURRING_INCLUDE = {
   },
 };
 
-async function createRecurringItemGroups(recurringInvoiceId: string, groups: LineItemGroupInput[]) {
+async function createRecurringItemGroups(
+  tx: Prisma.TransactionClient,
+  recurringInvoiceId: string,
+  groups: LineItemGroupInput[]
+) {
   for (let gi = 0; gi < groups.length; gi++) {
     const group = groups[gi];
-    const created = await prisma.recurringInvoiceItemGroup.create({
+    const created = await tx.recurringInvoiceItemGroup.create({
       data: {
         recurringInvoiceId,
         title: group.title,
@@ -73,7 +77,7 @@ async function createRecurringItemGroups(recurringInvoiceId: string, groups: Lin
     });
 
     if (group.items.length > 0) {
-      await prisma.recurringInvoiceItem.createMany({
+      await tx.recurringInvoiceItem.createMany({
         data: group.items.map((item, ii) => ({
           recurringInvoiceId,
           groupId: created.id,
@@ -88,9 +92,9 @@ async function createRecurringItemGroups(recurringInvoiceId: string, groups: Lin
   }
 }
 
-async function deleteRecurringItems(recurringInvoiceId: string) {
-  await prisma.recurringInvoiceItem.deleteMany({ where: { recurringInvoiceId } });
-  await prisma.recurringInvoiceItemGroup.deleteMany({ where: { recurringInvoiceId } });
+async function deleteRecurringItems(tx: Prisma.TransactionClient, recurringInvoiceId: string) {
+  await tx.recurringInvoiceItem.deleteMany({ where: { recurringInvoiceId } });
+  await tx.recurringInvoiceItemGroup.deleteMany({ where: { recurringInvoiceId } });
 }
 
 export async function createRecurringInvoice(userId: string, data: CreateRecurringInvoiceInput) {
@@ -102,44 +106,46 @@ export async function createRecurringInvoice(userId: string, data: CreateRecurri
     throw new ClientNotFoundError();
   }
 
-  const recurring = await prisma.recurringInvoice.create({
-    data: {
-      userId,
-      clientId: data.clientId,
-      name: data.name,
-      frequency: data.frequency,
-      currency: data.currency || BRANDING.DEFAULT_CURRENCY,
-      discountType: data.discount?.type || null,
-      discountValue: data.discount?.value || 0,
-      taxRate: data.taxRate || 0,
-      notes: data.notes || null,
-      dueDays: data.dueDays || INVOICE.DEFAULT_DUE_DAYS,
-      autoSend: data.autoSend || false,
-      nextRunAt: data.startDate,
-      endDate: data.endDate || null,
-      items: {
-        create: data.items.map((item, i) => ({
-          title: item.title,
-          description: item.description ?? null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          sortOrder: item.sortOrder ?? i,
-        })),
+  return prisma.$transaction(async (tx) => {
+    const recurring = await tx.recurringInvoice.create({
+      data: {
+        userId,
+        clientId: data.clientId,
+        name: data.name,
+        frequency: data.frequency,
+        currency: data.currency || BRANDING.DEFAULT_CURRENCY,
+        discountType: data.discount?.type || null,
+        discountValue: data.discount?.value || 0,
+        taxRate: data.taxRate || 0,
+        notes: data.notes || null,
+        dueDays: data.dueDays || INVOICE.DEFAULT_DUE_DAYS,
+        autoSend: data.autoSend || false,
+        nextRunAt: data.startDate,
+        endDate: data.endDate || null,
+        items: {
+          create: data.items.map((item, i) => ({
+            title: item.title,
+            description: item.description ?? null,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            sortOrder: item.sortOrder ?? i,
+          })),
+        },
       },
-    },
-    include: RECURRING_INCLUDE,
-  });
-
-  if (data.itemGroups?.length) {
-    await createRecurringItemGroups(recurring.id, data.itemGroups);
-
-    return prisma.recurringInvoice.findUniqueOrThrow({
-      where: { id: recurring.id },
       include: RECURRING_INCLUDE,
     });
-  }
 
-  return recurring;
+    if (data.itemGroups?.length) {
+      await createRecurringItemGroups(tx, recurring.id, data.itemGroups);
+
+      return tx.recurringInvoice.findUniqueOrThrow({
+        where: { id: recurring.id },
+        include: RECURRING_INCLUDE,
+      });
+    }
+
+    return recurring;
+  });
 }
 
 export async function updateRecurringInvoice(
@@ -147,61 +153,63 @@ export async function updateRecurringInvoice(
   id: string,
   data: UpdateRecurringInvoiceInput
 ) {
-  const existing = await prisma.recurringInvoice.findFirst({
-    where: { id, userId },
-  });
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.recurringInvoice.findFirst({
+      where: { id, userId },
+    });
 
-  if (!existing) {
-    throw new RecurringInvoiceNotFoundError();
-  }
+    if (!existing) {
+      throw new RecurringInvoiceNotFoundError();
+    }
 
-  const hasItemChanges = data.items !== undefined || data.itemGroups !== undefined;
+    const hasItemChanges = data.items !== undefined || data.itemGroups !== undefined;
 
-  if (hasItemChanges) {
-    await deleteRecurringItems(id);
-  }
+    if (hasItemChanges) {
+      await deleteRecurringItems(tx, id);
+    }
 
-  const updated = await prisma.recurringInvoice.update({
-    where: { id },
-    data: {
-      name: data.name,
-      frequency: data.frequency,
-      status: data.status,
-      currency: data.currency,
-      discountType: data.discount === null ? null : data.discount?.type,
-      discountValue: data.discount === null ? 0 : data.discount?.value,
-      taxRate: data.taxRate,
-      notes: data.notes,
-      dueDays: data.dueDays,
-      autoSend: data.autoSend,
-      nextRunAt: data.nextRunAt,
-      endDate: data.endDate,
-      ...(hasItemChanges &&
-        data.items && {
-          items: {
-            create: data.items.map((item, i) => ({
-              title: item.title,
-              description: item.description ?? null,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              sortOrder: item.sortOrder ?? i,
-            })),
-          },
-        }),
-    },
-    include: RECURRING_INCLUDE,
-  });
-
-  if (hasItemChanges && data.itemGroups?.length) {
-    await createRecurringItemGroups(id, data.itemGroups);
-
-    return prisma.recurringInvoice.findUniqueOrThrow({
+    const updated = await tx.recurringInvoice.update({
       where: { id },
+      data: {
+        name: data.name,
+        frequency: data.frequency,
+        status: data.status,
+        currency: data.currency,
+        discountType: data.discount === null ? null : data.discount?.type,
+        discountValue: data.discount === null ? 0 : data.discount?.value,
+        taxRate: data.taxRate,
+        notes: data.notes,
+        dueDays: data.dueDays,
+        autoSend: data.autoSend,
+        nextRunAt: data.nextRunAt,
+        endDate: data.endDate,
+        ...(hasItemChanges &&
+          data.items && {
+            items: {
+              create: data.items.map((item, i) => ({
+                title: item.title,
+                description: item.description ?? null,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                sortOrder: item.sortOrder ?? i,
+              })),
+            },
+          }),
+      },
       include: RECURRING_INCLUDE,
     });
-  }
 
-  return updated;
+    if (hasItemChanges && data.itemGroups?.length) {
+      await createRecurringItemGroups(tx, id, data.itemGroups);
+
+      return tx.recurringInvoice.findUniqueOrThrow({
+        where: { id },
+        include: RECURRING_INCLUDE,
+      });
+    }
+
+    return updated;
+  });
 }
 
 export async function deleteRecurringInvoice(userId: string, id: string) {

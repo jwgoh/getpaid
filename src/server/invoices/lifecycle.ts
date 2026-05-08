@@ -37,41 +37,43 @@ export async function markInvoicePaid(
   userId: string,
   method: PaymentMethod = "MANUAL"
 ) {
-  const invoice = await prisma.invoice.findFirst({
-    where: { id, userId, paidAt: null },
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findFirst({
+      where: { id, userId, paidAt: null },
+    });
+
+    if (!invoice) {
+      return null;
+    }
+
+    const updated = await tx.invoice.update({
+      where: { id },
+      data: {
+        status: INVOICE_STATUS.PAID,
+        paidAt: new Date(),
+        paymentMethod: method,
+      },
+      include: {
+        client: true,
+        items: true,
+      },
+    });
+
+    await tx.invoiceEvent.create({
+      data: {
+        invoiceId: invoice.id,
+        type: INVOICE_EVENT.PAID_MANUAL,
+        payload: {},
+      },
+    });
+
+    await tx.followUpJob.updateMany({
+      where: { invoiceId: invoice.id, status: FOLLOWUP_STATUS.PENDING },
+      data: { status: FOLLOWUP_STATUS.CANCELED },
+    });
+
+    return updated;
   });
-
-  if (!invoice) {
-    return null;
-  }
-
-  const updated = await prisma.invoice.update({
-    where: { id },
-    data: {
-      status: INVOICE_STATUS.PAID,
-      paidAt: new Date(),
-      paymentMethod: method,
-    },
-    include: {
-      client: true,
-      items: true,
-    },
-  });
-
-  await prisma.invoiceEvent.create({
-    data: {
-      invoiceId: invoice.id,
-      type: INVOICE_EVENT.PAID_MANUAL,
-      payload: {},
-    },
-  });
-
-  await prisma.followUpJob.updateMany({
-    where: { invoiceId: invoice.id, status: FOLLOWUP_STATUS.PENDING },
-    data: { status: FOLLOWUP_STATUS.CANCELED },
-  });
-
-  return updated;
 }
 
 export async function updateInvoiceStatus(
