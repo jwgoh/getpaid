@@ -5,6 +5,7 @@ import { env } from "@app/shared/config/env";
 import { SEO } from "@app/shared/config/seo";
 import { formatCurrency, formatDate } from "@app/shared/lib/format";
 
+import { escapeHtml } from "./escape";
 import {
   buildBrandingHeader,
   buildEmailButton,
@@ -68,20 +69,20 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
   const messageHtml = data.message
     ? `<div style="background: ${color}05; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #666; font-weight: 600;">Message</p>
-        <p style="margin: 0; font-size: 14px; white-space: pre-line;">${data.message}</p>
+        <p style="margin: 0; font-size: 14px; white-space: pre-line;">${escapeHtml(data.message)}</p>
       </div>`
     : "";
 
   const bodyHtml = `
     ${buildBrandingHeader(data.branding.logoUrl)}
-    <p>Hi ${data.clientName},</p>
+    <p>Hi ${escapeHtml(data.clientName)},</p>
     <p>You have received a new invoice for <strong>${formattedTotal}</strong>.</p>
     ${buildInvoiceDetailsBlock(formattedTotal, formattedDueDate, data.paymentReference, periodHtml)}
     ${buildLineItemsTable(data.items, data.currency, data.itemGroups)}
     ${messageHtml}
     <p>${buildEmailButton(invoiceUrl, "View Invoice", color)}</p>
     <p style="color: #666; font-size: 14px; margin-top: 30px;">
-      If you have any questions about this invoice, please reply to this email or contact ${data.senderName} directly.
+      If you have any questions about this invoice, please reply to this email or contact ${escapeHtml(data.senderName)} directly.
     </p>
     ${buildEmailFooter(data.senderName, data.branding.companyAddress, data.branding.footerText)}`;
 
@@ -121,14 +122,14 @@ export async function sendReminderEmail(data: InvoiceEmailData & { isOverdue: bo
 
   const bodyHtml = `
     ${buildBrandingHeader(data.branding.logoUrl)}
-    <p>Hi ${data.clientName},</p>
+    <p>Hi ${escapeHtml(data.clientName)},</p>
     <p>This is a friendly reminder about an outstanding invoice for <strong>${formattedTotal}</strong>.</p>
     ${data.isOverdue ? `<p style="color: ${EMAIL.OVERDUE_COLOR};"><strong>This invoice is now overdue.</strong></p>` : ""}
     ${buildInvoiceDetailsBlock(formattedTotal, formattedDueDate, data.paymentReference, periodHtml)}
     ${buildLineItemsTable(data.items, data.currency, data.itemGroups)}
     <p>${buildEmailButton(invoiceUrl, "View & Pay Invoice", color)}</p>
     <p style="color: #666; font-size: 14px; margin-top: 30px;">
-      If you have already paid this invoice, please disregard this reminder. For any questions, please contact ${data.senderName} directly.
+      If you have already paid this invoice, please disregard this reminder. For any questions, please contact ${escapeHtml(data.senderName)} directly.
     </p>
     ${buildEmailFooter(data.senderName, data.branding.companyAddress, data.branding.footerText)}`;
 
@@ -178,7 +179,7 @@ export async function sendWaitlistNotificationEmail(email: string) {
 
   const bodyHtml = `
     <p>A new user has joined the waitlist:</p>
-    <p><strong>${email}</strong></p>`;
+    <p><strong>${escapeHtml(email)}</strong></p>`;
 
   const text = `New waitlist signup: ${email}`;
 
