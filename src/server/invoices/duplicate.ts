@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 
 import { INVOICE, NANOID, TIME } from "@app/shared/config/config";
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import { parseInvoiceTags } from "@app/shared/schemas/invoice";
 
 import { prisma } from "@app/server/db";
 
@@ -36,7 +37,7 @@ export async function duplicateInvoice(id: string, userId: string) {
       subtotal: invoice.subtotal,
       total: invoice.total,
       message: invoice.message,
-      tags: invoice.tags as string[],
+      tags: parseInvoiceTags(invoice.tags),
       items: {
         create: ungroupedItems.map((item) => ({
           title: item.title,

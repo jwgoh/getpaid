@@ -113,15 +113,15 @@ export interface ApproveWaitlistResult {
 }
 
 export async function approveWaitlistEntry(email: string): Promise<ApproveWaitlistResult> {
-  const existing = await prisma.waitlistEntry.findUnique({ where: { email } });
-
-  if (!existing) {
-    throw new WaitlistEntryNotFoundError();
-  }
-
   const payload = buildWaitlistApprovalPayload(email);
 
   return prisma.$transaction(async (tx) => {
+    const existing = await tx.waitlistEntry.findUnique({ where: { email } });
+
+    if (!existing) {
+      throw new WaitlistEntryNotFoundError();
+    }
+
     const entry = await tx.waitlistEntry.update({
       where: { email },
       data: { status: "APPROVED" },

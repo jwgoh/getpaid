@@ -5,8 +5,9 @@ import * as React from "react";
 import { Stack, Typography } from "@mui/material";
 
 import { extractApiErrorMessage } from "@app/shared/api";
-import type { ReminderModeValue } from "@app/shared/config/config";
+import { REMINDER, type ReminderModeValue } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
+import { parseReminderDays } from "@app/shared/schemas/reminder";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 import { type ReminderSettings, useUpdateReminderSettings } from "@app/features/settings";
@@ -24,14 +25,14 @@ export function RemindersTab({ settings }: RemindersTabProps) {
 
   const [enabled, setEnabled] = React.useState(false);
   const [mode, setMode] = React.useState<ReminderModeValue>("AFTER_DUE");
-  const [days, setDays] = React.useState<number[]>([1, 3, 7]);
+  const [days, setDays] = React.useState<number[]>([...REMINDER.DEFAULT_DAYS]);
   const [isDirty, setIsDirty] = React.useState(false);
 
   React.useEffect(() => {
     if (settings) {
       setEnabled(settings.enabled);
       setMode(settings.mode);
-      setDays(settings.delaysDays as number[]);
+      setDays(parseReminderDays(settings.delaysDays));
       setIsDirty(false);
     }
   }, [settings]);

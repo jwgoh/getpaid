@@ -2,6 +2,14 @@ import { z } from "zod";
 
 import { REMINDER, REMINDER_MODE } from "@app/shared/config/config";
 
+export const reminderDaysSchema = z.array(z.number());
+
+export function parseReminderDays(value: unknown): number[] {
+  const result = reminderDaysSchema.safeParse(value);
+
+  return result.success && result.data.length > 0 ? result.data : [...REMINDER.DEFAULT_DAYS];
+}
+
 export const updateReminderSettingsSchema = z.object({
   enabled: z.boolean(),
   mode: z.enum([REMINDER_MODE.AFTER_SENT, REMINDER_MODE.AFTER_DUE]),

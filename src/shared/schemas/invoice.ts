@@ -11,6 +11,14 @@ export const invoiceItemGroupSchema = lineItemGroupSchema;
 
 const tagSchema = z.string().min(1).max(SCHEMA_LIMITS.TAG_MAX);
 
+export const invoiceTagsSchema = z.array(z.string());
+
+export function parseInvoiceTags(value: unknown): string[] {
+  const result = invoiceTagsSchema.safeParse(value);
+
+  return result.success ? result.data : [];
+}
+
 export const discountTypeSchema = z.nativeEnum(DISCOUNT_TYPE);
 
 export const discountSchema = z
