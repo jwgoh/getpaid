@@ -29,7 +29,6 @@ import { PaymentReferenceBlock } from "./payment-reference-block";
 import { SenderBillTo } from "./sender-bill-to";
 
 interface Invoice {
-  id: string;
   publicId: string;
   status: string;
   currency: string;

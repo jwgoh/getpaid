@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { BRANDING } from "@app/shared/config/config";
@@ -5,6 +6,18 @@ import { BRANDING } from "@app/shared/config/config";
 import PublicInvoiceView from "@app/features/public-invoice/components/public-invoice-view";
 
 import { getInvoiceByPublicId } from "@app/server/invoices";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+};
 
 interface Props {
   params: Promise<{ publicId: string }>;
@@ -38,7 +51,6 @@ export default async function PublicInvoicePage({ params, searchParams }: Props)
     <PublicInvoiceView
       publicId={publicId}
       invoice={{
-        id: invoice.id,
         publicId: invoice.publicId,
         status: invoice.status,
         currency: invoice.currency,
