@@ -101,14 +101,33 @@ src/
 ## Common Commands
 
 ```bash
-pnpm dev          # Start dev server
-pnpm build        # Production build
-pnpm lint         # Run ESLint
-pnpm typecheck    # TypeScript checking
-pnpm format       # Format with Prettier
-pnpm db:migrate   # Run migrations
-pnpm db:studio    # Open Prisma Studio
+pnpm dev               # Start dev server
+pnpm build             # Production build
+pnpm lint              # Run ESLint
+pnpm typecheck         # TypeScript checking
+pnpm format            # Format with Prettier
+pnpm db:migrate        # prisma migrate dev — local schema iteration
+pnpm db:migrate:deploy # prisma migrate deploy — apply migrations to a target DB (CI / prod)
+pnpm db:studio         # Open Prisma Studio
 ```
+
+## Database migrations
+
+Schema changes are tracked via Prisma migration files under `prisma/migrations/` and committed to git. Production never runs `prisma db push` — `db push` is for throwaway dev work only.
+
+**Local workflow:**
+1. Edit `prisma/schema.prisma`.
+2. `pnpm db:migrate -- --name <change-summary>` generates `prisma/migrations/<ts>_<change>/migration.sql`.
+3. Review the SQL — must be lossless (no `DROP COLUMN`, no `DROP TABLE`, no `ALTER COLUMN TYPE` without a backfill plan). If destructive, follow expand-then-contract.
+4. Commit migration files alongside the code change.
+
+**Production (Vercel) deploy:**
+- Vercel does NOT run migrations on deploy.
+- BEFORE merging the PR, manually apply: `DATABASE_URL=$PROD pnpm db:migrate:deploy` (after a `pg_dump` backup).
+- Then merge → Vercel rebuilds → app sees the migrated schema.
+
+**Self-host (Docker):**
+- Container `CMD` runs `prisma migrate deploy` on every start. Pending migrations apply automatically when the container boots.
 
 ## File Naming Convention
 

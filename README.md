@@ -66,9 +66,13 @@ openssl rand -base64 32  # use this for NEXTAUTH_SECRET
 ### Database
 
 ```bash
-pnpm db:migrate    # run migrations
+pnpm db:migrate    # create + apply a new migration during development
 pnpm db:seed       # optional: load demo data
 ```
+
+`prisma migrate dev` (under `db:migrate`) is for local schema iteration only — it applies pending migrations and prompts to create new ones from your schema edits.
+
+For production database changes see [Production migrations](#production-migrations) below.
 
 ### Run
 
@@ -139,9 +143,43 @@ src/
 | `pnpm lint` | Run ESLint |
 | `pnpm typecheck` | TypeScript type checking |
 | `pnpm format` | Format code with Prettier |
-| `pnpm db:migrate` | Run database migrations |
+| `pnpm db:migrate` | Create and apply migrations during development (`prisma migrate dev`) |
+| `pnpm db:migrate:deploy` | Apply pending migrations to a database (`prisma migrate deploy`) — used in CI / prod |
 | `pnpm db:seed` | Seed demo data |
 | `pnpm db:studio` | Open Prisma Studio |
+
+## Production migrations
+
+Production schema changes go through Prisma migration files committed to git, not `prisma db push`.
+
+### Workflow
+
+1. Edit `prisma/schema.prisma` locally.
+2. Generate a migration: `pnpm db:migrate -- --name <change-summary>`. Review the generated SQL under `prisma/migrations/<ts>_<change>/migration.sql`.
+3. Commit the migration file alongside the code change.
+4. Apply to production **before merging** the PR:
+
+   ```bash
+   # Backup first
+   pg_dump $PROD_DATABASE_URL > backup-$(date +%s).sql
+
+   # Apply pending migrations
+   DATABASE_URL=$PROD_DATABASE_URL pnpm db:migrate:deploy
+   ```
+
+5. Merge the PR. Vercel rebuilds; the application boots against the already-migrated schema.
+
+### One-time bootstrap (already done if you cloned after May 2026)
+
+If migrating an existing database that pre-dates the migration history, mark the baseline migration applied so Prisma's tracker matches reality without re-running its SQL:
+
+```bash
+DATABASE_URL=$PROD_DATABASE_URL pnpm prisma migrate resolve --applied 20260508060000_baseline
+```
+
+### Self-hosted Docker
+
+The Docker image runs `prisma migrate deploy` on every container start (see `Dockerfile` `CMD`). Deploys are safe to roll forward without manual intervention.
 
 ## Contributing
 
