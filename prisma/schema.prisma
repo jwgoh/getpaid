@@ -154,7 +154,7 @@ model Invoice {
   paymentReference String? @unique
 
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client       Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
   itemGroups   InvoiceItemGroup[]
   items        InvoiceItem[]
   events       InvoiceEvent[]
@@ -275,7 +275,7 @@ model InvoiceTemplateItem {
   unitPrice   Int
   sortOrder   Int     @default(0)
 
-  template InvoiceTemplate          @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template InvoiceTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
   group    InvoiceTemplateItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([templateId])
@@ -356,8 +356,8 @@ model RecurringInvoice {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
-  user       User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client     Client                        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client     Client                      @relation(fields: [clientId], references: [id], onDelete: Restrict)
   items      RecurringInvoiceItem[]
   itemGroups RecurringInvoiceItemGroup[]
 
@@ -388,7 +388,7 @@ model RecurringInvoiceItem {
   unitPrice          Int
   sortOrder          Int     @default(0)
 
-  recurringInvoice RecurringInvoice          @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
+  recurringInvoice RecurringInvoice           @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
   group            RecurringInvoiceItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([recurringInvoiceId])

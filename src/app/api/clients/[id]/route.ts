@@ -1,9 +1,47 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, parseBody, withAuth } from "@app/shared/api/route-helpers";
+import {
+  errorResponse,
+  notFoundResponse,
+  parseBody,
+  withAuth,
+} from "@app/shared/api/route-helpers";
 import { updateClientSchema } from "@app/shared/schemas";
 
-import { deleteClient, getClient, updateClient } from "@app/server/clients";
+import {
+  ClientHasDependentsError,
+  deleteClient,
+  getClient,
+  updateClient,
+} from "@app/server/clients";
+
+const clientHasDependentsHandler = {
+  check: (error: unknown) => error instanceof ClientHasDependentsError,
+  respond: (error: Error) => {
+    const dependents = error as ClientHasDependentsError;
+    const parts: string[] = [];
+
+    if (dependents.invoiceCount > 0) {
+      parts.push(`${dependents.invoiceCount} invoice${dependents.invoiceCount === 1 ? "" : "s"}`);
+    }
+
+    if (dependents.recurringCount > 0) {
+      parts.push(
+        `${dependents.recurringCount} recurring schedule${dependents.recurringCount === 1 ? "" : "s"}`
+      );
+    }
+
+    return errorResponse(
+      "CLIENT_HAS_DEPENDENTS",
+      `Cannot delete client with ${parts.join(" and ")}. Delete those first or archive the client instead.`,
+      409,
+      {
+        invoiceCount: dependents.invoiceCount,
+        recurringCount: dependents.recurringCount,
+      }
+    );
+  },
+};
 
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
@@ -33,13 +71,16 @@ export const PATCH = withAuth(async (user, request, context) => {
   return NextResponse.json(client);
 });
 
-export const DELETE = withAuth(async (user, _request, context) => {
-  const { id } = await context.params;
-  const result = await deleteClient(id, user.id);
+export const DELETE = withAuth(
+  async (user, _request, context) => {
+    const { id } = await context.params;
+    const result = await deleteClient(id, user.id);
 
-  if (!result) {
-    return notFoundResponse("Client");
-  }
+    if (!result) {
+      return notFoundResponse("Client");
+    }
 
-  return NextResponse.json({ success: true });
-});
+    return NextResponse.json({ success: true });
+  },
+  [clientHasDependentsHandler]
+);

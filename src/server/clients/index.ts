@@ -2,6 +2,16 @@ import { CreateClientInput, UpdateClientInput } from "@app/shared/schemas";
 
 import { prisma } from "@app/server/db";
 
+export class ClientHasDependentsError extends Error {
+  constructor(
+    public invoiceCount: number,
+    public recurringCount: number
+  ) {
+    super("Client has dependent invoices or recurring schedules");
+    this.name = "ClientHasDependentsError";
+  }
+}
+
 export async function getClients(userId: string) {
   return prisma.client.findMany({
     where: { userId },
@@ -52,6 +62,15 @@ export async function deleteClient(id: string, userId: string) {
 
   if (!client) {
     return null;
+  }
+
+  const [invoiceCount, recurringCount] = await Promise.all([
+    prisma.invoice.count({ where: { clientId: id } }),
+    prisma.recurringInvoice.count({ where: { clientId: id } }),
+  ]);
+
+  if (invoiceCount > 0 || recurringCount > 0) {
+    throw new ClientHasDependentsError(invoiceCount, recurringCount);
   }
 
   return prisma.client.delete({
