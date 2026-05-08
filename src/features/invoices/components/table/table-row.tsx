@@ -14,6 +14,7 @@ interface InvoiceTableRowProps {
   height?: number;
   dataIndex?: number;
   selected?: boolean;
+  focused?: boolean;
   onToggleSelect?: (id: string) => void;
   onRowClick: (id: string) => void;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>, id: string) => void;
@@ -25,6 +26,7 @@ export function InvoiceTableRow({
   height,
   dataIndex,
   selected,
+  focused,
   onToggleSelect,
   onRowClick,
   onMenuOpen,
@@ -39,6 +41,7 @@ export function InvoiceTableRow({
       onClick={() => onRowClick(invoice.id)}
       onMouseEnter={() => onPrefetch(invoice.id)}
       selected={selected}
+      focused={focused}
       height={height}
       dataIndex={dataIndex}
     >

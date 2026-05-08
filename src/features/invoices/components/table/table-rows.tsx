@@ -18,6 +18,7 @@ interface VirtualizedRowsProps {
   virtualItems: VirtualItem[];
   totalSize: number;
   selectedIds?: Set<string>;
+  focusedIndex?: number;
   onToggleSelect?: (id: string) => void;
   onRowClick: (id: string) => void;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>, id: string) => void;
@@ -32,6 +33,7 @@ export function VirtualizedRows({
   virtualItems,
   totalSize,
   selectedIds,
+  focusedIndex,
   onToggleSelect,
   onRowClick,
   onMenuOpen,
@@ -56,6 +58,7 @@ export function VirtualizedRows({
             height={ROW_HEIGHT}
             dataIndex={virtualRow.index}
             selected={selectedIds?.has(invoice.id)}
+            focused={focusedIndex === virtualRow.index}
             onToggleSelect={onToggleSelect}
             onRowClick={onRowClick}
             onMenuOpen={onMenuOpen}
@@ -75,6 +78,7 @@ export function VirtualizedRows({
 interface PaginatedRowsProps {
   invoices: InvoiceData[];
   selectedIds?: Set<string>;
+  focusedIndex?: number;
   onToggleSelect?: (id: string) => void;
   onRowClick: (id: string) => void;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>, id: string) => void;
@@ -84,6 +88,7 @@ interface PaginatedRowsProps {
 export function PaginatedRows({
   invoices,
   selectedIds,
+  focusedIndex,
   onToggleSelect,
   onRowClick,
   onMenuOpen,
@@ -91,11 +96,13 @@ export function PaginatedRows({
 }: PaginatedRowsProps) {
   return (
     <>
-      {invoices.map((invoice) => (
+      {invoices.map((invoice, index) => (
         <InvoiceTableRow
           key={invoice.id}
           invoice={invoice}
+          dataIndex={index}
           selected={selectedIds?.has(invoice.id)}
+          focused={focusedIndex === index}
           onToggleSelect={onToggleSelect}
           onRowClick={onRowClick}
           onMenuOpen={onMenuOpen}
