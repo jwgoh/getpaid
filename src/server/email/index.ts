@@ -4,7 +4,9 @@ import { EMAIL } from "@app/shared/config/config";
 import { env } from "@app/shared/config/env";
 import { SEO } from "@app/shared/config/seo";
 import { formatCurrency, formatDate } from "@app/shared/lib/format";
+import { EXTERNAL_HTTP_TIMEOUTS_MS, withTimeout } from "@app/shared/lib/http";
 
+import { escapeHtml } from "./escape";
 import {
   buildBrandingHeader,
   buildEmailButton,
@@ -25,7 +27,7 @@ export interface EmailBranding {
   companyAddress: string | null;
 }
 
-interface InvoiceEmailData {
+export interface InvoiceEmailData {
   clientName: string;
   clientEmail: string;
   senderName: string;
@@ -43,6 +45,17 @@ interface InvoiceEmailData {
   itemGroups?: EmailItemGroup[];
 }
 
+export type ReminderEmailData = InvoiceEmailData & { isOverdue: boolean };
+
+export interface ResendEmailPayload {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  replyTo?: string;
+}
+
 let resend: Resend | undefined;
 
 function getResend(): Resend {
@@ -53,7 +66,22 @@ function getResend(): Resend {
   return resend;
 }
 
-export async function sendInvoiceEmail(data: InvoiceEmailData) {
+export interface SendEmailOptions {
+  idempotencyKey?: string;
+}
+
+export async function sendEmail(payload: ResendEmailPayload, options: SendEmailOptions = {}) {
+  const sdkOptions = options.idempotencyKey
+    ? { idempotencyKey: options.idempotencyKey }
+    : undefined;
+  const operation = sdkOptions
+    ? getResend().emails.send(payload, sdkOptions)
+    : getResend().emails.send(payload);
+
+  return withTimeout(operation, EXTERNAL_HTTP_TIMEOUTS_MS.RESEND, "resend");
+}
+
+export function buildInvoiceEmailPayload(data: InvoiceEmailData): ResendEmailPayload {
   const invoiceUrl = `${env.APP_URL}/i/${data.publicId}`;
   const formattedTotal = formatCurrency(data.total, data.currency);
   const formattedDueDate = formatDate(data.dueDate);
@@ -68,20 +96,20 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
   const messageHtml = data.message
     ? `<div style="background: ${color}05; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #666; font-weight: 600;">Message</p>
-        <p style="margin: 0; font-size: 14px; white-space: pre-line;">${data.message}</p>
+        <p style="margin: 0; font-size: 14px; white-space: pre-line;">${escapeHtml(data.message)}</p>
       </div>`
     : "";
 
   const bodyHtml = `
     ${buildBrandingHeader(data.branding.logoUrl)}
-    <p>Hi ${data.clientName},</p>
+    <p>Hi ${escapeHtml(data.clientName)},</p>
     <p>You have received a new invoice for <strong>${formattedTotal}</strong>.</p>
     ${buildInvoiceDetailsBlock(formattedTotal, formattedDueDate, data.paymentReference, periodHtml)}
     ${buildLineItemsTable(data.items, data.currency, data.itemGroups)}
     ${messageHtml}
     <p>${buildEmailButton(invoiceUrl, "View Invoice", color)}</p>
     <p style="color: #666; font-size: 14px; margin-top: 30px;">
-      If you have any questions about this invoice, please reply to this email or contact ${data.senderName} directly.
+      If you have any questions about this invoice, please reply to this email or contact ${escapeHtml(data.senderName)} directly.
     </p>
     ${buildEmailFooter(data.senderName, data.branding.companyAddress, data.branding.footerText)}`;
 
@@ -95,17 +123,17 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
 
   const text = `${title}\n\nHi ${data.clientName},\n\nYou have received a new invoice for ${formattedTotal}.\n\nAmount Due: ${formattedTotal}\nDue Date: ${formattedDueDate}\n${periodText}${referenceText}\nLine Items:\n${itemsText}\n${messageText}\nView Invoice: ${invoiceUrl}\n\nIf you have any questions about this invoice, please reply to this email or contact ${data.senderName} directly.`;
 
-  return getResend().emails.send({
+  return {
     from: env.EMAIL_FROM,
     to: data.clientEmail,
     replyTo: data.senderEmail,
     subject: `${title} - ${formattedTotal}`,
     html: buildEmailLayout(title, color, bodyHtml, data.branding.fontFamily),
     text,
-  });
+  };
 }
 
-export async function sendReminderEmail(data: InvoiceEmailData & { isOverdue: boolean }) {
+export function buildReminderEmailPayload(data: ReminderEmailData): ResendEmailPayload {
   const invoiceUrl = `${env.APP_URL}/i/${data.publicId}`;
   const formattedTotal = formatCurrency(data.total, data.currency);
   const formattedDueDate = formatDate(data.dueDate);
@@ -121,14 +149,14 @@ export async function sendReminderEmail(data: InvoiceEmailData & { isOverdue: bo
 
   const bodyHtml = `
     ${buildBrandingHeader(data.branding.logoUrl)}
-    <p>Hi ${data.clientName},</p>
+    <p>Hi ${escapeHtml(data.clientName)},</p>
     <p>This is a friendly reminder about an outstanding invoice for <strong>${formattedTotal}</strong>.</p>
     ${data.isOverdue ? `<p style="color: ${EMAIL.OVERDUE_COLOR};"><strong>This invoice is now overdue.</strong></p>` : ""}
     ${buildInvoiceDetailsBlock(formattedTotal, formattedDueDate, data.paymentReference, periodHtml)}
     ${buildLineItemsTable(data.items, data.currency, data.itemGroups)}
     <p>${buildEmailButton(invoiceUrl, "View & Pay Invoice", color)}</p>
     <p style="color: #666; font-size: 14px; margin-top: 30px;">
-      If you have already paid this invoice, please disregard this reminder. For any questions, please contact ${data.senderName} directly.
+      If you have already paid this invoice, please disregard this reminder. For any questions, please contact ${escapeHtml(data.senderName)} directly.
     </p>
     ${buildEmailFooter(data.senderName, data.branding.companyAddress, data.branding.footerText)}`;
 
@@ -141,19 +169,19 @@ export async function sendReminderEmail(data: InvoiceEmailData & { isOverdue: bo
 
   const text = `${title}\n\nHi ${data.clientName},\n\nThis is a friendly reminder about an outstanding invoice for ${formattedTotal}.\n\n${data.isOverdue ? "This invoice is now overdue.\n\n" : ""}Amount Due: ${formattedTotal}\nDue Date: ${formattedDueDate}\n${periodText}${referenceText}\nLine Items:\n${itemsText}\n\nView & Pay Invoice: ${invoiceUrl}\n\nIf you have already paid this invoice, please disregard this reminder. For any questions, please contact ${data.senderName} directly.`;
 
-  return getResend().emails.send({
+  return {
     from: env.EMAIL_FROM,
     to: data.clientEmail,
     replyTo: data.senderEmail,
     subject: title,
     html: buildEmailLayout(title, color, bodyHtml, data.branding.fontFamily),
     text,
-  });
+  };
 }
 
 const WAITLIST_COLOR = "#0d9488";
 
-export async function sendWaitlistConfirmationEmail(email: string) {
+export function buildWaitlistConfirmationPayload(email: string): ResendEmailPayload {
   const title = `You're on the ${SEO.SITE_NAME} waitlist!`;
 
   const bodyHtml = `
@@ -164,38 +192,38 @@ export async function sendWaitlistConfirmationEmail(email: string) {
 
   const text = `${title}\n\nThanks for your interest in ${SEO.SITE_NAME}! We've added you to our waitlist.\n\nWe'll notify you as soon as your account is ready.\n\nVisit ${SEO.SITE_NAME}: ${SEO.SITE_URL}`;
 
-  return getResend().emails.send({
+  return {
     from: env.EMAIL_FROM,
     to: email,
     subject: title,
     html: buildEmailLayout(title, WAITLIST_COLOR, bodyHtml),
     text,
-  });
+  };
 }
 
-export async function sendWaitlistNotificationEmail(email: string) {
+export function buildWaitlistNotificationPayload(email: string): ResendEmailPayload | null {
+  if (!env.ADMIN_EMAIL) {
+    return null;
+  }
+
   const title = "New waitlist signup";
 
   const bodyHtml = `
     <p>A new user has joined the waitlist:</p>
-    <p><strong>${email}</strong></p>`;
+    <p><strong>${escapeHtml(email)}</strong></p>`;
 
   const text = `New waitlist signup: ${email}`;
 
-  if (!env.ADMIN_EMAIL) {
-    return;
-  }
-
-  return getResend().emails.send({
+  return {
     from: env.EMAIL_FROM,
     to: env.ADMIN_EMAIL,
     subject: `[${SEO.SITE_NAME}] ${title}: ${email}`,
     html: buildEmailLayout(title, WAITLIST_COLOR, bodyHtml),
     text,
-  });
+  };
 }
 
-export async function sendWaitlistApprovalEmail(email: string) {
+export function buildWaitlistApprovalPayload(email: string): ResendEmailPayload {
   const title = `You've been approved for ${SEO.SITE_NAME}!`;
   const signUpUrl = `${env.APP_URL}/auth/sign-up`;
 
@@ -207,11 +235,11 @@ export async function sendWaitlistApprovalEmail(email: string) {
 
   const text = `${title}\n\nGreat news — your access to ${SEO.SITE_NAME} has been approved!\n\nCreate your account: ${signUpUrl}`;
 
-  return getResend().emails.send({
+  return {
     from: env.EMAIL_FROM,
     to: email,
     subject: title,
     html: buildEmailLayout(title, WAITLIST_COLOR, bodyHtml),
     text,
-  });
+  };
 }

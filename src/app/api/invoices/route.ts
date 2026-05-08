@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { withIdempotency } from "@app/shared/api/idempotency";
 import { parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { createInvoiceSchema } from "@app/shared/schemas";
 
@@ -11,14 +12,19 @@ export const GET = withAuth(async (user) => {
   return NextResponse.json(invoices);
 });
 
-export const POST = withAuth(async (user, request) => {
-  const { data, error } = await parseBody(request, createInvoiceSchema);
+export const POST = withAuth(
+  withIdempotency(
+    async (user, request) => {
+      const { data, error } = await parseBody(request, createInvoiceSchema);
 
-  if (error) {
-    return error;
-  }
+      if (error) {
+        return error;
+      }
 
-  const invoice = await createInvoice(user.id, data);
+      const invoice = await createInvoice(user.id, data);
 
-  return NextResponse.json(invoice, { status: 201 });
-});
+      return NextResponse.json(invoice, { status: 201 });
+    },
+    { endpoint: "POST /api/invoices" }
+  )
+);

@@ -56,6 +56,7 @@ export async function duplicateInvoice(id: string, userId: string) {
 
   if (invoice.itemGroups.length > 0) {
     await createItemGroups(
+      prisma,
       newInvoice.id,
       invoice.itemGroups.map((g) => ({
         title: g.title,

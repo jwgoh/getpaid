@@ -2,9 +2,26 @@ import { z } from "zod";
 
 import { EDITIONS } from "./config";
 
+const WEAK_NEXTAUTH_SECRETS = new Set<string>([
+  "change-me-to-a-random-secret",
+  "your-super-secret-key-generate-with-openssl-rand-base64-32",
+  "secret",
+  "changeme",
+  "change-me",
+]);
+
 const serverSchema = z.object({
   DATABASE_URL: z.string().min(1),
-  NEXTAUTH_SECRET: z.string().min(1),
+  NEXTAUTH_SECRET: z
+    .string()
+    .min(
+      32,
+      "NEXTAUTH_SECRET must be at least 32 characters — generate via: openssl rand -base64 32"
+    )
+    .refine(
+      (value) => !WEAK_NEXTAUTH_SECRETS.has(value),
+      "NEXTAUTH_SECRET is set to a well-known default value — generate a new one via: openssl rand -base64 32"
+    ),
   APP_URL: z.string().min(1).default("http://localhost:3000"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   RESEND_API_KEY: z.string().min(1).optional(),

@@ -154,7 +154,7 @@ model Invoice {
   paymentReference String? @unique
 
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client       Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
   itemGroups   InvoiceItemGroup[]
   items        InvoiceItem[]
   events       InvoiceEvent[]
@@ -275,7 +275,7 @@ model InvoiceTemplateItem {
   unitPrice   Int
   sortOrder   Int     @default(0)
 
-  template InvoiceTemplate          @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template InvoiceTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
   group    InvoiceTemplateItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([templateId])
@@ -305,16 +305,21 @@ enum FollowUpJobStatus {
   PENDING
   SENT
   CANCELED
+  FAILED
 }
 
 model FollowUpJob {
-  id           String            @id @default(cuid())
-  invoiceId    String
-  scheduledFor DateTime
-  sentAt       DateTime?
-  status       FollowUpJobStatus @default(PENDING)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id              String            @id @default(cuid())
+  invoiceId       String
+  scheduledFor    DateTime
+  sentAt          DateTime?
+  status          FollowUpJobStatus @default(PENDING)
+  attempts        Int               @default(0)
+  lastError       String?
+  lastAttemptedAt DateTime?
+  nextAttemptAt   DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
@@ -356,8 +361,8 @@ model RecurringInvoice {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
-  user       User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client     Client                        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client     Client                      @relation(fields: [clientId], references: [id], onDelete: Restrict)
   items      RecurringInvoiceItem[]
   itemGroups RecurringInvoiceItemGroup[]
 
@@ -388,7 +393,7 @@ model RecurringInvoiceItem {
   unitPrice          Int
   sortOrder          Int     @default(0)
 
-  recurringInvoice RecurringInvoice          @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
+  recurringInvoice RecurringInvoice           @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
   group            RecurringInvoiceItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([recurringInvoiceId])
@@ -422,4 +427,56 @@ model WaitlistEntry {
   status    WaitlistStatus @default(PENDING)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+}
+
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  key            String
+  userId         String
+  endpoint       String
+  requestHash    String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  @@unique([userId, endpoint, key])
+  @@index([expiresAt])
+}
+
+enum EmailOutboxKind {
+  INVOICE
+  REMINDER
+  WAITLIST_CONFIRMATION
+  WAITLIST_NOTIFICATION
+  WAITLIST_APPROVAL
+}
+
+enum EmailOutboxStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model EmailOutbox {
+  id              String            @id @default(cuid())
+  userId          String?
+  kind            EmailOutboxKind
+  payload         Json
+  relatedType     String?
+  relatedId       String?
+  idempotencyKey  String
+  status          EmailOutboxStatus @default(PENDING)
+  attempts        Int               @default(0)
+  lastError       String?
+  lastAttemptedAt DateTime?
+  nextAttemptAt   DateTime?
+  sentAt          DateTime?
+  messageId       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([kind, relatedType, relatedId, idempotencyKey])
+  @@index([status, createdAt])
+  @@index([userId])
 }

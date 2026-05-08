@@ -12,10 +12,22 @@ type ErrorCode =
   | "NOT_FOUND"
   | "BAD_REQUEST"
   | "INTERNAL_ERROR"
+  | "CLIENT_HAS_DEPENDENTS"
+  | "IDEMPOTENCY_KEY_REQUIRED"
+  | "IDEMPOTENCY_KEY_INVALID"
+  | "IDEMPOTENCY_KEY_REUSED"
   | (string & {});
 
-export function errorResponse(code: ErrorCode, message: string, status: number) {
-  return NextResponse.json({ error: { code, message } }, { status });
+export function errorResponse(
+  code: ErrorCode,
+  message: string,
+  status: number,
+  details?: Record<string, unknown>
+) {
+  return NextResponse.json(
+    { error: { code, message, ...(details ? { details } : {}) } },
+    { status }
+  );
 }
 
 export function unauthorizedResponse() {

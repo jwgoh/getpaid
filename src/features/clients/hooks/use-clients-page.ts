@@ -2,9 +2,16 @@
 
 import * as React from "react";
 
+import { ApiError } from "@app/shared/api";
 import { PAGINATION, SEARCH } from "@app/shared/config/config";
 import { queryKeys } from "@app/shared/config/query";
-import { useDebouncedValue, useItemMenu, useOptimisticDelete, useSort } from "@app/shared/hooks";
+import {
+  useDebouncedValue,
+  useItemMenu,
+  useOptimisticDelete,
+  useSort,
+  useToast,
+} from "@app/shared/hooks";
 import type { Client } from "@app/shared/schemas/api";
 import { useAnnounce } from "@app/shared/ui/screen-reader-announcer";
 
@@ -57,11 +64,23 @@ function filterAndSortClients(
 
 export function useClientsPage() {
   const { data: clients, isLoading, error } = useClients();
+  const toast = useToast();
   const { deleteItem, pendingIds } = useOptimisticDelete({
     queryKey: queryKeys.clients,
     getId: (client: { id: string }) => client.id,
     entityName: "Client",
     deleteFn: clientsApi.delete,
+    onError: (err, entityName) => {
+      if (err instanceof ApiError && err.code === "CLIENT_HAS_DEPENDENTS") {
+        toast.error(err.message, "Client has dependents");
+
+        return;
+      }
+
+      toast.error(
+        err instanceof ApiError ? err.message : `Failed to delete ${entityName.toLowerCase()}`
+      );
+    },
   });
 
   const announce = useAnnounce();

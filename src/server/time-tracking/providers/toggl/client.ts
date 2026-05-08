@@ -1,4 +1,5 @@
 import { TIME_TRACKING } from "@app/shared/config/config";
+import { EXTERNAL_HTTP_TIMEOUTS_MS } from "@app/shared/lib/http";
 
 interface TogglUser {
   id: number;
@@ -106,6 +107,7 @@ function buildAuthHeader(token: string): string {
 async function togglFetch<T>(url: string, token: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...options,
+    signal: options?.signal ?? AbortSignal.timeout(EXTERNAL_HTTP_TIMEOUTS_MS.TOGGL),
     headers: {
       Authorization: buildAuthHeader(token),
       "Content-Type": "application/json",

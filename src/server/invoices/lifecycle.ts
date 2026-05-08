@@ -37,49 +37,54 @@ export async function markInvoicePaid(
   userId: string,
   method: PaymentMethod = "MANUAL"
 ) {
-  const invoice = await prisma.invoice.findFirst({
-    where: { id, userId, paidAt: null },
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findFirst({
+      where: { id, userId, paidAt: null },
+    });
+
+    if (!invoice) {
+      return null;
+    }
+
+    const updated = await tx.invoice.update({
+      where: { id },
+      data: {
+        status: INVOICE_STATUS.PAID,
+        paidAt: new Date(),
+        paymentMethod: method,
+      },
+      include: {
+        client: true,
+        items: true,
+      },
+    });
+
+    await tx.invoiceEvent.create({
+      data: {
+        invoiceId: invoice.id,
+        type: INVOICE_EVENT.PAID_MANUAL,
+        payload: {},
+      },
+    });
+
+    await tx.followUpJob.updateMany({
+      where: { invoiceId: invoice.id, status: FOLLOWUP_STATUS.PENDING },
+      data: { status: FOLLOWUP_STATUS.CANCELED },
+    });
+
+    return updated;
   });
-
-  if (!invoice) {
-    return null;
-  }
-
-  const updated = await prisma.invoice.update({
-    where: { id },
-    data: {
-      status: INVOICE_STATUS.PAID,
-      paidAt: new Date(),
-      paymentMethod: method,
-    },
-    include: {
-      client: true,
-      items: true,
-    },
-  });
-
-  await prisma.invoiceEvent.create({
-    data: {
-      invoiceId: invoice.id,
-      type: INVOICE_EVENT.PAID_MANUAL,
-      payload: {},
-    },
-  });
-
-  await prisma.followUpJob.updateMany({
-    where: { invoiceId: invoice.id, status: FOLLOWUP_STATUS.PENDING },
-    data: { status: FOLLOWUP_STATUS.CANCELED },
-  });
-
-  return updated;
 }
+
+type InvoiceClient = Prisma.TransactionClient | typeof prisma;
 
 export async function updateInvoiceStatus(
   id: string,
   status: InvoiceStatus,
-  additionalData: Record<string, unknown> = {}
+  additionalData: Record<string, unknown> = {},
+  client: InvoiceClient = prisma
 ) {
-  return prisma.invoice.update({
+  return client.invoice.update({
     where: { id },
     data: {
       status,
@@ -91,9 +96,10 @@ export async function updateInvoiceStatus(
 export async function logInvoiceEvent(
   invoiceId: string,
   type: InvoiceEventType,
-  payload: Prisma.InputJsonValue = {}
+  payload: Prisma.InputJsonValue = {},
+  client: InvoiceClient = prisma
 ) {
-  return prisma.invoiceEvent.create({
+  return client.invoiceEvent.create({
     data: {
       invoiceId,
       type,

@@ -12,6 +12,7 @@ interface UseOptimisticDeleteOptions<T> {
   getId: (item: T) => string;
   entityName: string;
   deleteFn: (id: string) => Promise<unknown>;
+  onError?: (error: unknown, entityName: string) => void;
 }
 
 export function useOptimisticDelete<T>({
@@ -19,19 +20,20 @@ export function useOptimisticDelete<T>({
   getId,
   entityName,
   deleteFn,
+  onError,
 }: UseOptimisticDeleteOptions<T>) {
   const queryClient = useQueryClient();
   const toast = useToast();
 
   const [pendingIds, setPendingIds] = React.useState<Set<string>>(new Set());
   const pendingRef = React.useRef(new Map<string, NodeJS.Timeout>());
-  const optionsRef = React.useRef({ queryKey, getId, entityName, deleteFn });
+  const optionsRef = React.useRef({ queryKey, getId, entityName, deleteFn, onError });
 
-  optionsRef.current = { queryKey, getId, entityName, deleteFn };
+  optionsRef.current = { queryKey, getId, entityName, deleteFn, onError };
 
   const deleteItem = React.useCallback(
     (item: T) => {
-      const { getId, entityName, deleteFn, queryKey } = optionsRef.current;
+      const { getId, entityName, deleteFn, queryKey, onError } = optionsRef.current;
       const id = getId(item);
 
       const existing = pendingRef.current.get(id);
@@ -48,8 +50,14 @@ export function useOptimisticDelete<T>({
         try {
           await deleteFn(id);
           queryClient.invalidateQueries({ queryKey });
-        } catch {
-          toast.error(`Failed to delete ${entityName.toLowerCase()}`);
+        } catch (error) {
+          queryClient.invalidateQueries({ queryKey });
+
+          if (onError) {
+            onError(error, entityName);
+          } else {
+            toast.error(`Failed to delete ${entityName.toLowerCase()}`);
+          }
         } finally {
           setPendingIds((prev) => {
             const next = new Set(prev);

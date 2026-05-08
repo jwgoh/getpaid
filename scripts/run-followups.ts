@@ -1,8 +1,143 @@
-import { prisma } from "../src/server/db";
-import { getPendingFollowUpJobs, markFollowUpJobSent } from "../src/server/followups";
-import { sendReminderEmail, type EmailBranding } from "../src/server/email";
-import { logInvoiceEvent } from "../src/server/invoices";
+import {
+  EMAIL_OUTBOX_KIND,
+  EMAIL_OUTBOX_RELATED_TYPE,
+  FOLLOWUP_RETRY,
+  computeBackoffMs,
+} from "../src/shared/config/email-outbox";
 import { BRANDING } from "../src/shared/config/config";
+
+import { prisma } from "../src/server/db";
+import { buildReminderEmailPayload, type EmailBranding } from "../src/server/email";
+import {
+  buildOutboxIdempotencyKey,
+  createEmailOutbox,
+  dispatchOutbox,
+} from "../src/server/email/outbox";
+import {
+  getPendingFollowUpJobs,
+  markFollowUpJobFailed,
+  markFollowUpJobSent,
+  recordFollowUpAttempt,
+} from "../src/server/followups";
+import { logInvoiceEvent } from "../src/server/invoices";
+
+type PendingJob = Awaited<ReturnType<typeof getPendingFollowUpJobs>>[number];
+
+function buildBranding(senderProfile: PendingJob["invoice"]["user"]["senderProfile"]): EmailBranding {
+  return {
+    primaryColor: senderProfile?.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR,
+    logoUrl: senderProfile?.logoUrl || null,
+    fontFamily: senderProfile?.fontFamily || null,
+    footerText: senderProfile?.footerText || null,
+    companyAddress: senderProfile?.address || null,
+  };
+}
+
+async function processJob(job: PendingJob): Promise<void> {
+  const { invoice } = job;
+
+  if (invoice.status === "PAID" || invoice.paidAt) {
+    console.log(`Skipping job ${job.id}: invoice ${invoice.id} is already paid`);
+    await prisma.followUpJob.update({
+      where: { id: job.id },
+      data: { status: "CANCELED" },
+    });
+
+    return;
+  }
+
+  const senderProfile = invoice.user.senderProfile;
+  const senderName =
+    senderProfile?.companyName || senderProfile?.displayName || invoice.user.email;
+  const senderEmail = senderProfile?.emailFrom || invoice.user.email;
+  const isOverdue = invoice.dueDate < new Date();
+  const branding = buildBranding(senderProfile);
+
+  const payload = buildReminderEmailPayload({
+    clientName: invoice.client.name,
+    clientEmail: invoice.client.email,
+    senderName,
+    senderEmail,
+    publicId: invoice.publicId,
+    total: invoice.total,
+    currency: invoice.currency,
+    dueDate: invoice.dueDate,
+    periodStart: invoice.periodStart,
+    periodEnd: invoice.periodEnd,
+    message: invoice.message,
+    isOverdue,
+    branding,
+    paymentReference: invoice.paymentReference || null,
+    items: invoice.items.map((item) => ({
+      title: item.title,
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      amount: item.amount,
+    })),
+    itemGroups: invoice.itemGroups.map((group) => ({
+      title: group.title,
+      items: group.items.map((item) => ({
+        title: item.title,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount: item.amount,
+      })),
+    })),
+  });
+
+  console.log(`Processing job ${job.id} for invoice ${invoice.publicId}...`);
+
+  const outboxRowId = await prisma.$transaction(async (tx) => {
+    const placeholderKey = `pending-${job.id}-${Date.now()}`;
+    const row = await createEmailOutbox(tx, {
+      userId: invoice.userId,
+      kind: EMAIL_OUTBOX_KIND.REMINDER,
+      relatedType: EMAIL_OUTBOX_RELATED_TYPE.FOLLOW_UP_JOB,
+      relatedId: job.id,
+      payload,
+      idempotencyKey: placeholderKey,
+    });
+
+    const stableKey = buildOutboxIdempotencyKey(EMAIL_OUTBOX_KIND.REMINDER, job.id, row.id);
+
+    await tx.emailOutbox.update({
+      where: { id: row.id },
+      data: { idempotencyKey: stableKey },
+    });
+
+    return row.id;
+  });
+
+  await recordFollowUpAttempt(job.id);
+
+  const dispatched = await dispatchOutbox(outboxRowId);
+
+  if (dispatched?.status === "SENT") {
+    await markFollowUpJobSent(job.id);
+    await logInvoiceEvent(invoice.id, "REMINDER_SENT", {
+      jobId: job.id,
+      isOverdue,
+      messageId: dispatched.messageId,
+    });
+    console.log(`Successfully sent reminder for invoice ${invoice.publicId}`);
+
+    return;
+  }
+
+  const errorMessage = dispatched?.lastError ?? "Unknown send failure";
+  const updatedAttempts = job.attempts + 1;
+  const isExhausted = updatedAttempts >= FOLLOWUP_RETRY.MAX_ATTEMPTS;
+  const nextAttemptAt = isExhausted
+    ? null
+    : new Date(Date.now() + computeBackoffMs(updatedAttempts, FOLLOWUP_RETRY.BASE_BACKOFF_MS));
+
+  await markFollowUpJobFailed(job.id, errorMessage, nextAttemptAt);
+  console.error(
+    `Failed to send reminder for job ${job.id} (attempt ${updatedAttempts}/${FOLLOWUP_RETRY.MAX_ATTEMPTS}): ${errorMessage}`
+  );
+}
 
 async function main() {
   console.log("Starting follow-up job runner...");
@@ -12,80 +147,10 @@ async function main() {
   console.log(`Found ${pendingJobs.length} pending follow-up job(s)`);
 
   for (const job of pendingJobs) {
-    const { invoice } = job;
-
-    if (invoice.status === "PAID" || invoice.paidAt) {
-      console.log(`Skipping job ${job.id}: Invoice ${invoice.id} is already paid`);
-      await prisma.followUpJob.update({
-        where: { id: job.id },
-        data: { status: "CANCELED" },
-      });
-      continue;
-    }
-
-    const senderProfile = invoice.user.senderProfile;
-
-    const senderName =
-      senderProfile?.companyName || senderProfile?.displayName || invoice.user.email;
-
-    const senderEmail = senderProfile?.emailFrom || invoice.user.email;
-
-    const isOverdue = invoice.dueDate < new Date();
-
-    const branding: EmailBranding = {
-      primaryColor: senderProfile?.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR,
-      logoUrl: senderProfile?.logoUrl || null,
-      fontFamily: senderProfile?.fontFamily || null,
-      footerText: senderProfile?.footerText || null,
-      companyAddress: senderProfile?.address || null,
-    };
-
-    console.log(`Processing job ${job.id} for invoice ${invoice.publicId}...`);
-
     try {
-      await sendReminderEmail({
-        clientName: invoice.client.name,
-        clientEmail: invoice.client.email,
-        senderName,
-        senderEmail,
-        publicId: invoice.publicId,
-        total: invoice.total,
-        currency: invoice.currency,
-        dueDate: invoice.dueDate,
-        periodStart: invoice.periodStart,
-        periodEnd: invoice.periodEnd,
-        message: invoice.message,
-        isOverdue,
-        branding,
-        paymentReference: invoice.paymentReference || null,
-        items: invoice.items.map((item) => ({
-          title: item.title,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          amount: item.amount,
-        })),
-        itemGroups: invoice.itemGroups.map((group) => ({
-          title: group.title,
-          items: group.items.map((item) => ({
-            title: item.title,
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            amount: item.amount,
-          })),
-        })),
-      });
-
-      await markFollowUpJobSent(job.id);
-      await logInvoiceEvent(invoice.id, "REMINDER_SENT", {
-        jobId: job.id,
-        isOverdue,
-      });
-
-      console.log(`Successfully sent reminder for invoice ${invoice.publicId}`);
+      await processJob(job);
     } catch (error) {
-      console.error(`Failed to send reminder for job ${job.id}:`, error);
+      console.error(`Unexpected error processing job ${job.id}:`, error);
     }
   }
 

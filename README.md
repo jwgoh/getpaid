@@ -23,17 +23,22 @@ git clone https://github.com/maksim-pokhiliy/getpaid.git
 cd getpaid
 ```
 
-Generate a secret and start:
+Generate the required secrets and start:
 
 ```bash
-# Generate NEXTAUTH_SECRET
-echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" > .env
+# Both secrets are REQUIRED — docker compose will refuse to start without them.
+{
+  echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)"
+  echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
+} > .env
 
 # Start the app
 docker compose up -d
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and create an account.
+
+> **Why required?** `NEXTAUTH_SECRET` signs your session JWTs and `POSTGRES_PASSWORD` protects your database. If left to a default, anyone could forge sessions or read your data. Compose hard-fails (`required variable is missing`) when these are unset — by design.
 
 ## Development Setup
 
@@ -87,7 +92,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | Yes | Auth session secret (`openssl rand -base64 32`) |
+| `NEXTAUTH_SECRET` | Yes | Auth session secret, min 32 chars (`openssl rand -base64 32`) |
+| `POSTGRES_PASSWORD` | Yes (Docker) | Postgres password for the bundled `db` service (`openssl rand -base64 32`) |
 | `APP_URL` | No | App base URL (default: `http://localhost:3000`) |
 | `RESEND_API_KEY` | No | [Resend](https://resend.com) API key for sending emails |
 | `EMAIL_FROM` | No | Sender email address (default: `invoices@example.com`) |

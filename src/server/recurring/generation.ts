@@ -85,70 +85,73 @@ export async function generateInvoiceFromRecurring(recurringInvoice: {
 
   dueDate.setDate(dueDate.getDate() + recurringInvoice.dueDays);
 
-  const invoice = await prisma.invoice.create({
-    data: {
-      userId: recurringInvoice.userId,
-      clientId: recurringInvoice.clientId,
-      publicId: nanoid(NANOID.PUBLIC_ID_LENGTH),
-      currency: recurringInvoice.currency,
-      status: recurringInvoice.autoSend ? INVOICE_STATUS.SENT : INVOICE_STATUS.DRAFT,
-      subtotal,
-      discountType: recurringInvoice.discountType,
-      discountValue: recurringInvoice.discountValue,
-      discountAmount,
-      taxRate: recurringInvoice.taxRate,
-      taxAmount,
-      total,
-      dueDate,
-      notes: recurringInvoice.notes,
-      sentAt: recurringInvoice.autoSend ? new Date() : null,
-      items: {
-        create: recurringInvoice.items.map((item, i) => ({
-          title: item.title,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          amount: Math.round(item.quantity * item.unitPrice),
-          sortOrder: item.sortOrder ?? i,
-        })),
-      },
-      events: {
-        create: {
-          type: INVOICE_EVENT.CREATED,
-          payload: { source: "recurring", recurringInvoiceId: recurringInvoice.id },
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.create({
+      data: {
+        userId: recurringInvoice.userId,
+        clientId: recurringInvoice.clientId,
+        publicId: nanoid(NANOID.PUBLIC_ID_LENGTH),
+        currency: recurringInvoice.currency,
+        status: recurringInvoice.autoSend ? INVOICE_STATUS.SENT : INVOICE_STATUS.DRAFT,
+        subtotal,
+        discountType: recurringInvoice.discountType,
+        discountValue: recurringInvoice.discountValue,
+        discountAmount,
+        taxRate: recurringInvoice.taxRate,
+        taxAmount,
+        total,
+        dueDate,
+        notes: recurringInvoice.notes,
+        sentAt: recurringInvoice.autoSend ? new Date() : null,
+        items: {
+          create: recurringInvoice.items.map((item, i) => ({
+            title: item.title,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            amount: Math.round(item.quantity * item.unitPrice),
+            sortOrder: item.sortOrder ?? i,
+          })),
+        },
+        events: {
+          create: {
+            type: INVOICE_EVENT.CREATED,
+            payload: { source: "recurring", recurringInvoiceId: recurringInvoice.id },
+          },
         },
       },
-    },
+    });
+
+    if (recurringInvoice.itemGroups.length > 0) {
+      await createItemGroups(
+        tx,
+        invoice.id,
+        recurringInvoice.itemGroups.map((g) => ({
+          title: g.title,
+          sortOrder: g.sortOrder,
+          items: g.items.map((item) => ({
+            title: item.title,
+            description: item.description ?? undefined,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            sortOrder: item.sortOrder,
+          })),
+        }))
+      );
+    }
+
+    const nextRunAt = calculateNextRunDate(new Date(), recurringInvoice.frequency);
+
+    await tx.recurringInvoice.update({
+      where: { id: recurringInvoice.id },
+      data: {
+        lastRunAt: new Date(),
+        nextRunAt,
+      },
+    });
+
+    return invoice;
   });
-
-  if (recurringInvoice.itemGroups.length > 0) {
-    await createItemGroups(
-      invoice.id,
-      recurringInvoice.itemGroups.map((g) => ({
-        title: g.title,
-        sortOrder: g.sortOrder,
-        items: g.items.map((item) => ({
-          title: item.title,
-          description: item.description ?? undefined,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          sortOrder: item.sortOrder,
-        })),
-      }))
-    );
-  }
-
-  const nextRunAt = calculateNextRunDate(new Date(), recurringInvoice.frequency);
-
-  await prisma.recurringInvoice.update({
-    where: { id: recurringInvoice.id },
-    data: {
-      lastRunAt: new Date(),
-      nextRunAt,
-    },
-  });
-
-  return invoice;
 }
 
 export async function processDueRecurringInvoices() {

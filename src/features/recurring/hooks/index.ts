@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { generateIdempotencyKey } from "@app/shared/api/idempotency-key";
 import { queryKeys, STALE_TIME } from "@app/shared/config/query";
 import type {
   CreateRecurringInput,
@@ -83,7 +84,7 @@ export function useGenerateFromRecurring() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => recurringApi.generate(id),
+    mutationFn: (id: string) => recurringApi.generate(id, generateIdempotencyKey()),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.recurringItem(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.recurring });
