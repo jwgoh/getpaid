@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ApiError } from "@app/shared/api";
 import { useConfirmDialog } from "@app/shared/hooks/use-confirm-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
-import { generateInvoicePdf } from "@app/shared/lib/export";
 import type { Invoice } from "@app/shared/schemas/api";
 
 import { useDeleteInvoice, useDuplicateInvoice, useSendInvoice } from "@app/features/invoices";
@@ -81,10 +80,12 @@ export function useInvoiceHandlers(
     });
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!invoice) {
       return;
     }
+
+    const { generateInvoicePdf } = await import("@app/shared/lib/export/pdf");
 
     generateInvoicePdf({ ...invoice, sender: null });
     toast.success("PDF downloaded!");
