@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
 
 import { getUser } from "@app/server/auth/require-user";
-import { getInvoiceByPublicId, markInvoiceViewed } from "@app/server/invoices";
+import { tryMarkViewed } from "@app/server/invoices";
 
 export async function POST(
   request: Request,
@@ -20,20 +20,14 @@ export async function POST(
 
   try {
     const { publicId } = await params;
+    const user = await getUser();
+    const result = await tryMarkViewed(publicId, user?.id ?? null);
 
-    const invoice = await getInvoiceByPublicId(publicId);
-
-    if (!invoice) {
+    if (!result.found) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Invoice not found" } },
         { status: 404 }
       );
-    }
-
-    const user = await getUser();
-
-    if (user?.id !== invoice.userId) {
-      await markInvoiceViewed(publicId);
     }
 
     return NextResponse.json({ success: true });
