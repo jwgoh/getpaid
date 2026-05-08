@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { withIdempotency } from "@app/shared/api/idempotency";
 import {
   errorResponse,
   notFoundResponse,
@@ -21,26 +22,31 @@ export const GET = withAuth(async (user, _request, context) => {
   return NextResponse.json(payments);
 });
 
-export const POST = withAuth(async (user, request, context) => {
-  const { id } = await context.params;
-  const { data, error } = await parseBody(request, recordPaymentApiSchema);
+export const POST = withAuth(
+  withIdempotency(
+    async (user, request, context) => {
+      const { id } = await context.params;
+      const { data, error } = await parseBody(request, recordPaymentApiSchema);
 
-  if (error) {
-    return error;
-  }
+      if (error) {
+        return error;
+      }
 
-  const invoice = await recordPayment(id, user.id, data);
+      const invoice = await recordPayment(id, user.id, data);
 
-  if (!invoice) {
-    return errorResponse(
-      "BAD_REQUEST",
-      "Cannot record payment. Invoice may not exist, be a draft, or payment exceeds balance.",
-      400
-    );
-  }
+      if (!invoice) {
+        return errorResponse(
+          "BAD_REQUEST",
+          "Cannot record payment. Invoice may not exist, be a draft, or payment exceeds balance.",
+          400
+        );
+      }
 
-  return NextResponse.json(invoice);
-});
+      return NextResponse.json(invoice);
+    },
+    { endpoint: "POST /api/invoices/:id/payments" }
+  )
+);
 
 export const DELETE = withAuth(async (user, request, context) => {
   const { id: invoiceId } = await context.params;

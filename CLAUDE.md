@@ -212,6 +212,36 @@ Common error codes:
 - `REGISTRATION_DISABLED` - Sign-up blocked by edition
 - `INTERNAL_ERROR` - Server error
 
+## Idempotency
+
+State-changing endpoints with money / data-creation impact require an `Idempotency-Key` header to prevent double-writes (browser refresh, retries, double-click).
+
+Pattern:
+
+```typescript
+import { withIdempotency } from "@app/shared/api/idempotency";
+import { withAuth } from "@app/shared/api/route-helpers";
+
+export const POST = withAuth(
+  withIdempotency(handler, { endpoint: "POST /api/invoices/:id/payments" })
+);
+```
+
+Server enforcement (today):
+- `POST /api/invoices` (create invoice)
+- `POST /api/invoices/:id/payments` (record payment)
+- `POST /api/recurring/:id/generate` (manual recurring generate)
+
+Behavior:
+- Missing header on enforced routes -> `400 IDEMPOTENCY_KEY_REQUIRED`.
+- Same key + same body within 24h -> cached `(status, body)` returned.
+- Same key + different body within 24h -> `422 IDEMPOTENCY_KEY_REUSED`.
+- Key validation: 8-128 printable ASCII chars, else `400 IDEMPOTENCY_KEY_INVALID`.
+
+Frontend convention: React Query mutations call `generateIdempotencyKey()` from `@app/shared/api/idempotency-key` per submit (one fresh UUID per user action). Pass it through the API client; the API client puts it into `Idempotency-Key` via `idempotencyHeader()`.
+
+When adding a new write endpoint that creates resources, charges money, or sends external messages: wrap with `withIdempotency` and have the caller supply a fresh key.
+
 ## Code Quality Checklist
 
 Before committing, verify:

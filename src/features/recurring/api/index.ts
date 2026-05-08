@@ -1,4 +1,5 @@
 import { fetchApi } from "@app/shared/api/base";
+import { idempotencyHeader } from "@app/shared/api/idempotency-key";
 import type {
   CreateRecurringInput,
   RecurringInvoice,
@@ -27,9 +28,12 @@ export const recurringApi = {
       method: "DELETE",
     }),
 
-  generate: (id: string) =>
+  generate: (id: string, idempotencyKey: string) =>
     fetchApi<{ success: boolean; invoiceId: string; publicId: string }>(
       `/api/recurring/${id}/generate`,
-      { method: "POST" }
+      {
+        method: "POST",
+        headers: idempotencyHeader(idempotencyKey),
+      }
     ),
 };

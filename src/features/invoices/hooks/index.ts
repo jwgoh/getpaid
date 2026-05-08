@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { generateIdempotencyKey } from "@app/shared/api/idempotency-key";
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { queryKeys, STALE_TIME } from "@app/shared/config/query";
 import type { CreateInvoiceInput, UpdateInvoiceInput } from "@app/shared/schemas";
@@ -29,7 +30,7 @@ export function useCreateInvoice() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateInvoiceInput) => invoicesApi.create(data),
+    mutationFn: (data: CreateInvoiceInput) => invoicesApi.create(data, generateIdempotencyKey()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices });
     },
@@ -176,7 +177,7 @@ export function useRecordPayment() {
 
   return useMutation({
     mutationFn: ({ invoiceId, data }: { invoiceId: string; data: RecordPaymentInput }) =>
-      invoicesApi.recordPayment(invoiceId, data),
+      invoicesApi.recordPayment(invoiceId, data, generateIdempotencyKey()),
     onSuccess: (_, { invoiceId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.invoice(invoiceId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices });

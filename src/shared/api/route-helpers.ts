@@ -13,6 +13,9 @@ type ErrorCode =
   | "BAD_REQUEST"
   | "INTERNAL_ERROR"
   | "CLIENT_HAS_DEPENDENTS"
+  | "IDEMPOTENCY_KEY_REQUIRED"
+  | "IDEMPOTENCY_KEY_INVALID"
+  | "IDEMPOTENCY_KEY_REUSED"
   | (string & {});
 
 export function errorResponse(
