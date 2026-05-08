@@ -8,8 +8,12 @@ import type { InvoiceId, UserId } from "@app/shared/types/ids";
 import { prisma } from "@app/server/db";
 
 import { createItemGroups, ITEM_GROUPS_INCLUDE } from "./item-groups";
+import type { InvoiceWithRelations } from "./mutations";
 
-export async function duplicateInvoice(id: InvoiceId, userId: UserId) {
+export async function duplicateInvoice(
+  id: InvoiceId,
+  userId: UserId
+): Promise<InvoiceWithRelations | null> {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
     include: {

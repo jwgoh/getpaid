@@ -11,6 +11,16 @@ import { prisma } from "@app/server/db";
 
 import { createItemGroups, ITEM_GROUPS_INCLUDE } from "./item-groups";
 
+const INVOICE_WITH_RELATIONS_INCLUDE = {
+  client: true,
+  items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
+  itemGroups: ITEM_GROUPS_INCLUDE,
+} as const satisfies Prisma.InvoiceInclude;
+
+export type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
+  include: typeof INVOICE_WITH_RELATIONS_INCLUDE;
+}>;
+
 function buildBasicUpdateFields(data: UpdateInvoiceInput): Prisma.InvoiceUncheckedUpdateInput {
   const updateData: Prisma.InvoiceUncheckedUpdateInput = {};
 
@@ -90,7 +100,10 @@ function resolveDiscount(
   return null;
 }
 
-export async function createInvoice(userId: UserId, data: CreateInvoiceInput) {
+export async function createInvoice(
+  userId: UserId,
+  data: CreateInvoiceInput
+): Promise<InvoiceWithRelations> {
   const allItems = [...data.items, ...(data.itemGroups?.flatMap((g) => g.items) ?? [])];
   const { subtotal, discountAmount, taxAmount, total } = calculateTotals(
     allItems,
@@ -152,11 +165,7 @@ export async function createInvoice(userId: UserId, data: CreateInvoiceInput) {
 
     return tx.invoice.findUniqueOrThrow({
       where: { id: invoice.id },
-      include: {
-        client: true,
-        items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
-        itemGroups: ITEM_GROUPS_INCLUDE,
-      },
+      include: INVOICE_WITH_RELATIONS_INCLUDE,
     });
   });
 }
@@ -203,7 +212,11 @@ async function getItemsForCalculation(
   }));
 }
 
-export async function updateInvoice(id: InvoiceId, userId: UserId, data: UpdateInvoiceInput) {
+export async function updateInvoice(
+  id: InvoiceId,
+  userId: UserId,
+  data: UpdateInvoiceInput
+): Promise<InvoiceWithRelations | null> {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
       where: { id, userId, status: INVOICE_STATUS.DRAFT },
@@ -235,16 +248,15 @@ export async function updateInvoice(id: InvoiceId, userId: UserId, data: UpdateI
     return tx.invoice.update({
       where: { id },
       data: updateData,
-      include: {
-        client: true,
-        items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
-        itemGroups: ITEM_GROUPS_INCLUDE,
-      },
+      include: INVOICE_WITH_RELATIONS_INCLUDE,
     });
   });
 }
 
-export async function deleteInvoice(id: InvoiceId, userId: UserId) {
+export async function deleteInvoice(
+  id: InvoiceId,
+  userId: UserId
+): Promise<{ success: true } | null> {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
   });

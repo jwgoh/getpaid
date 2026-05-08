@@ -1,3 +1,5 @@
+import type { WaitlistEntry } from "@prisma/client";
+
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
 import type { WaitlistCheckStatus } from "@app/shared/schemas";
 import { WAITLIST_STATUS } from "@app/shared/schemas";
@@ -157,13 +159,13 @@ export async function isEmailApproved(email: string): Promise<boolean> {
   return entry?.status === "APPROVED";
 }
 
-export async function listWaitlistEntries() {
+export async function listWaitlistEntries(): Promise<WaitlistEntry[]> {
   return prisma.waitlistEntry.findMany({
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function deleteWaitlistEntry(id: string) {
+export async function deleteWaitlistEntry(id: string): Promise<WaitlistEntry | null> {
   const entry = await prisma.waitlistEntry.findUnique({ where: { id } });
 
   if (!entry) {

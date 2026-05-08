@@ -26,6 +26,7 @@ import {
 import { getFollowUpRule, parseDelaysDays, scheduleFollowUps } from "@app/server/followups";
 import { logInvoiceEvent, updateInvoiceStatus } from "@app/server/invoices";
 import { ITEM_GROUPS_INCLUDE } from "@app/server/invoices/item-groups";
+import type { InvoiceWithRelations } from "@app/server/invoices/mutations";
 
 const generateReference = customAlphabet(
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
@@ -174,7 +175,10 @@ async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string>
   });
 }
 
-export async function sendInvoice(invoiceId: InvoiceId, userId: UserId) {
+export async function sendInvoice(
+  invoiceId: InvoiceId,
+  userId: UserId
+): Promise<InvoiceWithRelations | null> {
   const invoice = await loadInvoiceForSend(invoiceId, userId);
   const ctx = buildSendContext(invoice);
   const sentAt = new Date();

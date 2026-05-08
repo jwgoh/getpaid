@@ -6,7 +6,10 @@ import type { LineItemGroupInput, LineItemInput } from "@app/shared/schemas";
 
 import { prisma } from "@app/server/db";
 import { buildItemRowBase, createItemGroupsGeneric } from "@app/server/invoices/item-groups";
-import { RECURRING_INCLUDE } from "@app/server/recurring/include";
+import {
+  RECURRING_INCLUDE,
+  type RecurringInvoiceWithRelations,
+} from "@app/server/recurring/include";
 
 export class ClientNotFoundError extends Error {
   constructor() {
@@ -78,7 +81,10 @@ async function deleteRecurringItems(tx: Prisma.TransactionClient, recurringInvoi
   await tx.recurringInvoiceItemGroup.deleteMany({ where: { recurringInvoiceId } });
 }
 
-export async function createRecurringInvoice(userId: string, data: CreateRecurringInvoiceInput) {
+export async function createRecurringInvoice(
+  userId: string,
+  data: CreateRecurringInvoiceInput
+): Promise<RecurringInvoiceWithRelations> {
   const client = await prisma.client.findFirst({
     where: { id: data.clientId, userId },
   });
@@ -133,7 +139,7 @@ export async function updateRecurringInvoice(
   userId: string,
   id: string,
   data: UpdateRecurringInvoiceInput
-) {
+): Promise<RecurringInvoiceWithRelations> {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.recurringInvoice.findFirst({
       where: { id, userId },
@@ -193,7 +199,10 @@ export async function updateRecurringInvoice(
   });
 }
 
-export async function deleteRecurringInvoice(userId: string, id: string) {
+export async function deleteRecurringInvoice(
+  userId: string,
+  id: string
+): Promise<{ success: true }> {
   const existing = await prisma.recurringInvoice.findFirst({
     where: { id, userId },
   });
