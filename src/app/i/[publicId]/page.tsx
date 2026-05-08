@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { asPublicId } from "@app/shared/types/ids";
+
 import PublicInvoiceView from "@app/features/public-invoice/components/public-invoice-view";
 
 import {
@@ -30,7 +32,7 @@ export default async function PublicInvoicePage({ params, searchParams }: Props)
   const { publicId } = await params;
   const { paid } = await searchParams;
 
-  const invoice = await getInvoiceByPublicId(publicId);
+  const invoice = await getInvoiceByPublicId(asPublicId(publicId));
 
   if (!invoice) {
     notFound();

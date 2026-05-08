@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { updateClientSchema } from "@app/shared/schemas";
+import { asClientId, asUserId } from "@app/shared/types/ids";
 
 import {
   errorResponse,
@@ -45,7 +46,7 @@ const clientHasDependentsHandler = {
 
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
-  const client = await getClient(id, user.id);
+  const client = await getClient(asClientId(id), asUserId(user.id));
 
   if (!client) {
     return notFoundResponse("Client");
@@ -62,7 +63,7 @@ export const PATCH = withAuth(async (user, request, context) => {
     return error;
   }
 
-  const client = await updateClient(id, user.id, data);
+  const client = await updateClient(asClientId(id), asUserId(user.id), data);
 
   if (!client) {
     return notFoundResponse("Client");
@@ -74,7 +75,7 @@ export const PATCH = withAuth(async (user, request, context) => {
 export const DELETE = withAuth(
   async (user, _request, context) => {
     const { id } = await context.params;
-    const result = await deleteClient(id, user.id);
+    const result = await deleteClient(asClientId(id), asUserId(user.id));
 
     if (!result) {
       return notFoundResponse("Client");

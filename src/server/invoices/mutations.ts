@@ -5,6 +5,7 @@ import { NANOID } from "@app/shared/config/config";
 import { INVOICE_EVENT, INVOICE_STATUS, isDiscountType } from "@app/shared/config/invoice-status";
 import { calculateTotals, type DiscountInput } from "@app/shared/lib/calculations";
 import { CreateInvoiceInput, InvoiceItemInput, UpdateInvoiceInput } from "@app/shared/schemas";
+import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -89,7 +90,7 @@ function resolveDiscount(
   return null;
 }
 
-export async function createInvoice(userId: string, data: CreateInvoiceInput) {
+export async function createInvoice(userId: UserId, data: CreateInvoiceInput) {
   const allItems = [...data.items, ...(data.itemGroups?.flatMap((g) => g.items) ?? [])];
   const { subtotal, discountAmount, taxAmount, total } = calculateTotals(
     allItems,
@@ -202,7 +203,7 @@ async function getItemsForCalculation(
   }));
 }
 
-export async function updateInvoice(id: string, userId: string, data: UpdateInvoiceInput) {
+export async function updateInvoice(id: InvoiceId, userId: UserId, data: UpdateInvoiceInput) {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
       where: { id, userId, status: INVOICE_STATUS.DRAFT },
@@ -243,7 +244,7 @@ export async function updateInvoice(id: string, userId: string, data: UpdateInvo
   });
 }
 
-export async function deleteInvoice(id: string, userId: string) {
+export async function deleteInvoice(id: InvoiceId, userId: UserId) {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
   });

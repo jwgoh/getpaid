@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 
 import { withIdempotency } from "@app/shared/api/idempotency";
 import { createInvoiceSchema } from "@app/shared/schemas";
+import { asUserId } from "@app/shared/types/ids";
 
 import { parseBody, withAuth } from "@app/server/api/route-helpers";
 import { createInvoice, getInvoices } from "@app/server/invoices";
 
 export const GET = withAuth(async (user) => {
-  const invoices = await getInvoices(user.id);
+  const invoices = await getInvoices(asUserId(user.id));
 
   return NextResponse.json(invoices);
 });
@@ -21,7 +22,7 @@ export const POST = withAuth(
         return error;
       }
 
-      const invoice = await createInvoice(user.id, data);
+      const invoice = await createInvoice(asUserId(user.id), data);
 
       return NextResponse.json(invoice, { status: 201 });
     },

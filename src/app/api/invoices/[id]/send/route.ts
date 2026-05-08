@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { asInvoiceId, asUserId } from "@app/shared/types/ids";
+
 import { errorResponse, withAuth } from "@app/server/api/route-helpers";
 import {
   InvoiceAlreadySentError,
@@ -10,7 +12,7 @@ import {
 export const POST = withAuth(
   async (user, _request, context) => {
     const { id } = await context.params;
-    const updated = await sendInvoice(id, user.id);
+    const updated = await sendInvoice(asInvoiceId(id), asUserId(user.id));
 
     return NextResponse.json(updated);
   },

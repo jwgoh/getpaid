@@ -3,12 +3,13 @@ import { nanoid } from "nanoid";
 import { INVOICE, NANOID, TIME } from "@app/shared/config/config";
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { parseInvoiceTags } from "@app/shared/schemas/invoice";
+import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
 import { createItemGroups, ITEM_GROUPS_INCLUDE } from "./item-groups";
 
-export async function duplicateInvoice(id: string, userId: string) {
+export async function duplicateInvoice(id: InvoiceId, userId: UserId) {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
     include: {

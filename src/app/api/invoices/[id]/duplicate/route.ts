@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { asInvoiceId, asUserId } from "@app/shared/types/ids";
+
 import { notFoundResponse, withAuth } from "@app/server/api/route-helpers";
 import { duplicateInvoice } from "@app/server/invoices";
 
 export const POST = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
-  const invoice = await duplicateInvoice(id, user.id);
+  const invoice = await duplicateInvoice(asInvoiceId(id), asUserId(user.id));
 
   if (!invoice) {
     return notFoundResponse("Invoice");

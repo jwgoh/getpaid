@@ -1,10 +1,11 @@
 import { InvoiceEventType, InvoiceStatus, PaymentMethod, Prisma } from "@prisma/client";
 
 import { FOLLOWUP_STATUS, INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import type { InvoiceId, PublicId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
-export async function markInvoiceViewed(publicId: string) {
+export async function markInvoiceViewed(publicId: PublicId) {
   const invoice = await prisma.invoice.findUnique({
     where: { publicId },
   });
@@ -33,8 +34,8 @@ export async function markInvoiceViewed(publicId: string) {
 }
 
 export async function markInvoicePaid(
-  id: string,
-  userId: string,
+  id: InvoiceId,
+  userId: UserId,
   method: PaymentMethod = "MANUAL"
 ) {
   return prisma.$transaction(async (tx) => {

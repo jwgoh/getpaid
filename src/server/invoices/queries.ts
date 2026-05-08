@@ -1,6 +1,7 @@
 import { InvoiceStatus } from "@prisma/client";
 
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import type { InvoiceId, PublicId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -37,7 +38,7 @@ function computeOverdueStatus(invoice: {
   return invoice.status;
 }
 
-export async function getInvoices(userId: string) {
+export async function getInvoices(userId: UserId) {
   const invoices = await prisma.invoice.findMany({
     where: { userId },
     include: {
@@ -54,7 +55,7 @@ export async function getInvoices(userId: string) {
   }));
 }
 
-export async function getInvoice(id: string, userId: string) {
+export async function getInvoice(id: InvoiceId, userId: UserId) {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
     include: {
@@ -80,7 +81,7 @@ export async function getInvoice(id: string, userId: string) {
   };
 }
 
-export async function getInvoiceByPublicId(publicId: string) {
+export async function getInvoiceByPublicId(publicId: PublicId) {
   const invoice = await prisma.invoice.findUnique({
     where: { publicId },
     include: {

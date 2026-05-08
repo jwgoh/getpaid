@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { createClientSchema } from "@app/shared/schemas";
+import { asUserId } from "@app/shared/types/ids";
 
 import { parseBody, withAuth } from "@app/server/api/route-helpers";
 import { createClient, getClients } from "@app/server/clients";
 
 export const GET = withAuth(async (user) => {
-  const clients = await getClients(user.id);
+  const clients = await getClients(asUserId(user.id));
 
   return NextResponse.json(clients);
 });
@@ -18,7 +19,7 @@ export const POST = withAuth(async (user, request) => {
     return error;
   }
 
-  const client = await createClient(user.id, data);
+  const client = await createClient(asUserId(user.id), data);
 
   return NextResponse.json(client, { status: 201 });
 });

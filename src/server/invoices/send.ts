@@ -4,6 +4,7 @@ import { customAlphabet } from "nanoid";
 import { INVOICE } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 import {
@@ -62,7 +63,7 @@ const INVOICE_FOR_SEND_INCLUDE = {
 
 type InvoiceForSend = Prisma.InvoiceGetPayload<{ include: typeof INVOICE_FOR_SEND_INCLUDE }>;
 
-async function loadInvoiceForSend(invoiceId: string, userId: string): Promise<InvoiceForSend> {
+async function loadInvoiceForSend(invoiceId: InvoiceId, userId: UserId): Promise<InvoiceForSend> {
   const invoice = await prisma.invoice.findFirst({
     where: { id: invoiceId, userId },
     include: INVOICE_FOR_SEND_INCLUDE,
@@ -119,7 +120,7 @@ function buildInvoiceEmailData(invoice: InvoiceForSend, ctx: BuildEmailContext):
 
 interface CommitSendInvoiceInput {
   invoice: InvoiceForSend;
-  userId: string;
+  userId: UserId;
   paymentReference: string;
   sentAt: Date;
   payload: ResendEmailPayload;
@@ -173,7 +174,7 @@ async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string>
   });
 }
 
-export async function sendInvoice(invoiceId: string, userId: string) {
+export async function sendInvoice(invoiceId: InvoiceId, userId: UserId) {
   const invoice = await loadInvoiceForSend(invoiceId, userId);
   const ctx = buildSendContext(invoice);
   const sentAt = new Date();
