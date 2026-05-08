@@ -14,6 +14,8 @@ Simple, self-hosted invoice management for freelancers. No bloat, no hidden fees
 - **Dashboard** — revenue, outstanding amounts, and payment trends at a glance
 - **Templates** — reusable invoice templates for repeat work
 - **Client Management** — client directory with contact details and invoice history
+- **Time Tracking** — import time entries from Toggl Track and bill them on invoices
+- **Waitlist** _(`pro` edition)_ — invite-only sign-up with admin approval flow
 - **Light & Dark themes** — full theme support out of the box
 
 ## Quick Start (Docker)
@@ -89,14 +91,18 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | Yes | Auth session secret, min 32 chars (`openssl rand -base64 32`) |
-| `POSTGRES_PASSWORD` | Yes (Docker) | Postgres password for the bundled `db` service (`openssl rand -base64 32`) |
-| `APP_URL` | No | App base URL (default: `http://localhost:3000`) |
-| `RESEND_API_KEY` | No | [Resend](https://resend.com) API key for sending emails |
-| `EMAIL_FROM` | No | Sender email address (default: `invoices@example.com`) |
+| Variable                      | Required            | Description                                                                                               |
+| ----------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                | Yes                 | PostgreSQL connection string                                                                              |
+| `NEXTAUTH_SECRET`             | Yes                 | Auth session secret, min 32 chars (`openssl rand -base64 32`)                                             |
+| `POSTGRES_PASSWORD`           | Yes (Docker)        | Postgres password for the bundled `db` service (`openssl rand -base64 32`)                                |
+| `APP_URL`                     | No                  | App base URL (default: `http://localhost:3000`)                                                           |
+| `RESEND_API_KEY`              | No                  | [Resend](https://resend.com) API key for sending emails                                                   |
+| `EMAIL_FROM`                  | No                  | Sender email address (default: `invoices@example.com`)                                                    |
+| `ADMIN_EMAIL`                 | Yes (`pro` edition) | Email of the user who can access waitlist-admin routes                                                    |
+| `ENCRYPTION_KEY`              | Yes (time tracking) | AES-GCM key for Toggl OAuth tokens, min 32 chars (`openssl rand -base64 32`)                              |
+| `NEXT_PUBLIC_GETPAID_EDITION` | No                  | Edition toggle: `community` (default, open registration) or `pro` (invite-only + waitlist)                |
+| `AUTH_TRUST_HOST`             | No                  | Set to `"true"` when behind a reverse proxy (Docker, Vercel preview) so NextAuth trusts forwarded headers |
 
 ## Tech Stack
 
@@ -142,17 +148,17 @@ src/
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `pnpm dev` | Start development server |
-| `pnpm build` | Production build |
-| `pnpm lint` | Run ESLint |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm format` | Format code with Prettier |
-| `pnpm db:migrate` | Create and apply migrations during development (`prisma migrate dev`) |
+| Script                   | Description                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| `pnpm dev`               | Start development server                                                             |
+| `pnpm build`             | Production build                                                                     |
+| `pnpm lint`              | Run ESLint                                                                           |
+| `pnpm typecheck`         | TypeScript type checking                                                             |
+| `pnpm format`            | Format code with Prettier                                                            |
+| `pnpm db:migrate`        | Create and apply migrations during development (`prisma migrate dev`)                |
 | `pnpm db:migrate:deploy` | Apply pending migrations to a database (`prisma migrate deploy`) — used in CI / prod |
-| `pnpm db:seed` | Seed demo data |
-| `pnpm db:studio` | Open Prisma Studio |
+| `pnpm db:seed`           | Seed demo data                                                                       |
+| `pnpm db:studio`         | Open Prisma Studio                                                                   |
 
 ## Production migrations
 

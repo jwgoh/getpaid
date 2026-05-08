@@ -35,10 +35,10 @@ src/
 
 ### STRICT Rules
 
-1. **`src/app/` is EXCLUSIVELY for routing**
-   - ONLY allowed files: `page.tsx`, `layout.tsx`, `route.ts`, `loading.tsx`, `error.tsx`, `not-found.tsx`
-   - NO components, NO utilities, NO business logic
-   - NO exceptions, NO compromises
+1. **`src/app/` is for routing only**
+   - Allowed files: `page.tsx`, `layout.tsx`, `route.ts`, `loading.tsx`, `error.tsx`, `not-found.tsx`
+   - NO utilities, NO business logic, NO domain components
+   - **One exception:** colocated `*-client.tsx` files are allowed when a Server Component must split out an interactive client wrapper (e.g. `app/(main)/waitlist/page-client.tsx`). The wrapper must be a thin shell that delegates to a real component in `src/features/` or `src/shared/ui/`. No business logic in the wrapper.
 
 2. **All file names MUST be in kebab-case**
    - `invoice-dialogs.tsx` NOT `InvoiceDialogs.tsx`
@@ -76,8 +76,64 @@ src/
 - Route handlers only
 - Call server services for business logic
 - Validate inputs with Zod schemas
-- Use `requireUser()` for authenticated endpoints
+- Wrap handlers in `withAuth` / `withAdmin` (see [Canonical Route Patterns](#canonical-route-patterns) below) — never call `requireUser()` directly in a route
 - Return standardized error format: `{ error: { code, message } }`
+
+### Canonical Route Patterns
+
+Every route in `src/app/api/*` is composed from the helpers in `src/shared/api/route-helpers.ts`. Use them — do not reinvent auth, body parsing, or error shapes per route.
+
+**Authenticated route:**
+
+```typescript
+import { parseBody, withAuth } from "@app/shared/api/route-helpers";
+
+import { invoiceCreateSchema } from "@app/features/invoices/schemas/invoice";
+import { createInvoice } from "@app/server/invoices";
+
+export const POST = withAuth(async (user, request) => {
+  const { data, error } = await parseBody(request, invoiceCreateSchema);
+  if (error) return error;
+
+  const invoice = await createInvoice(user.id, data);
+  return NextResponse.json({ data: invoice });
+});
+```
+
+**Admin-only route** (gated by `ADMIN_EMAIL` env, used for waitlist-admin endpoints):
+
+```typescript
+import { withAdmin } from "@app/shared/api/route-helpers";
+
+export const POST = withAdmin(async (user, request, context) => {
+  return NextResponse.json({ data: { ok: true } });
+});
+```
+
+**Idempotent write** (compose with `withAuth`):
+
+```typescript
+import { withIdempotency } from "@app/shared/api/idempotency";
+import { withAuth } from "@app/shared/api/route-helpers";
+
+export const POST = withAuth(
+  withIdempotency(handler, { endpoint: "POST /api/invoices/:id/payments" })
+);
+```
+
+**Helper inventory** (`src/shared/api/route-helpers.ts`):
+
+- `withAuth(handler, errorHandlers?)` — verifies session, surfaces `UNAUTHORIZED` (401) on failure, dispatches custom `errorHandlers` (e.g. domain-error → 400) before falling back to `INTERNAL_ERROR` (500).
+- `withAdmin(handler, errorHandlers?)` — `withAuth` plus `env.ADMIN_EMAIL` check; non-admins get `FORBIDDEN` (403).
+- `parseBody(request, schema)` — returns `{ data, error: null }` on success or `{ data: never, error: NextResponse }` (400 `VALIDATION_ERROR`) on Zod failure. Always early-return `error`.
+- `errorResponse(code, message, status, details?)` — manual error responses when none of the helpers fit.
+- `unauthorizedResponse()`, `forbiddenResponse()`, `notFoundResponse(entity)`, `validationErrorResponse(zodError)`, `internalErrorResponse()` — shorthand for the common shapes.
+
+**Standard error response shape** (set by `errorResponse`, never deviate):
+
+```json
+{ "error": { "code": "BAD_REQUEST", "message": "Payment exceeds invoice total" } }
+```
 
 ### Service Layer (`/src/server/*`)
 
@@ -88,7 +144,7 @@ src/
 ### Authentication
 
 - Always use NextAuth (Auth.js)
-- Protected routes must call `requireUser()`
+- Protected API routes wrap handlers with `withAuth` / `withAdmin` (see [Canonical Route Patterns](#canonical-route-patterns)). Server Components / RSC can call `requireUser()` directly.
 - Session user includes `id` and `email`
 - JWT strategy with database user lookup
 
@@ -116,17 +172,20 @@ pnpm db:studio         # Open Prisma Studio
 Schema changes are tracked via Prisma migration files under `prisma/migrations/` and committed to git. Production never runs `prisma db push` — `db push` is for throwaway dev work only.
 
 **Local workflow:**
+
 1. Edit `prisma/schema.prisma`.
 2. `pnpm db:migrate -- --name <change-summary>` generates `prisma/migrations/<ts>_<change>/migration.sql`.
 3. Review the SQL — must be lossless (no `DROP COLUMN`, no `DROP TABLE`, no `ALTER COLUMN TYPE` without a backfill plan). If destructive, follow expand-then-contract.
 4. Commit migration files alongside the code change.
 
 **Production (Vercel) deploy:**
+
 - Vercel does NOT run migrations on deploy.
 - BEFORE merging the PR, manually apply: `DATABASE_URL=$PROD pnpm db:migrate:deploy` (after a `pg_dump` backup).
 - Then merge → Vercel rebuilds → app sees the migrated schema.
 
 **Self-host (Docker):**
+
 - Container `CMD` runs `prisma migrate deploy` on every start. Pending migrations apply automatically when the container boots.
 
 ## File Naming Convention
@@ -166,14 +225,16 @@ features/invoices/constants/status.ts
 
 Controlled by `NEXT_PUBLIC_GETPAID_EDITION` env variable. Editions and their names are defined in `EDITIONS` constant (`shared/config/config.ts`). Feature flags are derived from the edition in `shared/config/features.ts`.
 
-| Feature              | `community` (default) | `pro`  |
-|----------------------|-----------------------|--------|
-| `publicRegistration` | true                  | false  |
+| Feature              | `community` (default) | `pro` |
+| -------------------- | --------------------- | ----- |
+| `publicRegistration` | true                  | false |
+| `waitlistAdmin`      | false                 | true  |
 
 - `community` — self-hosted, open registration
 - `pro` — managed hosted instance, invite-only
 
 To add a new feature flag:
+
 1. Add field to `FeatureFlags` interface in `shared/config/features.ts`
 2. Set values for each edition in `EDITION_FEATURES`
 3. Use `features.yourFlag` in code
@@ -206,11 +267,16 @@ API responses follow this format:
 ```
 
 Common error codes:
-- `VALIDATION_ERROR` - Invalid input
-- `UNAUTHORIZED` - Not authenticated
-- `NOT_FOUND` - Resource not found
-- `REGISTRATION_DISABLED` - Sign-up blocked by edition
-- `INTERNAL_ERROR` - Server error
+
+- `VALIDATION_ERROR` - Invalid input (Zod parse failed)
+- `BAD_REQUEST` - Well-formed input but business rule rejected (e.g. payment over invoice total)
+- `UNAUTHORIZED` - Not authenticated (session missing or expired)
+- `FORBIDDEN` - Authenticated but not allowed (e.g. non-admin hitting `withAdmin` route)
+- `NOT_FOUND` - Resource not found or not owned by the caller
+- `EMAIL_EXISTS` - Sign-up attempted with an email that already has an account
+- `REGISTRATION_DISABLED` - Sign-up blocked by edition (`pro` rejects public registration)
+- `IDEMPOTENCY_KEY_REQUIRED` / `IDEMPOTENCY_KEY_INVALID` / `IDEMPOTENCY_KEY_REUSED` - Idempotency-Key header issues (see Idempotency below)
+- `INTERNAL_ERROR` - Unexpected server error
 
 ## Idempotency
 
@@ -228,11 +294,13 @@ export const POST = withAuth(
 ```
 
 Server enforcement (today):
+
 - `POST /api/invoices` (create invoice)
 - `POST /api/invoices/:id/payments` (record payment)
 - `POST /api/recurring/:id/generate` (manual recurring generate)
 
 Behavior:
+
 - Missing header on enforced routes -> `400 IDEMPOTENCY_KEY_REQUIRED`.
 - Same key + same body within 24h -> cached `(status, body)` returned.
 - Same key + different body within 24h -> `422 IDEMPOTENCY_KEY_REUSED`.
@@ -289,6 +357,7 @@ When adding a new email-send: build a `ResendEmailPayload` via a `buildXxxEmailP
 ## Code Quality Checklist
 
 Before committing, verify:
+
 - [ ] No components in `src/app/` (only routing files)
 - [ ] All files in kebab-case
 - [ ] No magic strings/numbers
