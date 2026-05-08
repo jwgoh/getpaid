@@ -32,6 +32,14 @@ import { LoadingButton } from "@app/shared/ui/loading-button";
 import { Logo } from "@app/shared/ui/logo";
 
 export default function SignInPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <SignInForm />
+    </React.Suspense>
+  );
+}
+
+function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
