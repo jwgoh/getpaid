@@ -87,6 +87,7 @@ export function TopBar({ onMobileMenuOpen }: TopBarProps) {
             size="small"
             onClick={toggleTheme}
             sx={{ display: { xs: "flex", md: "none" }, color: "text.secondary" }}
+            aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
             {mode === "dark" ? (
               <Brightness7Icon fontSize="small" />
@@ -101,6 +102,7 @@ export function TopBar({ onMobileMenuOpen }: TopBarProps) {
             size="small"
             onClick={handleMenuOpen}
             sx={{ display: { xs: "flex", md: "none" }, color: "text.secondary" }}
+            aria-label="Open account menu"
           >
             <AccountCircleIcon fontSize="small" />
           </IconButton>

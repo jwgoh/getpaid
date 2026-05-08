@@ -3,9 +3,9 @@ import { alpha } from "@mui/material/styles";
 import { ANIMATION, UI } from "@app/shared/config/config";
 
 export const brand = {
-  primary: "#0d9488",
+  primary: "#0f766e",
   primaryLight: "#2dd4bf",
-  primaryDark: "#0f766e",
+  primaryDark: "#0a5e58",
   secondary: "#6366f1",
   secondaryLight: "#a5b4fc",
   secondaryDark: "#4338ca",

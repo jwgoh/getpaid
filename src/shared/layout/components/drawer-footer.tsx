@@ -21,7 +21,11 @@ export function DrawerFooter({ mode, onToggleTheme, onSignOut }: DrawerFooterPro
         <Typography variant="body2" color="text.secondary">
           {mode === "dark" ? "Dark Mode" : "Light Mode"}
         </Typography>
-        <IconButton onClick={onToggleTheme} size="small">
+        <IconButton
+          onClick={onToggleTheme}
+          size="small"
+          aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
           {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
         </IconButton>
       </Stack>
