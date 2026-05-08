@@ -3,6 +3,7 @@ import { z } from "zod";
 import { BRANDING, INVOICE, VALIDATION } from "@app/shared/config/config";
 import { DISCOUNT_TYPE, type DiscountTypeValue } from "@app/shared/config/invoice-status";
 
+import { SCHEMA_LIMITS } from "./limits";
 import { lineItemGroupSchema, lineItemSchema } from "./line-item";
 
 export const templateItemSchema = lineItemSchema;
@@ -10,17 +11,17 @@ export const templateItemGroupSchema = lineItemGroupSchema;
 
 export const createTemplateSchema = z
   .object({
-    name: z.string().min(1),
-    description: z.string().optional(),
-    currency: z.string().default(BRANDING.DEFAULT_CURRENCY),
+    name: z.string().min(1).max(SCHEMA_LIMITS.TEMPLATE_NAME_MAX),
+    description: z.string().max(SCHEMA_LIMITS.TEMPLATE_DESCRIPTION_MAX).optional(),
+    currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).default(BRANDING.DEFAULT_CURRENCY),
     discount: z
       .object({
         type: z.nativeEnum(DISCOUNT_TYPE),
-        value: z.number().min(0),
+        value: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS),
       })
       .optional(),
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
-    notes: z.string().optional(),
+    notes: z.string().max(SCHEMA_LIMITS.TEMPLATE_NOTES_MAX).optional(),
     dueDays: z.number().min(1).max(VALIDATION.MAX_DUE_DAYS).optional(),
     items: z.array(lineItemSchema),
     itemGroups: z.array(lineItemGroupSchema).optional(),
@@ -36,18 +37,18 @@ export const createTemplateSchema = z
   );
 
 export const updateTemplateSchema = z.object({
-  name: z.string().min(1).optional(),
-  description: z.string().optional(),
-  currency: z.string().optional(),
+  name: z.string().min(1).max(SCHEMA_LIMITS.TEMPLATE_NAME_MAX).optional(),
+  description: z.string().max(SCHEMA_LIMITS.TEMPLATE_DESCRIPTION_MAX).optional(),
+  currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).optional(),
   discount: z
     .object({
       type: z.nativeEnum(DISCOUNT_TYPE),
-      value: z.number().min(0),
+      value: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS),
     })
     .nullable()
     .optional(),
   taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(SCHEMA_LIMITS.TEMPLATE_NOTES_MAX).optional(),
   dueDays: z.number().min(1).max(VALIDATION.MAX_DUE_DAYS).optional(),
   items: z.array(lineItemSchema).optional(),
   itemGroups: z.array(lineItemGroupSchema).optional(),
@@ -55,13 +56,13 @@ export const updateTemplateSchema = z.object({
 
 export const templateFormSchema = z
   .object({
-    name: z.string().min(1, "Name is required"),
-    description: z.string().optional(),
-    currency: z.string().min(1, "Currency is required"),
+    name: z.string().min(1, "Name is required").max(SCHEMA_LIMITS.TEMPLATE_NAME_MAX),
+    description: z.string().max(SCHEMA_LIMITS.TEMPLATE_DESCRIPTION_MAX).optional(),
+    currency: z.string().min(1, "Currency is required").max(SCHEMA_LIMITS.CURRENCY_CODE_MAX),
     discountType: z.enum([DISCOUNT_TYPE.PERCENTAGE, DISCOUNT_TYPE.FIXED, ""]).optional(),
-    discountValue: z.number().min(0).optional(),
+    discountValue: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS).optional(),
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
-    notes: z.string().optional(),
+    notes: z.string().max(SCHEMA_LIMITS.TEMPLATE_NOTES_MAX).optional(),
     dueDays: z.number().min(1, "Due days must be at least 1").max(VALIDATION.MAX_DUE_DAYS),
     items: z.array(lineItemSchema),
     itemGroups: z.array(lineItemGroupSchema).optional(),

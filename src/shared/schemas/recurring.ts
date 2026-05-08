@@ -7,6 +7,7 @@ import {
   type DiscountTypeValue,
 } from "@app/shared/config/invoice-status";
 
+import { SCHEMA_LIMITS } from "./limits";
 import { lineItemGroupSchema, lineItemSchema } from "./line-item";
 
 export const recurringItemSchema = lineItemSchema;
@@ -24,17 +25,17 @@ export const recurringStatusSchema = z.enum(["ACTIVE", "PAUSED", "CANCELED"]);
 
 const createRecurringFields = {
   clientId: z.string().min(1),
-  name: z.string().min(1),
+  name: z.string().min(1).max(SCHEMA_LIMITS.RECURRING_NAME_MAX),
   frequency: recurringFrequencySchema,
-  currency: z.string().default(BRANDING.DEFAULT_CURRENCY),
+  currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).default(BRANDING.DEFAULT_CURRENCY),
   discount: z
     .object({
       type: z.nativeEnum(DISCOUNT_TYPE),
-      value: z.number().min(0),
+      value: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS),
     })
     .optional(),
   taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(SCHEMA_LIMITS.RECURRING_NOTES_MAX).optional(),
   dueDays: z.number().min(1).max(VALIDATION.MAX_DUE_DAYS).optional(),
   autoSend: z.boolean().optional(),
   items: z.array(lineItemSchema),
@@ -71,19 +72,19 @@ export const createRecurringApiSchema = z
   .refine(itemsRefinement.check, itemsRefinement.config);
 
 export const updateRecurringSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().min(1).max(SCHEMA_LIMITS.RECURRING_NAME_MAX).optional(),
   frequency: recurringFrequencySchema.optional(),
   status: recurringStatusSchema.optional(),
-  currency: z.string().optional(),
+  currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).optional(),
   discount: z
     .object({
       type: z.nativeEnum(DISCOUNT_TYPE),
-      value: z.number().min(0),
+      value: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS),
     })
     .nullable()
     .optional(),
   taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(SCHEMA_LIMITS.RECURRING_NOTES_MAX).optional(),
   dueDays: z.number().min(1).max(VALIDATION.MAX_DUE_DAYS).optional(),
   autoSend: z.boolean().optional(),
   nextRunAt: z.string().optional(),
@@ -107,13 +108,13 @@ export const updateRecurringApiSchema = updateRecurringSchema.extend({
 export const recurringFormSchema = z
   .object({
     clientId: z.string().min(1, "Client is required"),
-    name: z.string().min(1, "Name is required"),
+    name: z.string().min(1, "Name is required").max(SCHEMA_LIMITS.RECURRING_NAME_MAX),
     frequency: recurringFrequencySchema,
-    currency: z.string(),
+    currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX),
     discountType: z.enum([DISCOUNT_TYPE.PERCENTAGE, DISCOUNT_TYPE.FIXED, DISCOUNT_NONE]),
-    discountValue: z.number().min(0),
+    discountValue: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS),
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE),
-    notes: z.string().optional(),
+    notes: z.string().max(SCHEMA_LIMITS.RECURRING_NOTES_MAX).optional(),
     dueDays: z.number().min(1).max(VALIDATION.MAX_DUE_DAYS),
     autoSend: z.boolean(),
     startDate: z.string().min(1, "Start date is required"),
