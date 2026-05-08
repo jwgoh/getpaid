@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
 import { features } from "@app/shared/config/features";
 import { signUpSchema } from "@app/shared/schemas";
 
@@ -7,6 +8,15 @@ import { createUser, EmailExistsError } from "@app/server/auth/signup";
 import { isEmailApproved } from "@app/server/waitlist";
 
 export async function POST(request: Request) {
+  const { response: limited } = await applyRateLimit(request, {
+    bucket: "auth.sign-up",
+    ...RATE_LIMITS.SIGN_UP,
+  });
+
+  if (limited) {
+    return limited;
+  }
+
   try {
     const body = await request.json();
     const parsed = signUpSchema.safeParse(body);

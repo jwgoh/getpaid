@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
 import { internalErrorResponse, parseBody } from "@app/shared/api/route-helpers";
 import { waitlistSchema } from "@app/shared/schemas";
 
@@ -7,6 +8,15 @@ import { dispatchOutbox } from "@app/server/email/outbox";
 import { addToWaitlist } from "@app/server/waitlist";
 
 export async function POST(request: Request) {
+  const { response: limited } = await applyRateLimit(request, {
+    bucket: "waitlist.join",
+    ...RATE_LIMITS.WAITLIST,
+  });
+
+  if (limited) {
+    return limited;
+  }
+
   try {
     const { data, error } = await parseBody(request, waitlistSchema);
 

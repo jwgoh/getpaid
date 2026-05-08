@@ -1,12 +1,23 @@
 import { NextResponse } from "next/server";
 
+import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
+
 import { getUser } from "@app/server/auth/require-user";
 import { getInvoiceByPublicId, markInvoiceViewed } from "@app/server/invoices";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ publicId: string }> }
 ) {
+  const { response: limited } = await applyRateLimit(request, {
+    bucket: "public.invoice.viewed",
+    ...RATE_LIMITS.PUBLIC_VIEW,
+  });
+
+  if (limited) {
+    return limited;
+  }
+
   try {
     const { publicId } = await params;
 
