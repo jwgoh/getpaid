@@ -21,6 +21,7 @@
     "followups:run": "tsx scripts/run-followups.ts",
     "outbox:run": "tsx scripts/process-outbox.ts",
     "postinstall": "prisma generate",
+    "prepare": "lefthook install",
     "db:seed": "prisma db seed"
   },
   "dependencies": {
