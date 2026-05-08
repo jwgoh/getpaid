@@ -4,6 +4,7 @@ import { EMAIL } from "@app/shared/config/config";
 import { env } from "@app/shared/config/env";
 import { SEO } from "@app/shared/config/seo";
 import { formatCurrency, formatDate } from "@app/shared/lib/format";
+import { EXTERNAL_HTTP_TIMEOUTS_MS, withTimeout } from "@app/shared/lib/http";
 
 import { escapeHtml } from "./escape";
 import {
@@ -54,6 +55,13 @@ function getResend(): Resend {
   return resend;
 }
 
+type ResendSendPayload = Parameters<Resend["emails"]["send"]>[0];
+type ResendSendResult = Awaited<ReturnType<Resend["emails"]["send"]>>;
+
+function sendEmail(payload: ResendSendPayload): Promise<ResendSendResult> {
+  return withTimeout(getResend().emails.send(payload), EXTERNAL_HTTP_TIMEOUTS_MS.RESEND, "resend");
+}
+
 export async function sendInvoiceEmail(data: InvoiceEmailData) {
   const invoiceUrl = `${env.APP_URL}/i/${data.publicId}`;
   const formattedTotal = formatCurrency(data.total, data.currency);
@@ -96,7 +104,7 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
 
   const text = `${title}\n\nHi ${data.clientName},\n\nYou have received a new invoice for ${formattedTotal}.\n\nAmount Due: ${formattedTotal}\nDue Date: ${formattedDueDate}\n${periodText}${referenceText}\nLine Items:\n${itemsText}\n${messageText}\nView Invoice: ${invoiceUrl}\n\nIf you have any questions about this invoice, please reply to this email or contact ${data.senderName} directly.`;
 
-  return getResend().emails.send({
+  return sendEmail({
     from: env.EMAIL_FROM,
     to: data.clientEmail,
     replyTo: data.senderEmail,
@@ -142,7 +150,7 @@ export async function sendReminderEmail(data: InvoiceEmailData & { isOverdue: bo
 
   const text = `${title}\n\nHi ${data.clientName},\n\nThis is a friendly reminder about an outstanding invoice for ${formattedTotal}.\n\n${data.isOverdue ? "This invoice is now overdue.\n\n" : ""}Amount Due: ${formattedTotal}\nDue Date: ${formattedDueDate}\n${periodText}${referenceText}\nLine Items:\n${itemsText}\n\nView & Pay Invoice: ${invoiceUrl}\n\nIf you have already paid this invoice, please disregard this reminder. For any questions, please contact ${data.senderName} directly.`;
 
-  return getResend().emails.send({
+  return sendEmail({
     from: env.EMAIL_FROM,
     to: data.clientEmail,
     replyTo: data.senderEmail,
@@ -165,7 +173,7 @@ export async function sendWaitlistConfirmationEmail(email: string) {
 
   const text = `${title}\n\nThanks for your interest in ${SEO.SITE_NAME}! We've added you to our waitlist.\n\nWe'll notify you as soon as your account is ready.\n\nVisit ${SEO.SITE_NAME}: ${SEO.SITE_URL}`;
 
-  return getResend().emails.send({
+  return sendEmail({
     from: env.EMAIL_FROM,
     to: email,
     subject: title,
@@ -187,7 +195,7 @@ export async function sendWaitlistNotificationEmail(email: string) {
     return;
   }
 
-  return getResend().emails.send({
+  return sendEmail({
     from: env.EMAIL_FROM,
     to: env.ADMIN_EMAIL,
     subject: `[${SEO.SITE_NAME}] ${title}: ${email}`,
@@ -208,7 +216,7 @@ export async function sendWaitlistApprovalEmail(email: string) {
 
   const text = `${title}\n\nGreat news — your access to ${SEO.SITE_NAME} has been approved!\n\nCreate your account: ${signUpUrl}`;
 
-  return getResend().emails.send({
+  return sendEmail({
     from: env.EMAIL_FROM,
     to: email,
     subject: title,
