@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { withIdempotency } from "@app/shared/api/idempotency";
-import { parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { createInvoiceSchema } from "@app/shared/schemas";
 
+import { parseBody, withAuth } from "@app/server/api/route-helpers";
 import { createInvoice, getInvoices } from "@app/server/invoices";
 
 export const GET = withAuth(async (user) => {

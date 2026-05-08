@@ -14,7 +14,7 @@ import { IconButton, Stack, Tooltip } from "@mui/material";
 import { UI } from "@app/shared/config/config";
 import { useCommandPalette } from "@app/shared/hooks/use-command-palette";
 
-import { useThemeMode } from "@app/providers/theme/registry";
+import { useThemeMode } from "@app/providers";
 
 import { AccountMenu } from "./components/account-menu";
 

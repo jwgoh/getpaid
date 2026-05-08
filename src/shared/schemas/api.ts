@@ -135,6 +135,47 @@ export const senderProfileResponseSchema = z.object({
   defaultRate: z.number().nullable(),
 });
 
+export const monthlyRevenueSchema = z.object({
+  month: z.string(),
+  revenue: z.number(),
+});
+
+export const recentInvoiceSchema = z.object({
+  id: z.string(),
+  publicId: z.string(),
+  clientName: z.string(),
+  total: z.number(),
+  currency: z.string(),
+  status: z.string(),
+  createdAt: z.string(),
+});
+
+export const currencyMetricsSchema = z.object({
+  totalRevenue: z.number(),
+  revenueThisMonth: z.number(),
+  revenueLastMonth: z.number(),
+  outstandingBalance: z.number(),
+  overdueAmount: z.number(),
+  monthlyRevenue: z.array(monthlyRevenueSchema),
+});
+
+export const analyticsDataSchema = z.object({
+  currencies: z.array(z.string()),
+  byCurrency: z.record(z.string(), currencyMetricsSchema),
+  totalRevenue: z.number(),
+  revenueThisMonth: z.number(),
+  revenueLastMonth: z.number(),
+  outstandingBalance: z.number(),
+  overdueAmount: z.number(),
+  totalInvoices: z.number(),
+  paidInvoices: z.number(),
+  overdueInvoices: z.number(),
+  statusCounts: z.record(z.string(), z.number()),
+  monthlyRevenue: z.array(monthlyRevenueSchema),
+  clientCount: z.number(),
+  recentInvoices: z.array(recentInvoiceSchema),
+});
+
 export const publicInvoiceSchema = z.object({
   id: z.string(),
   publicId: z.string(),
@@ -166,3 +207,7 @@ export type Invoice = z.infer<typeof invoiceSchema>;
 export type InvoiceListItem = z.infer<typeof invoiceListItemSchema>;
 export type SenderProfile = z.infer<typeof senderProfileResponseSchema>;
 export type PublicInvoice = z.infer<typeof publicInvoiceSchema>;
+export type MonthlyRevenue = z.infer<typeof monthlyRevenueSchema>;
+export type RecentInvoice = z.infer<typeof recentInvoiceSchema>;
+export type CurrencyMetrics = z.infer<typeof currencyMetricsSchema>;
+export type AnalyticsData = z.infer<typeof analyticsDataSchema>;

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { updateClientSchema } from "@app/shared/schemas";
+
 import {
   errorResponse,
   notFoundResponse,
   parseBody,
   withAuth,
-} from "@app/shared/api/route-helpers";
-import { updateClientSchema } from "@app/shared/schemas";
-
+} from "@app/server/api/route-helpers";
 import {
   ClientHasDependentsError,
   deleteClient,

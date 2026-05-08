@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { updateTemplateSchema } from "@app/shared/schemas";
 
+import { notFoundResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
 import { deleteTemplate, getTemplate, updateTemplate } from "@app/server/templates";
 
 export const GET = withAuth(async (user, _request, context) => {

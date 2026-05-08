@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { withIdempotency } from "@app/shared/api/idempotency";
+import { recordPaymentApiSchema } from "@app/shared/schemas";
+
 import {
   errorResponse,
   notFoundResponse,
   parseBody,
   withAuth,
-} from "@app/shared/api/route-helpers";
-import { recordPaymentApiSchema } from "@app/shared/schemas";
-
+} from "@app/server/api/route-helpers";
 import {
   deletePayment,
   getPayments,

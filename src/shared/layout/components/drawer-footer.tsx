@@ -5,7 +5,7 @@ import Brightness7Icon from "@mui/icons-material/Brightness7";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { Box, Button, Divider, IconButton, Stack, Typography } from "@mui/material";
 
-import type { ThemeMode } from "@app/providers/theme/registry";
+import type { ThemeMode } from "@app/providers";
 
 interface DrawerFooterProps {
   mode: ThemeMode;

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { useQueryClient } from "@tanstack/react-query";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { queryKeys } from "@app/shared/config/query";
 import { useConfirmDialog } from "@app/shared/hooks/use-confirm-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
@@ -106,7 +106,7 @@ export function useInvoiceMenuActions(
         router.push(`/app/invoices/${newInvoice.id}`);
       },
       onError: (err) => {
-        toast.error(err instanceof ApiError ? err.message : "Failed to duplicate invoice");
+        toast.error(extractApiErrorMessage(err, "Failed to duplicate invoice"));
       },
     });
   };

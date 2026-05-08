@@ -1,7 +1,7 @@
 import type { Prisma, SenderProfile } from "@prisma/client";
 import { customAlphabet } from "nanoid";
 
-import { BRANDING, INVOICE } from "@app/shared/config/config";
+import { INVOICE } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 
@@ -12,6 +12,11 @@ import {
   type InvoiceEmailData,
   type ResendEmailPayload,
 } from "@app/server/email";
+import {
+  buildEmailBranding,
+  mapInvoiceItem,
+  mapInvoiceItemGroups,
+} from "@app/server/email/invoice-email-dto";
 import {
   buildOutboxIdempotencyKey,
   createEmailOutbox,
@@ -38,16 +43,6 @@ export class InvoiceAlreadySentError extends Error {
     super("Invoice has already been sent");
     this.name = "InvoiceAlreadySentError";
   }
-}
-
-function buildEmailBranding(profile: SenderProfile | null): EmailBranding {
-  return {
-    primaryColor: profile?.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR,
-    logoUrl: profile?.logoUrl || null,
-    fontFamily: profile?.fontFamily || null,
-    footerText: profile?.footerText || null,
-    companyAddress: profile?.address || null,
-  };
 }
 
 function resolveSenderInfo(profile: SenderProfile | null, userEmail: string) {
@@ -117,23 +112,8 @@ function buildInvoiceEmailData(invoice: InvoiceForSend, ctx: BuildEmailContext):
     message: invoice.message,
     branding: ctx.branding,
     paymentReference: ctx.paymentReference,
-    items: invoice.items.map((item) => ({
-      title: item.title,
-      description: item.description,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      amount: item.amount,
-    })),
-    itemGroups: invoice.itemGroups.map((group) => ({
-      title: group.title,
-      items: group.items.map((item) => ({
-        title: item.title,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        amount: item.amount,
-      })),
-    })),
+    items: invoice.items.map(mapInvoiceItem),
+    itemGroups: mapInvoiceItemGroups(invoice.itemGroups),
   };
 }
 

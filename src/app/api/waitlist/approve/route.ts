@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, parseBody, withAdmin } from "@app/shared/api/route-helpers";
 import { waitlistSchema } from "@app/shared/schemas";
 
+import { notFoundResponse, parseBody, withAdmin } from "@app/server/api/route-helpers";
 import { dispatchOutbox } from "@app/server/email/outbox";
 import { approveWaitlistEntry, WaitlistEntryNotFoundError } from "@app/server/waitlist";
 

@@ -3,6 +3,7 @@ import type { DiscountInput } from "@app/shared/lib/calculations";
 import type { LineItemGroupInput, LineItemInput } from "@app/shared/schemas";
 
 import { prisma } from "@app/server/db";
+import { buildItemRowBase, createItemGroupsGeneric } from "@app/server/invoices/item-groups";
 
 export interface CreateTemplateInput {
   name: string;
@@ -52,30 +53,16 @@ export async function getTemplate(id: string, userId: string) {
 }
 
 async function createTemplateItemGroups(templateId: string, groups: LineItemGroupInput[]) {
-  for (let gi = 0; gi < groups.length; gi++) {
-    const group = groups[gi];
-    const created = await prisma.invoiceTemplateItemGroup.create({
-      data: {
-        templateId,
-        title: group.title,
-        sortOrder: gi,
-      },
-    });
-
-    if (group.items.length > 0) {
-      await prisma.invoiceTemplateItem.createMany({
-        data: group.items.map((item, ii) => ({
-          templateId,
-          groupId: created.id,
-          title: item.title,
-          description: item.description ?? null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          sortOrder: ii,
-        })),
-      });
-    }
-  }
+  await createItemGroupsGeneric({
+    groups,
+    createGroup: ({ title, sortOrder }) =>
+      prisma.invoiceTemplateItemGroup.create({ data: { templateId, title, sortOrder } }),
+    buildItemRow: (item, groupId, sortOrder) => ({
+      ...buildItemRowBase(item, groupId, sortOrder),
+      templateId,
+    }),
+    createManyItems: (data) => prisma.invoiceTemplateItem.createMany({ data }),
+  });
 }
 
 async function deleteTemplateItems(templateId: string) {

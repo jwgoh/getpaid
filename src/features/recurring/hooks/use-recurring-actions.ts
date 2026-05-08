@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { useConfirmDialog } from "@app/shared/hooks/use-confirm-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { buildDiscountInput, calculateTotals } from "@app/shared/lib/calculations";
@@ -40,7 +40,7 @@ export function useRecurringActions(
           await updateMutation.mutateAsync({ id: item.id, data: { status: newStatus } });
           toast.success(`Recurring invoice ${newStatus === "ACTIVE" ? "activated" : "paused"}`);
         } catch (err) {
-          toast.error(err instanceof ApiError ? err.message : "Failed to update status");
+          toast.error(extractApiErrorMessage(err, "Failed to update status"));
         }
       },
     });
@@ -57,7 +57,7 @@ export function useRecurringActions(
         router.push(`/app/invoices/${data.invoiceId}`);
       },
       onError: (err) => {
-        toast.error(err instanceof ApiError ? err.message : "Failed to generate invoice");
+        toast.error(extractApiErrorMessage(err, "Failed to generate invoice"));
       },
     });
     handleMenuClose();

@@ -5,6 +5,8 @@ import type { DiscountInput } from "@app/shared/lib/calculations";
 import type { LineItemGroupInput, LineItemInput } from "@app/shared/schemas";
 
 import { prisma } from "@app/server/db";
+import { buildItemRowBase, createItemGroupsGeneric } from "@app/server/invoices/item-groups";
+import { RECURRING_INCLUDE } from "@app/server/recurring/include";
 
 export class ClientNotFoundError extends Error {
   constructor() {
@@ -52,44 +54,23 @@ export interface UpdateRecurringInvoiceInput {
   itemGroups?: LineItemGroupInput[];
 }
 
-const RECURRING_INCLUDE = {
-  client: { select: { id: true, name: true, email: true } },
-  items: { orderBy: { sortOrder: "asc" as const } },
-  itemGroups: {
-    include: { items: { orderBy: { sortOrder: "asc" as const } } },
-    orderBy: { sortOrder: "asc" as const },
-  },
-};
-
 async function createRecurringItemGroups(
   tx: Prisma.TransactionClient,
   recurringInvoiceId: string,
   groups: LineItemGroupInput[]
 ) {
-  for (let gi = 0; gi < groups.length; gi++) {
-    const group = groups[gi];
-    const created = await tx.recurringInvoiceItemGroup.create({
-      data: {
-        recurringInvoiceId,
-        title: group.title,
-        sortOrder: gi,
-      },
-    });
-
-    if (group.items.length > 0) {
-      await tx.recurringInvoiceItem.createMany({
-        data: group.items.map((item, ii) => ({
-          recurringInvoiceId,
-          groupId: created.id,
-          title: item.title,
-          description: item.description ?? null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          sortOrder: ii,
-        })),
-      });
-    }
-  }
+  await createItemGroupsGeneric({
+    groups,
+    createGroup: ({ title, sortOrder }) =>
+      tx.recurringInvoiceItemGroup.create({
+        data: { recurringInvoiceId, title, sortOrder },
+      }),
+    buildItemRow: (item, groupId, sortOrder) => ({
+      ...buildItemRowBase(item, groupId, sortOrder),
+      recurringInvoiceId,
+    }),
+    createManyItems: (data) => tx.recurringInvoiceItem.createMany({ data }),
+  });
 }
 
 async function deleteRecurringItems(tx: Prisma.TransactionClient, recurringInvoiceId: string) {

@@ -4,10 +4,14 @@ import {
   FOLLOWUP_RETRY,
   computeBackoffMs,
 } from "../src/shared/config/email-outbox";
-import { BRANDING } from "../src/shared/config/config";
 
 import { prisma } from "../src/server/db";
-import { buildReminderEmailPayload, type EmailBranding } from "../src/server/email";
+import { buildReminderEmailPayload } from "../src/server/email";
+import {
+  buildEmailBranding,
+  mapInvoiceItem,
+  mapInvoiceItemGroups,
+} from "../src/server/email/invoice-email-dto";
 import {
   buildOutboxIdempotencyKey,
   createEmailOutbox,
@@ -22,16 +26,6 @@ import {
 import { logInvoiceEvent } from "../src/server/invoices";
 
 type PendingJob = Awaited<ReturnType<typeof getPendingFollowUpJobs>>[number];
-
-function buildBranding(senderProfile: PendingJob["invoice"]["user"]["senderProfile"]): EmailBranding {
-  return {
-    primaryColor: senderProfile?.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR,
-    logoUrl: senderProfile?.logoUrl || null,
-    fontFamily: senderProfile?.fontFamily || null,
-    footerText: senderProfile?.footerText || null,
-    companyAddress: senderProfile?.address || null,
-  };
-}
 
 async function processJob(job: PendingJob): Promise<void> {
   const { invoice } = job;
@@ -51,7 +45,7 @@ async function processJob(job: PendingJob): Promise<void> {
     senderProfile?.companyName || senderProfile?.displayName || invoice.user.email;
   const senderEmail = senderProfile?.emailFrom || invoice.user.email;
   const isOverdue = invoice.dueDate < new Date();
-  const branding = buildBranding(senderProfile);
+  const branding = buildEmailBranding(senderProfile);
 
   const payload = buildReminderEmailPayload({
     clientName: invoice.client.name,
@@ -68,23 +62,8 @@ async function processJob(job: PendingJob): Promise<void> {
     isOverdue,
     branding,
     paymentReference: invoice.paymentReference || null,
-    items: invoice.items.map((item) => ({
-      title: item.title,
-      description: item.description,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      amount: item.amount,
-    })),
-    itemGroups: invoice.itemGroups.map((group) => ({
-      title: group.title,
-      items: group.items.map((item) => ({
-        title: item.title,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        amount: item.amount,
-      })),
-    })),
+    items: invoice.items.map(mapInvoiceItem),
+    itemGroups: mapInvoiceItemGroups(invoice.itemGroups),
   });
 
   console.log(`Processing job ${job.id} for invoice ${invoice.publicId}...`);

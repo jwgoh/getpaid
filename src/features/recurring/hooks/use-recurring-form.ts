@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { BRANDING, type FormMode, SORT_ORDER } from "@app/shared/config/config";
 import { useUnsavedChanges } from "@app/shared/hooks";
 import { useDragReorder } from "@app/shared/hooks/use-drag-reorder";
@@ -76,9 +76,7 @@ function useRecurringSubmit(mode: FormMode, recurringId?: string) {
             router.push("/app/recurring");
           },
           onError: (err) => {
-            toast.error(
-              err instanceof ApiError ? err.message : "Failed to update recurring invoice"
-            );
+            toast.error(extractApiErrorMessage(err, "Failed to update recurring invoice"));
           },
         }
       );
@@ -89,7 +87,7 @@ function useRecurringSubmit(mode: FormMode, recurringId?: string) {
           router.push("/app/recurring");
         },
         onError: (err) => {
-          toast.error(err instanceof ApiError ? err.message : "Failed to create recurring invoice");
+          toast.error(extractApiErrorMessage(err, "Failed to create recurring invoice"));
         },
       });
     }

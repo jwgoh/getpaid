@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { withAdmin } from "@app/shared/api/route-helpers";
-
+import { withAdmin } from "@app/server/api/route-helpers";
 import { listWaitlistEntries } from "@app/server/waitlist";
 
 export const GET = withAdmin(async () => {

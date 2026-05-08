@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { updateInvoiceSchema } from "@app/shared/schemas";
 
+import { notFoundResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
 import { deleteInvoice, getInvoice, updateInvoice } from "@app/server/invoices";
 
 export const GET = withAuth(async (user, _request, context) => {

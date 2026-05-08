@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { errorResponse, withAuth } from "@app/shared/api/route-helpers";
-
+import { errorResponse, withAuth } from "@app/server/api/route-helpers";
 import {
   InvoiceAlreadySentError,
   InvoiceNotFoundError,

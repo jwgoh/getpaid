@@ -10,7 +10,7 @@ import { Button, IconButton, Stack, Tooltip } from "@mui/material";
 
 import { RESPONSIVE_SX } from "@app/shared/config/config";
 
-import type { ThemeMode } from "@app/providers/theme/registry";
+import type { ThemeMode } from "@app/providers";
 
 interface HeaderActionsProps {
   mode: ThemeMode;

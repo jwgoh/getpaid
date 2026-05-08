@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { BRANDING, type FormMode, SORT_ORDER } from "@app/shared/config/config";
 import { useDragReorder } from "@app/shared/hooks/use-drag-reorder";
 import { useToast } from "@app/shared/hooks/use-toast";
@@ -42,7 +42,7 @@ function useTemplateSubmit(mode: FormMode, templateId?: string) {
             router.push("/app/templates");
           },
           onError: (err) => {
-            toast.error(err instanceof ApiError ? err.message : "Failed to update template");
+            toast.error(extractApiErrorMessage(err, "Failed to update template"));
           },
         }
       );
@@ -53,7 +53,7 @@ function useTemplateSubmit(mode: FormMode, templateId?: string) {
           router.push("/app/templates");
         },
         onError: (err) => {
-          toast.error(err instanceof ApiError ? err.message : "Failed to create template");
+          toast.error(extractApiErrorMessage(err, "Failed to create template"));
         },
       });
     }

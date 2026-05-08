@@ -4,6 +4,12 @@ import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
 import { features } from "@app/shared/config/features";
 import { signUpSchema } from "@app/shared/schemas";
 
+import {
+  errorResponse,
+  internalErrorResponse,
+  parseBody,
+  validationErrorResponse,
+} from "@app/server/api/route-helpers";
 import { createUser, EmailExistsError } from "@app/server/auth/signup";
 import { isEmailApproved } from "@app/server/waitlist";
 
@@ -17,32 +23,26 @@ export async function POST(request: Request) {
     return limited;
   }
 
+  let parsed;
+
   try {
-    const body = await request.json();
-    const parsed = signUpSchema.safeParse(body);
+    parsed = await parseBody(request, signUpSchema);
+  } catch {
+    return validationErrorResponse({ issues: [{ message: "Invalid JSON body" }] });
+  }
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: parsed.error.issues[0]?.message ?? "Invalid input",
-          },
-        },
-        { status: 400 }
-      );
-    }
+  if (parsed.error) {
+    return parsed.error;
+  }
 
-    const { email, password } = parsed.data;
+  const { email, password } = parsed.data;
 
+  try {
     if (!features.publicRegistration) {
       const approved = await isEmailApproved(email);
 
       if (!approved) {
-        return NextResponse.json(
-          { error: { code: "REGISTRATION_DISABLED", message: "Registration is not available" } },
-          { status: 403 }
-        );
+        return errorResponse("REGISTRATION_DISABLED", "Registration is not available", 403);
       }
     }
 
@@ -51,27 +51,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Account created successfully" }, { status: 201 });
   } catch (error) {
     if (error instanceof EmailExistsError) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "EMAIL_EXISTS",
-            message: error.message,
-          },
-        },
-        { status: 409 }
-      );
+      return errorResponse("EMAIL_EXISTS", error.message, 409);
     }
 
     console.error("Sign-up error:", error);
 
-    return NextResponse.json(
-      {
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
-        },
-      },
-      { status: 500 }
-    );
+    return internalErrorResponse();
   }
 }

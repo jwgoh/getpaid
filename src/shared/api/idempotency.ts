@@ -3,8 +3,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import crypto from "node:crypto";
 
-import { errorResponse } from "@app/shared/api/route-helpers";
-
+import { errorResponse } from "@app/server/api/route-helpers";
 import { prisma } from "@app/server/db";
 
 const IDEMPOTENCY_HEADER = "Idempotency-Key";

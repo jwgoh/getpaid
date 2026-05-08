@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { Stack, Typography } from "@mui/material";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import type { ReminderModeValue } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { LoadingButton } from "@app/shared/ui/loading-button";
@@ -60,7 +60,7 @@ export function RemindersTab({ settings }: RemindersTabProps) {
           setIsDirty(false);
         },
         onError: (err) => {
-          toast.error(err instanceof ApiError ? err.message : "Failed to save reminder settings");
+          toast.error(extractApiErrorMessage(err, "Failed to save reminder settings"));
         },
       }
     );

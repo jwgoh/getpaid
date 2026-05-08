@@ -18,7 +18,7 @@ import {
 import { UI } from "@app/shared/config/config";
 import { Logo } from "@app/shared/ui/logo";
 
-import type { ThemeMode } from "@app/providers/theme/registry";
+import type { ThemeMode } from "@app/providers";
 
 import { DrawerFooter } from "./drawer-footer";
 import { DrawerNavList } from "./drawer-nav-list";

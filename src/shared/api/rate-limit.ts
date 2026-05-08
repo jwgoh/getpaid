@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { errorResponse } from "@app/shared/api/route-helpers";
+import { errorResponse } from "@app/server/api/route-helpers";
 
 interface RateLimitOptions {
   bucket: string;

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { createSenderProfileSchema } from "@app/shared/schemas";
 
+import { notFoundResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
 import { getSenderProfile, upsertSenderProfile } from "@app/server/sender-profile";
 
 export const GET = withAuth(async (user) => {

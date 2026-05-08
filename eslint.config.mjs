@@ -132,6 +132,24 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    ignores: ["src/providers/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@app/providers/*/*", "@app/providers/*"],
+              message:
+                "Import from the @app/providers barrel instead of reaching into providers internals.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

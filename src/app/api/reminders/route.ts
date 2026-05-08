@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { parseBody, withAuth } from "@app/shared/api/route-helpers";
 import { REMINDER, REMINDER_MODE } from "@app/shared/config/config";
 import { updateReminderSettingsSchema } from "@app/shared/schemas";
 
+import { parseBody, withAuth } from "@app/server/api/route-helpers";
 import { createOrUpdateFollowUpRule, getFollowUpRule } from "@app/server/followups";
 
 export const GET = withAuth(async (user) => {

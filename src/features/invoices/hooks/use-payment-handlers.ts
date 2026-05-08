@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { useConfirmDialog } from "@app/shared/hooks/use-confirm-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
 
@@ -28,7 +28,7 @@ export function usePaymentHandlers(
         toast.success("Invoice marked as paid!", "Payment Recorded");
       },
       onError: (err) => {
-        toast.error(err instanceof ApiError ? err.message : "Failed to mark as paid");
+        toast.error(extractApiErrorMessage(err, "Failed to mark as paid"));
       },
     });
   };
@@ -50,7 +50,7 @@ export function usePaymentHandlers(
           toast.success("Payment recorded successfully!");
         },
         onError: (err) => {
-          toast.error(err instanceof ApiError ? err.message : "Failed to record payment");
+          toast.error(extractApiErrorMessage(err, "Failed to record payment"));
         },
       }
     );

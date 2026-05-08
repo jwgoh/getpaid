@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { notFoundResponse, withAuth } from "@app/shared/api/route-helpers";
-
+import { notFoundResponse, withAuth } from "@app/server/api/route-helpers";
 import { duplicateInvoice } from "@app/server/invoices";
 
 export const POST = withAuth(async (user, _request, context) => {

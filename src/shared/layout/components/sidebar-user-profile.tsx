@@ -19,7 +19,7 @@ import {
 
 import { UI } from "@app/shared/config/config";
 
-import { useThemeMode } from "@app/providers/theme/registry";
+import { useThemeMode } from "@app/providers";
 
 function getInitials(email: string): string {
   return email.charAt(0).toUpperCase();

@@ -23,7 +23,8 @@ import {
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { ApiError } from "@app/shared/api/base";
+import { authApi } from "@app/shared/api/auth";
+import { extractApiErrorMessage } from "@app/shared/api/error-message";
 import { useToast } from "@app/shared/hooks/use-toast";
 import {
   type SignUpInput,
@@ -33,8 +34,6 @@ import {
   waitlistSchema,
 } from "@app/shared/schemas";
 import { LoadingButton } from "@app/shared/ui/loading-button";
-
-import { authApi } from "@app/features/auth";
 
 import { waitlistApi } from "../api";
 
@@ -77,7 +76,7 @@ export function WaitlistForm() {
           break;
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "An unexpected error occurred");
+      toast.error(extractApiErrorMessage(err, "An unexpected error occurred"));
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +105,7 @@ export function WaitlistForm() {
       router.push("/app");
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "An unexpected error occurred");
+      toast.error(extractApiErrorMessage(err, "An unexpected error occurred"));
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +118,7 @@ export function WaitlistForm() {
       await waitlistApi.join({ email: checkedEmail });
       setStep("submitted");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "An unexpected error occurred");
+      toast.error(extractApiErrorMessage(err, "An unexpected error occurred"));
     } finally {
       setIsLoading(false);
     }

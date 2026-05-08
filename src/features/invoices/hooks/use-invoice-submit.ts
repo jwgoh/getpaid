@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { ApiError } from "@app/shared/api";
+import { extractApiErrorMessage } from "@app/shared/api";
 import { useToast } from "@app/shared/hooks/use-toast";
 import type { InvoiceFormInput } from "@app/shared/schemas";
 
@@ -73,7 +73,7 @@ export function useInvoiceSubmit({ mode, invoiceId, onDraftClear }: UseInvoiceSu
               router.push(`/app/invoices/${invoice.id}`);
             },
             onError: (err) => {
-              const message = err instanceof ApiError ? err.message : "Failed to create invoice";
+              const message = extractApiErrorMessage(err, "Failed to create invoice");
 
               setError(message);
               toast.error(message);
@@ -111,7 +111,7 @@ export function useInvoiceSubmit({ mode, invoiceId, onDraftClear }: UseInvoiceSu
             router.push(`/app/invoices/${invoiceId}`);
           },
           onError: (err) => {
-            const message = err instanceof ApiError ? err.message : "Failed to update invoice";
+            const message = extractApiErrorMessage(err, "Failed to update invoice");
 
             setError(message);
             toast.error(message);
