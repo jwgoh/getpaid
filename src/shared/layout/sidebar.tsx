@@ -45,7 +45,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         ...RESPONSIVE_SX.DESKTOP_MD_ONLY,
         flexDirection: "column",
         width: sidebarWidth,
-        height: "100vh",
+        height: "100dvh",
         position: "fixed",
         top: 0,
         left: 0,

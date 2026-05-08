@@ -77,7 +77,7 @@ export function AppLayout({ children, maxWidth = "lg", disablePadding = false }:
     <Stack
       direction="row"
       sx={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         bgcolor: "background.default",
       }}
     >
@@ -90,7 +90,7 @@ export function AppLayout({ children, maxWidth = "lg", disablePadding = false }:
           flex: 1,
           minWidth: 0,
           ml: { xs: 0, md: `${sidebarWidth}px` },
-          minHeight: "100vh",
+          minHeight: "100dvh",
           transition: (t) => t.transitions.create("margin-left"),
         }}
       >

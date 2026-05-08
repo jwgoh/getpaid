@@ -160,6 +160,10 @@ export const sharedComponents = {
     styleOverrides: {
       root: {
         transition: transitionAll,
+        "@media (pointer: coarse)": {
+          minWidth: 44,
+          minHeight: 44,
+        },
       },
     },
   },

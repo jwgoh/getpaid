@@ -91,7 +91,7 @@ export default function PublicInvoiceView({ publicId, invoice, branding, justPai
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         bgcolor: "background.default",
         py: 4,
         ...(fontStack && {

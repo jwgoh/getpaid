@@ -78,7 +78,7 @@ export default function SignInPage() {
     <Stack
       direction="row"
       sx={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         bgcolor: "background.default",
         alignItems: "center",
         justifyContent: "center",

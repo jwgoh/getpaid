@@ -11,6 +11,8 @@ const outfit = Outfit({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+const COLOR_SCHEME_INIT = `(function(){try{var s=localStorage.getItem('theme-mode');var m=s==='light'||s==='dark'?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.style.colorScheme=m;document.documentElement.dataset.colorScheme=m;}catch(e){}})();`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(SEO.SITE_URL),
   title: {
@@ -47,7 +49,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT }} />
+      </head>
       <body className={outfit.variable}>
         <Providers>{children}</Providers>
       </body>
