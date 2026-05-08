@@ -19,6 +19,7 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "followups:run": "tsx scripts/run-followups.ts",
+    "outbox:run": "tsx scripts/process-outbox.ts",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed"
   },

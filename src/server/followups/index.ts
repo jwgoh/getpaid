@@ -1,9 +1,11 @@
-import { FollowUpMode } from "@prisma/client";
+import { FollowUpMode, Prisma } from "@prisma/client";
 
 import { REMINDER, REMINDER_MODE } from "@app/shared/config/config";
 import { FOLLOWUP_STATUS } from "@app/shared/config/invoice-status";
 
 import { prisma } from "@app/server/db";
+
+type FollowUpClient = Prisma.TransactionClient | typeof prisma;
 
 export function parseDelaysDays(value: unknown): number[] {
   if (Array.isArray(value) && value.every((v): v is number => typeof v === "number")) {
@@ -59,7 +61,8 @@ export async function scheduleFollowUps(
   rule: {
     mode: FollowUpMode;
     delaysDays: number[];
-  }
+  },
+  client: FollowUpClient = prisma
 ) {
   const baseDate = rule.mode === REMINDER_MODE.AFTER_SENT ? sentAt : dueDate;
   const delays = rule.delaysDays;
@@ -76,7 +79,7 @@ export async function scheduleFollowUps(
     };
   });
 
-  await prisma.followUpJob.createMany({
+  await client.followUpJob.createMany({
     data: jobs,
   });
 
@@ -84,12 +87,15 @@ export async function scheduleFollowUps(
 }
 
 export async function getPendingFollowUpJobs() {
+  const now = new Date();
+
   return prisma.followUpJob.findMany({
     where: {
       status: FOLLOWUP_STATUS.PENDING,
       scheduledFor: {
-        lte: new Date(),
+        lte: now,
       },
+      OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
     },
     include: {
       invoice: {
@@ -117,6 +123,34 @@ export async function markFollowUpJobSent(jobId: string) {
     data: {
       status: FOLLOWUP_STATUS.SENT,
       sentAt: new Date(),
+      lastError: null,
+      nextAttemptAt: null,
+      lastAttemptedAt: new Date(),
+    },
+  });
+}
+
+export async function recordFollowUpAttempt(jobId: string) {
+  return prisma.followUpJob.update({
+    where: { id: jobId },
+    data: {
+      attempts: { increment: 1 },
+      lastAttemptedAt: new Date(),
+    },
+  });
+}
+
+export async function markFollowUpJobFailed(
+  jobId: string,
+  errorMessage: string,
+  nextAttemptAt: Date | null
+) {
+  return prisma.followUpJob.update({
+    where: { id: jobId },
+    data: {
+      status: nextAttemptAt ? FOLLOWUP_STATUS.PENDING : FOLLOWUP_STATUS.FAILED,
+      lastError: errorMessage,
+      nextAttemptAt,
     },
   });
 }

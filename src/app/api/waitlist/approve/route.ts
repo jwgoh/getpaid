@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { notFoundResponse, parseBody, withAdmin } from "@app/shared/api/route-helpers";
 import { waitlistSchema } from "@app/shared/schemas";
 
-import { sendWaitlistApprovalEmail } from "@app/server/email";
-import { approveWaitlistEntry } from "@app/server/waitlist";
+import { dispatchOutbox } from "@app/server/email/outbox";
+import { approveWaitlistEntry, WaitlistEntryNotFoundError } from "@app/server/waitlist";
 
 export const POST = withAdmin(async (_user, request) => {
   const { data, error } = await parseBody(request, waitlistSchema);
@@ -14,12 +14,16 @@ export const POST = withAdmin(async (_user, request) => {
   }
 
   try {
-    await approveWaitlistEntry(data.email);
-  } catch {
-    return notFoundResponse("Waitlist entry");
+    const result = await approveWaitlistEntry(data.email);
+
+    await dispatchOutbox(result.outboxId);
+
+    return NextResponse.json({ message: "User approved and notified" });
+  } catch (err) {
+    if (err instanceof WaitlistEntryNotFoundError) {
+      return notFoundResponse("Waitlist entry");
+    }
+
+    throw err;
   }
-
-  await sendWaitlistApprovalEmail(data.email);
-
-  return NextResponse.json({ message: "User approved and notified" });
 });

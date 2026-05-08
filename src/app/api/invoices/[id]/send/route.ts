@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { errorResponse, withAuth } from "@app/shared/api/route-helpers";
 
 import {
-  EmailFailedError,
   InvoiceAlreadySentError,
   InvoiceNotFoundError,
   sendInvoice,
@@ -24,10 +23,6 @@ export const POST = withAuth(
     {
       check: (error) => error instanceof InvoiceAlreadySentError,
       respond: (error) => errorResponse("ALREADY_SENT", error.message, 400),
-    },
-    {
-      check: (error) => error instanceof EmailFailedError,
-      respond: (error) => errorResponse("EMAIL_FAILED", error.message, 500),
     },
   ]
 );

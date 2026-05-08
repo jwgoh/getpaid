@@ -242,6 +242,50 @@ Frontend convention: React Query mutations call `generateIdempotencyKey()` from 
 
 When adding a new write endpoint that creates resources, charges money, or sends external messages: wrap with `withIdempotency` and have the caller supply a fresh key.
 
+## Email Outbox
+
+Outbound email is sent via the transactional outbox pattern: a state-change writes the DB row(s) AND an `EmailOutbox` row in the same `prisma.$transaction`; the actual Resend call happens AFTER the transaction commits. This guarantees a partial failure can never leave the system thinking an email was sent when it wasn't (or vice versa).
+
+Pattern:
+
+```typescript
+const outboxId = await prisma.$transaction(async (tx) => {
+  await updateInvoiceStatus(invoice.id, INVOICE_STATUS.SENT, { sentAt }, tx);
+  await logInvoiceEvent(invoice.id, INVOICE_EVENT.SENT, {}, tx);
+
+  const placeholderKey = `pending-${invoice.id}-${sentAt.getTime()}`;
+  const row = await createEmailOutbox(tx, {
+    userId,
+    kind: EMAIL_OUTBOX_KIND.INVOICE,
+    relatedType: EMAIL_OUTBOX_RELATED_TYPE.INVOICE,
+    relatedId: invoice.id,
+    payload,
+    idempotencyKey: placeholderKey,
+  });
+
+  await tx.emailOutbox.update({
+    where: { id: row.id },
+    data: {
+      idempotencyKey: buildOutboxIdempotencyKey(EMAIL_OUTBOX_KIND.INVOICE, invoice.id, row.id),
+    },
+  });
+
+  return row.id;
+});
+
+await dispatchOutbox(outboxId);
+```
+
+Key rules:
+
+- The DB writes that change user-visible state and the `createEmailOutbox` call MUST be in the same `prisma.$transaction`. Email payload is captured (rendered HTML/text) inside the transaction so a template change between send and retry can't desync.
+- The Resend call lives in `dispatchOutbox(rowId)` and happens AFTER the transaction commits. Best-effort: if Resend fails, the outbox row stays `PENDING` and `scripts/process-outbox.ts` (cron entry, `pnpm outbox:run`) retries with exponential backoff (5min × 2^attempts up to 5 attempts, then `FAILED`).
+- `dispatchOutbox` calls `sendEmail()` from `@app/server/email` with `idempotencyKey` set to the row's stable key (`${kind}-${relatedId}-${outboxRowId}`). Resend's per-call idempotency dedupes the actual API call across retries.
+- Three flows currently use the outbox: `sendInvoice`, the follow-up worker (`scripts/run-followups.ts`), and the waitlist routes (sign-up + admin approval).
+- `FollowUpJob` carries `attempts` / `lastError` / `nextAttemptAt`, gated by `getPendingFollowUpJobs`. After 5 failed attempts the job flips to `FAILED` and the worker stops retrying.
+
+When adding a new email-send: build a `ResendEmailPayload` via a `buildXxxEmailPayload` helper in `@app/server/email`, then write the state change + `createEmailOutbox` in one transaction, then `dispatchOutbox` outside.
+
 ## Code Quality Checklist
 
 Before committing, verify:

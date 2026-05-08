@@ -76,12 +76,15 @@ export async function markInvoicePaid(
   });
 }
 
+type InvoiceClient = Prisma.TransactionClient | typeof prisma;
+
 export async function updateInvoiceStatus(
   id: string,
   status: InvoiceStatus,
-  additionalData: Record<string, unknown> = {}
+  additionalData: Record<string, unknown> = {},
+  client: InvoiceClient = prisma
 ) {
-  return prisma.invoice.update({
+  return client.invoice.update({
     where: { id },
     data: {
       status,
@@ -93,9 +96,10 @@ export async function updateInvoiceStatus(
 export async function logInvoiceEvent(
   invoiceId: string,
   type: InvoiceEventType,
-  payload: Prisma.InputJsonValue = {}
+  payload: Prisma.InputJsonValue = {},
+  client: InvoiceClient = prisma
 ) {
-  return prisma.invoiceEvent.create({
+  return client.invoiceEvent.create({
     data: {
       invoiceId,
       type,
