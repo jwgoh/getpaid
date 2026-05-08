@@ -40,6 +40,9 @@ yarn-error.log*
 
 # claude code
 .claude
+.audit
+.feature-dev
+.upgrade
 
 # typescript
 *.tsbuildinfo
