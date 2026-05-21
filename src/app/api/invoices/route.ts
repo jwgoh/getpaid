@@ -4,8 +4,8 @@ import { withIdempotency } from "@app/shared/api/idempotency";
 import { createInvoiceSchema } from "@app/shared/schemas";
 import { asUserId } from "@app/shared/types/ids";
 
-import { parseBody, withAuth } from "@app/server/api/route-helpers";
-import { createInvoice, getInvoices } from "@app/server/invoices";
+import { errorResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
+import { ClientNotFoundError, createInvoice, getInvoices } from "@app/server/invoices";
 
 export const GET = withAuth(async (user) => {
   const invoices = await getInvoices(asUserId(user.id));
@@ -27,5 +27,11 @@ export const POST = withAuth(
       return NextResponse.json(invoice, { status: 201 });
     },
     { endpoint: "POST /api/invoices" }
-  )
+  ),
+  [
+    {
+      check: (error) => error instanceof ClientNotFoundError,
+      respond: (error) => errorResponse("NOT_FOUND", error.message, 404),
+    },
+  ]
 );

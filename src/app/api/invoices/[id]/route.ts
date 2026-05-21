@@ -3,8 +3,18 @@ import { NextResponse } from "next/server";
 import { updateInvoiceSchema } from "@app/shared/schemas";
 import { asInvoiceId, asUserId } from "@app/shared/types/ids";
 
-import { notFoundResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
-import { deleteInvoice, getInvoice, updateInvoice } from "@app/server/invoices";
+import {
+  errorResponse,
+  notFoundResponse,
+  parseBody,
+  withAuth,
+} from "@app/server/api/route-helpers";
+import {
+  ClientNotFoundError,
+  deleteInvoice,
+  getInvoice,
+  updateInvoice,
+} from "@app/server/invoices";
 
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
@@ -17,22 +27,30 @@ export const GET = withAuth(async (user, _request, context) => {
   return NextResponse.json(invoice);
 });
 
-export const PATCH = withAuth(async (user, request, context) => {
-  const { id } = await context.params;
-  const { data, error } = await parseBody(request, updateInvoiceSchema);
+export const PATCH = withAuth(
+  async (user, request, context) => {
+    const { id } = await context.params;
+    const { data, error } = await parseBody(request, updateInvoiceSchema);
 
-  if (error) {
-    return error;
-  }
+    if (error) {
+      return error;
+    }
 
-  const invoice = await updateInvoice(asInvoiceId(id), asUserId(user.id), data);
+    const invoice = await updateInvoice(asInvoiceId(id), asUserId(user.id), data);
 
-  if (!invoice) {
-    return notFoundResponse("Invoice");
-  }
+    if (!invoice) {
+      return notFoundResponse("Invoice");
+    }
 
-  return NextResponse.json(invoice);
-});
+    return NextResponse.json(invoice);
+  },
+  [
+    {
+      check: (error) => error instanceof ClientNotFoundError,
+      respond: (error) => errorResponse("NOT_FOUND", error.message, 404),
+    },
+  ]
+);
 
 export const DELETE = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
