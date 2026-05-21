@@ -93,7 +93,6 @@ const eslintConfig = defineConfig([
   {
     files: [
       "src/app/app/(main)/invoices/new/page.tsx",
-      "src/app/app/(main)/recurring/new/page.tsx",
       "src/app/app/(main)/templates/new/page.tsx",
     ],
     rules: {
