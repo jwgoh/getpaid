@@ -102,7 +102,17 @@ export function withAdmin(handler: AuthHandler, errorHandlers?: ErrorHandler[]) 
 }
 
 export async function parseBody<T>(request: Request, schema: ZodType<T>) {
-  const body = await request.json();
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return {
+      data: null as never,
+      error: validationErrorResponse({ issues: [{ message: "Invalid JSON body" }] }),
+    };
+  }
+
   const parsed = schema.safeParse(body);
 
   if (!parsed.success) {
