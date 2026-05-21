@@ -18,7 +18,6 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "followups:run": "tsx scripts/run-followups.ts",
     "outbox:run": "tsx scripts/process-outbox.ts",
     "postinstall": "prisma generate",
     "prepare": "lefthook install",

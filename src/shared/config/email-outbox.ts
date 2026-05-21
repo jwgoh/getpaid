@@ -20,7 +20,6 @@ export type EmailOutboxStatusValue = (typeof EMAIL_OUTBOX_STATUS)[keyof typeof E
 
 export const EMAIL_OUTBOX_RELATED_TYPE = {
   INVOICE: "Invoice",
-  FOLLOW_UP_JOB: "FollowUpJob",
   WAITLIST_ENTRY: "WaitlistEntry",
 } as const;
 
@@ -31,11 +30,6 @@ export const EMAIL_OUTBOX = {
   MAX_ATTEMPTS: 5,
   BASE_BACKOFF_MS: 5 * TIME.MINUTE,
   BATCH_SIZE: 25,
-} as const;
-
-export const FOLLOWUP_RETRY = {
-  MAX_ATTEMPTS: 5,
-  BASE_BACKOFF_MS: 5 * TIME.MINUTE,
 } as const;
 
 export function computeBackoffMs(attempts: number, baseMs: number): number {

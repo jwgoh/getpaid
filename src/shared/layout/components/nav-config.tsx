@@ -5,7 +5,6 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import PeopleIcon from "@mui/icons-material/People";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import RepeatIcon from "@mui/icons-material/Repeat";
 
 import { features } from "@app/shared/config/features";
 
@@ -19,7 +18,6 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/app", icon: <DashboardIcon fontSize="small" />, exact: true },
   { label: "Invoices", href: "/app/invoices", icon: <ReceiptLongIcon fontSize="small" /> },
-  { label: "Recurring", href: "/app/recurring", icon: <RepeatIcon fontSize="small" /> },
   { label: "Clients", href: "/app/clients", icon: <PeopleIcon fontSize="small" /> },
   { label: "Templates", href: "/app/templates", icon: <DescriptionIcon fontSize="small" /> },
   ...(features.waitlistAdmin

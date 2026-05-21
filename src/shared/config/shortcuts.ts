@@ -51,14 +51,6 @@ export const SHORTCUTS = {
     description: "Go to templates",
     group: "Navigation",
   },
-  GO_RECURRING: {
-    key: "r",
-    ctrl: true,
-    shift: true,
-    keys: ["Ctrl", "Shift", "R"],
-    description: "Go to recurring",
-    group: "Navigation",
-  },
   GO_SETTINGS: {
     key: "s",
     ctrl: true,

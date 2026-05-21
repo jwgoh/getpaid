@@ -7,7 +7,7 @@ import {
   Prisma,
 } from "@prisma/client";
 
-import { FOLLOWUP_STATUS, INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import type { InvoiceId, PublicId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
@@ -77,11 +77,6 @@ export async function markInvoicePaid(
         type: INVOICE_EVENT.PAID_MANUAL,
         payload: {},
       },
-    });
-
-    await tx.followUpJob.updateMany({
-      where: { invoiceId: invoice.id, status: FOLLOWUP_STATUS.PENDING },
-      data: { status: FOLLOWUP_STATUS.CANCELED },
     });
 
     return updated;

@@ -23,7 +23,6 @@ import {
   createEmailOutbox,
   dispatchOutbox,
 } from "@app/server/email/outbox";
-import { getFollowUpRule, parseDelaysDays, scheduleFollowUps } from "@app/server/followups";
 import { logInvoiceEvent, updateInvoiceStatus } from "@app/server/invoices";
 import { ITEM_GROUPS_INCLUDE } from "@app/server/invoices/item-groups";
 import type { InvoiceWithRelations } from "@app/server/invoices/mutations";
@@ -129,7 +128,6 @@ interface CommitSendInvoiceInput {
 
 async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string> {
   const { invoice, userId, paymentReference, sentAt, payload } = input;
-  const followUpRule = await getFollowUpRule(userId);
 
   return prisma.$transaction(async (tx) => {
     await updateInvoiceStatus(invoice.id, INVOICE_STATUS.SENT, { sentAt, paymentReference }, tx);
@@ -140,19 +138,6 @@ async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string>
       { clientEmail: invoice.client.email },
       tx
     );
-
-    if (followUpRule?.enabled) {
-      await scheduleFollowUps(
-        invoice.id,
-        sentAt,
-        invoice.dueDate,
-        {
-          mode: followUpRule.mode,
-          delaysDays: parseDelaysDays(followUpRule.delaysDays),
-        },
-        tx
-      );
-    }
 
     const placeholderKey = `pending-${invoice.id}-${sentAt.getTime()}`;
     const row = await createEmailOutbox(tx, {

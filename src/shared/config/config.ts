@@ -65,20 +65,6 @@ export const SORT_ORDER = {
   GAP: 10,
 } as const;
 
-export const REMINDER_MODE = {
-  AFTER_SENT: "AFTER_SENT",
-  AFTER_DUE: "AFTER_DUE",
-} as const;
-
-export type ReminderModeValue = (typeof REMINDER_MODE)[keyof typeof REMINDER_MODE];
-
-export const REMINDER = {
-  DEFAULT_DAYS: [1, 3, 7] as const,
-  MAX_DAYS: 90,
-  MIN_DAYS: 1,
-  MAX_REMINDER_COUNT: 5,
-} as const;
-
 export type FormMode = "create" | "edit";
 
 export { BRANDING, EMAIL, FONT_FAMILY_MAP } from "./email";

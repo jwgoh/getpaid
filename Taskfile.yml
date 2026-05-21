@@ -51,11 +51,6 @@ tasks:
     cmds:
       - pnpm db:studio
 
-  followups:run:
-    desc: Run follow-up job processor
-    cmds:
-      - pnpm followups:run
-
   setup:
     desc: Initial project setup
     cmds:

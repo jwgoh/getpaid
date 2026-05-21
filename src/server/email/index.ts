@@ -45,8 +45,6 @@ export interface InvoiceEmailData {
   itemGroups?: EmailItemGroup[];
 }
 
-export type ReminderEmailData = InvoiceEmailData & { isOverdue: boolean };
-
 export interface ResendEmailPayload {
   from: string;
   to: string;
@@ -128,52 +126,6 @@ export function buildInvoiceEmailPayload(data: InvoiceEmailData): ResendEmailPay
     to: data.clientEmail,
     replyTo: data.senderEmail,
     subject: `${title} - ${formattedTotal}`,
-    html: buildEmailLayout(title, color, bodyHtml, data.branding.fontFamily),
-    text,
-  };
-}
-
-export function buildReminderEmailPayload(data: ReminderEmailData): ResendEmailPayload {
-  const invoiceUrl = `${env.APP_URL}/i/${data.publicId}`;
-  const formattedTotal = formatCurrency(data.total, data.currency);
-  const formattedDueDate = formatDate(data.dueDate);
-  const color = data.isOverdue ? EMAIL.OVERDUE_COLOR : data.branding.primaryColor;
-  const title = data.isOverdue
-    ? `Overdue Invoice Reminder from ${data.senderName}`
-    : `Invoice Reminder from ${data.senderName}`;
-
-  const periodHtml =
-    data.periodStart && data.periodEnd
-      ? `<p style="margin: 10px 0 0;"><strong>Billing Period:</strong> ${formatDate(data.periodStart)} — ${formatDate(data.periodEnd)}</p>`
-      : "";
-
-  const bodyHtml = `
-    ${buildBrandingHeader(data.branding.logoUrl)}
-    <p>Hi ${escapeHtml(data.clientName)},</p>
-    <p>This is a friendly reminder about an outstanding invoice for <strong>${formattedTotal}</strong>.</p>
-    ${data.isOverdue ? `<p style="color: ${EMAIL.OVERDUE_COLOR};"><strong>This invoice is now overdue.</strong></p>` : ""}
-    ${buildInvoiceDetailsBlock(formattedTotal, formattedDueDate, data.paymentReference, periodHtml)}
-    ${buildLineItemsTable(data.items, data.currency, data.itemGroups)}
-    <p>${buildEmailButton(invoiceUrl, "View & Pay Invoice", color)}</p>
-    <p style="color: #666; font-size: 14px; margin-top: 30px;">
-      If you have already paid this invoice, please disregard this reminder. For any questions, please contact ${escapeHtml(data.senderName)} directly.
-    </p>
-    ${buildEmailFooter(data.senderName, data.branding.companyAddress, data.branding.footerText)}`;
-
-  const periodText =
-    data.periodStart && data.periodEnd
-      ? `Billing Period: ${formatDate(data.periodStart)} — ${formatDate(data.periodEnd)}\n`
-      : "";
-  const itemsText = buildPlainTextItems(data.items, data.itemGroups, data.currency);
-  const referenceText = data.paymentReference ? `Reference: ${data.paymentReference}\n` : "";
-
-  const text = `${title}\n\nHi ${data.clientName},\n\nThis is a friendly reminder about an outstanding invoice for ${formattedTotal}.\n\n${data.isOverdue ? "This invoice is now overdue.\n\n" : ""}Amount Due: ${formattedTotal}\nDue Date: ${formattedDueDate}\n${periodText}${referenceText}\nLine Items:\n${itemsText}\n\nView & Pay Invoice: ${invoiceUrl}\n\nIf you have already paid this invoice, please disregard this reminder. For any questions, please contact ${data.senderName} directly.`;
-
-  return {
-    from: env.EMAIL_FROM,
-    to: data.clientEmail,
-    replyTo: data.senderEmail,
-    subject: title,
     html: buildEmailLayout(title, color, bodyHtml, data.branding.fontFamily),
     text,
   };

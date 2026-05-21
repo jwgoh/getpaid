@@ -8,7 +8,7 @@ There is no automated pager today. Triggers are operator-discovered:
 
 - Customer email / Twitter / GitHub issue reports a 500 or stuck flow.
 - Vercel email alert (default: deploy failure).
-- Manual check that surfaces a stuck queue (`EmailOutbox PENDING` count climbing, `FollowUpJob` `nextAttemptAt` past due in bulk).
+- Manual check that surfaces a stuck queue (`EmailOutbox PENDING` count climbing).
 
 When pager / alerting infrastructure lands, this section names the page-receiver and the routing rules.
 
@@ -31,20 +31,14 @@ In rough order of "answers most failures fastest":
 - Inspect `lastError` column on FAILED rows.
 - See "Resend / email" failure mode below for next steps.
 
-### 3. FollowUpJob table
-
-- Same Prisma Studio approach.
-- Filter `status = PENDING` and look at `nextAttemptAt` — many entries past due means the worker hasn't run.
-- Filter `status = FAILED` for jobs that exhausted retries.
-
-### 4. Resend dashboard
+### 3. Resend dashboard
 
 - <https://resend.com/emails>.
 - Search by recipient email.
 - Confirms whether the email actually left Resend.
 - Bounces / complaints / blocked addresses surface here.
 
-### 5. Postgres slow queries
+### 4. Postgres slow queries
 
 - For a "the dashboard is slow" report: connect to the prod DB and run:
 
@@ -73,21 +67,6 @@ Triage:
 4. If a single message is permanently failing (recipient blocks all email), set `status = FAILED` manually and reach out to the user.
 
 See `cron.md` for the outbox cron schedule.
-
-### Follow-up worker hasn't run
-
-Symptoms: `FollowUpJob` table has many `PENDING` rows with `nextAttemptAt < now()`, no recent `REMINDER_SENT` events on overdue invoices.
-
-Triage:
-
-1. Confirm the cron has been scheduled (Vercel cron / external scheduler / systemd timer — see `cron.md`).
-2. Manual run for backfill:
-
-   ```bash
-   DATABASE_URL=$PROD_DATABASE_URL RESEND_API_KEY=$PROD_RESEND_API_KEY pnpm followups:run
-   ```
-
-3. Check for `lastError` populated on jobs — if all jobs share the same error, that's the underlying issue (DB connection, Resend down, etc.).
 
 ### Sign-up / sign-in blocked
 

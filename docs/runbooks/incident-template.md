@@ -13,7 +13,7 @@ Use this checklist when production breaks. Fork it per incident — keep one cop
 - [ ] Confirm the symptom is real (reproduce in incognito; not just one user / browser cache).
 - [ ] Estimate scope: how many users / accounts / endpoints affected?
 - [ ] Check Vercel runtime logs for the relevant time window — copy the most representative error stack here.
-- [ ] Check `EmailOutbox` and `FollowUpJob` tables for stuck rows (see `oncall.md`).
+- [ ] Check the `EmailOutbox` table for stuck rows (see `oncall.md`).
 - [ ] Check Resend dashboard if email-related.
 - [ ] Decide: hotfix in place vs roll-back vs throttle (e.g. disable the affected feature flag).
 

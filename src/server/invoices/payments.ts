@@ -1,7 +1,6 @@
 import { PaymentMethod, Prisma } from "@prisma/client";
 
 import {
-  FOLLOWUP_STATUS,
   INVOICE_EVENT,
   INVOICE_STATUS,
   type InvoiceStatusValue,
@@ -114,13 +113,6 @@ export async function recordPayment(id: string, userId: string, data: RecordPaym
           },
         },
       });
-
-      if (isFullyPaid) {
-        await tx.followUpJob.updateMany({
-          where: { invoiceId: id, status: FOLLOWUP_STATUS.PENDING },
-          data: { status: FOLLOWUP_STATUS.CANCELED },
-        });
-      }
 
       return updatedInvoice;
     });

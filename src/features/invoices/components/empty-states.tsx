@@ -17,7 +17,7 @@ export function EmptyInvoicesState({ onCreateInvoice }: EmptyInvoicesProps) {
       icon={<ReceiptLongIcon />}
       illustration={<EmptyInvoicesIllustration />}
       title="No invoices yet"
-      description="Create your first invoice and start getting paid faster. Track payments, send reminders, and manage your cash flow all in one place."
+      description="Create your first invoice and start getting paid faster. Track payments and manage your cash flow all in one place."
       action={
         <Button variant="contained" size="large" startIcon={<AddIcon />} onClick={onCreateInvoice}>
           Create Your First Invoice

@@ -1,6 +1,5 @@
 export const EMAIL = {
   PRIMARY_COLOR: "#1976d2",
-  OVERDUE_COLOR: "#d32f2f",
   WAITLIST_COLOR: "#0d9488",
   MAX_WIDTH: 600,
   BUTTON_PADDING: "12px 24px",

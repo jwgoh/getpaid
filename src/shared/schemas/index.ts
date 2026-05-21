@@ -4,8 +4,6 @@ export * from "./client";
 export * from "./invoice";
 export * from "./line-item";
 export * from "./payment";
-export * from "./recurring";
-export * from "./reminder";
 export * from "./sender-profile";
 export * from "./template";
 export * from "./waitlist";

@@ -79,6 +79,6 @@ Adding a key-versioning column to `TimeTrackingConnection` (`encryptionKeyVersio
 
 ## Open work
 
-- **Automatic prune for unbounded tables.** `InvoiceEvent` and `FollowUpJob` grow without retention. Tracked as DATA-001 in `.audit/1778157009/data-lifecycle.md`.
+- **Automatic prune for unbounded tables.** `InvoiceEvent` grows without retention. Tracked as DATA-001 in `.audit/1778157009/data-lifecycle.md`.
 - **Quarterly restore drill.** Currently informal; tracked as a discipline item in `docs/runbooks/deployment.md`.
 - **DR runbook for total host loss** (self-hosted). Out of scope for this doc; covered by `docs/runbooks/incident-template.md` once the operator fills it in.

@@ -74,7 +74,7 @@ export default function OpenGraphImage() {
           marginTop: "48px",
         }}
       >
-        {["Invoices", "Recurring", "Reminders", "PDF Export", "Dashboard"].map((feature) => (
+        {["Invoices", "PDF Export", "Dashboard"].map((feature) => (
           <div
             key={feature}
             style={{

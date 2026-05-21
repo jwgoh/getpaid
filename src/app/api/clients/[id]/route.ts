@@ -20,26 +20,13 @@ const clientHasDependentsHandler = {
   check: (error: unknown) => error instanceof ClientHasDependentsError,
   respond: (error: Error) => {
     const dependents = error as ClientHasDependentsError;
-    const parts: string[] = [];
-
-    if (dependents.invoiceCount > 0) {
-      parts.push(`${dependents.invoiceCount} invoice${dependents.invoiceCount === 1 ? "" : "s"}`);
-    }
-
-    if (dependents.recurringCount > 0) {
-      parts.push(
-        `${dependents.recurringCount} recurring schedule${dependents.recurringCount === 1 ? "" : "s"}`
-      );
-    }
+    const invoiceLabel = `${dependents.invoiceCount} invoice${dependents.invoiceCount === 1 ? "" : "s"}`;
 
     return errorResponse(
       "CLIENT_HAS_DEPENDENTS",
-      `Cannot delete client with ${parts.join(" and ")}. Delete those first or archive the client instead.`,
+      `Cannot delete client with ${invoiceLabel}. Delete those first or archive the client instead.`,
       409,
-      {
-        invoiceCount: dependents.invoiceCount,
-        recurringCount: dependents.recurringCount,
-      }
+      { invoiceCount: dependents.invoiceCount }
     );
   },
 };

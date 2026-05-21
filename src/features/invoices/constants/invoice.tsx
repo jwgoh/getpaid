@@ -10,7 +10,6 @@ import PaymentIcon from "@mui/icons-material/Payment";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 
 export { CURRENCIES } from "@app/shared/config/currencies";
-export { FREQUENCIES } from "@app/shared/config/frequencies";
 export { getStatusColor, STATUS_CONFIG } from "@app/shared/config/invoice-status";
 
 export const EVENT_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> =
