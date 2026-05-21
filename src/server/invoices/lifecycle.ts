@@ -54,7 +54,7 @@ export async function markInvoicePaid(
 ): Promise<InvoicePaidEntity | null> {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
-      where: { id, userId, paidAt: null },
+      where: { id, userId, paidAt: null, paidAmount: 0 },
     });
 
     if (!invoice) {
