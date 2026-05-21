@@ -1,19 +1,18 @@
 # Cron / scheduled-tasks runbook
 
-Two background workers are required for GetPaid to function autonomously. Both are tsx scripts under `scripts/`.
+One background worker is required for GetPaid to function autonomously. It is a tsx script under `scripts/`.
 
-| Worker              | Script                                            | What it does                                                                                                                          | Frequency                                         |
-| ------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Email outbox        | `pnpm outbox:run` (`scripts/process-outbox.ts`)   | Dispatches PENDING emails (invoices, reminders, waitlist confirmations) via Resend; retries with exponential backoff up to 5 attempts | Recommend every 5–10 minutes                      |
-| Follow-up reminders | `pnpm followups:run` (`scripts/run-followups.ts`) | Reads ready `FollowUpJob` rows, sends reminder emails via the outbox, marks jobs SENT / FAILED                                        | Recommend every 15–60 minutes (at minimum, daily) |
+| Worker       | Script                                          | What it does                                                                                                                          | Frequency                    |
+| ------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| Email outbox | `pnpm outbox:run` (`scripts/process-outbox.ts`) | Dispatches PENDING emails (invoices, waitlist confirmations) via Resend; retries with exponential backoff up to 5 attempts | Recommend every 5–10 minutes |
 
-There is no internal scheduler — the operator wires these up to an external trigger (Vercel cron / GitHub Actions / systemd timer / cron daemon).
+There is no internal scheduler — the operator wires it up to an external trigger (Vercel cron / GitHub Actions / systemd timer / cron daemon).
 
 ## Vercel cron (recommended for managed `pro`)
 
-The repo does not currently ship a `vercel.json` (the previous Salt Edge cron was removed when banking was deleted). To re-enable scheduled tasks, create `vercel.json` at the project root with cron entries pointing at routes that invoke the workers. The current shape of the workers is **CLI scripts**, not HTTP routes — so wiring them to Vercel cron requires either:
+The repo does not currently ship a `vercel.json` (the previous Salt Edge cron was removed when banking was deleted). To re-enable scheduled tasks, create `vercel.json` at the project root with a cron entry pointing at a route that invokes the worker. The current shape of the worker is a **CLI script**, not an HTTP route — so wiring it to Vercel cron requires either:
 
-1. **Adding HTTP wrappers.** Open work — see OBS-010 for the proposed design (`POST /api/cron/outbox`, `POST /api/cron/followups`, gated by an `x-cron-secret` header). Until those land, Vercel cron cannot drive them directly.
+1. **Adding an HTTP wrapper.** Open work — see OBS-010 for the proposed design (`POST /api/cron/outbox`, gated by an `x-cron-secret` header). Until that lands, Vercel cron cannot drive it directly.
 2. **External scheduler that invokes the script.** A GitHub Actions workflow on `schedule:` triggers can SSH into a runner with the env set and execute `pnpm outbox:run` — works for managed Postgres because the connection string is the only state needed.
 
 ### Minimal GitHub Actions example (until HTTP cron wrappers land)
@@ -41,8 +40,6 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
 ```
-
-Same shape for `pnpm followups:run` on a longer cadence (e.g. `0 */1 * * *` for hourly).
 
 ## Self-hosted Docker — systemd timer
 
@@ -77,11 +74,9 @@ WantedBy=timers.target
 systemctl enable --now getpaid-outbox.timer
 ```
 
-Mirror for `getpaid-followups.timer` on a longer cadence.
-
 ## Manual run (CLI)
 
-For debugging or backfill, run the workers from a shell with the prod env loaded:
+For debugging or backfill, run the worker from a shell with the prod env loaded:
 
 ```bash
 # Email outbox — drains PENDING rows
@@ -89,15 +84,9 @@ DATABASE_URL=$PROD_DATABASE_URL \
   RESEND_API_KEY=$PROD_RESEND_API_KEY \
   EMAIL_FROM=$PROD_EMAIL_FROM \
   pnpm outbox:run
-
-# Follow-up reminders
-DATABASE_URL=$PROD_DATABASE_URL \
-  RESEND_API_KEY=$PROD_RESEND_API_KEY \
-  EMAIL_FROM=$PROD_EMAIL_FROM \
-  pnpm followups:run
 ```
 
-Output: each script logs `attempted=N sent=N failed=N pending=N` (outbox) or per-job `Processing job ... Successfully sent reminder for invoice ...` lines (follow-ups). On failure, exit code 1 + a `Fatal error:` line.
+Output: the script logs `attempted=N sent=N failed=N pending=N`. On failure, exit code 1 + a `Fatal error:` line.
 
 ## Verifying the schedule is running
 
@@ -105,12 +94,10 @@ There is no application-level "did the cron run today?" alert (open work — see
 
 1. Check the GitHub Actions / systemd timer logs for the last successful run.
 2. Confirm `EmailOutbox.status = PENDING` rows older than 30 minutes are decreasing.
-3. Confirm `FollowUpJob.nextAttemptAt < now() AND status = PENDING` count is decreasing on each run.
 
-If any of those climb monotonically, the cron is not firing — see `oncall.md` "Follow-up worker hasn't run".
+If that count climbs monotonically, the cron is not firing — see `oncall.md` "Email queue stuck".
 
 ## Open work
 
-- **HTTP cron wrappers** (`POST /api/cron/outbox`, `POST /api/cron/followups`) gated by `x-cron-secret`. Tracked as OBS-010.
+- **HTTP cron wrapper** (`POST /api/cron/outbox`) gated by `x-cron-secret`. Tracked as OBS-010.
 - **"Cron didn't run in last 24h" alert.** Tracked as OBS-007 — depends on a structured logger (OBS-001) shipping first.
-- **Recurring invoice generator** (`processDueRecurringInvoices`) is currently never invoked by any cron. Tracked as ARCH-011.

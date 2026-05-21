@@ -7,9 +7,7 @@ Simple, self-hosted invoice management for freelancers. No bloat, no hidden fees
 ## Features
 
 - **Invoices** — create, edit, and send professional invoices with line items, taxes, and discounts
-- **Recurring** — set up recurring invoices that generate and send automatically
 - **View Tracking** — know exactly when your client opens an invoice
-- **Follow-ups** — automated payment reminders so you never chase clients manually
 - **PDF Export** — generate clean PDF invoices for download and print
 - **Dashboard** — revenue, outstanding amounts, and payment trends at a glance
 - **Templates** — reusable invoice templates for repeat work

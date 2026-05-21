@@ -45,7 +45,7 @@ Verify in Vercel Project Settings → Environment Variables that the following a
 | `NEXTAUTH_SECRET`             | Yes                 | ≥32 chars, generated via `openssl rand -base64 32`. Never reuse a dev secret     |
 | `NEXTAUTH_URL`                | Yes                 | The public origin (`https://getpaid.dev`)                                        |
 | `APP_URL`                     | Yes                 | Same as `NEXTAUTH_URL` for the managed instance                                  |
-| `RESEND_API_KEY`              | Yes (for email)     | Email send + waitlist + reminders all gated on this                              |
+| `RESEND_API_KEY`              | Yes (for email)     | Email send + waitlist all gated on this                                          |
 | `EMAIL_FROM`                  | Yes                 | The verified sender address in Resend                                            |
 | `ADMIN_EMAIL`                 | Yes (`pro` edition) | Single email matching the user who can hit waitlist-admin routes                 |
 | `ENCRYPTION_KEY`              | Yes (time tracking) | ≥32 chars; rotating invalidates existing Toggl connections                       |

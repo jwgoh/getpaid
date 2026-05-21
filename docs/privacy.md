@@ -15,8 +15,6 @@ GetPaid stores the following user-supplied data in a single PostgreSQL database:
 | Invoice events (created / sent / viewed / paid timestamps)                             | Automatic, on every state transition       | Audit trail visible in invoice timeline |
 | Payments (amount, method, paid-at, optional note)                                      | `POST /api/invoices/:id/payments`          | Payment ledger per invoice              |
 | Invoice templates                                                                      | `POST /api/templates`                      | Reusable invoice scaffolds              |
-| Recurring invoice schedules                                                            | `POST /api/recurring`                      | Recurring billing                       |
-| Follow-up rule + jobs                                                                  | `PUT /api/reminders`                       | Automated payment reminder cadence      |
 | Time-tracking connections (encrypted Toggl API token)                                  | `POST /api/time-tracking/connections`      | Toggl Track integration                 |
 | Waitlist entries (email + status)                                                      | `POST /api/waitlist`                       | Pro-edition invite flow                 |
 
@@ -29,7 +27,7 @@ What is **not** collected:
 ## Where data lives
 
 - **Primary database.** PostgreSQL 16. Operator's choice of host (Vercel Postgres, Neon, Supabase, Render, self-hosted).
-- **Email delivery.** [Resend](https://resend.com) sends every outbound invoice email, payment reminder, and waitlist notification. Resend processes the recipient address, sender name, invoice items, and the public viewer URL. See `docs/dpa.md` for sub-processor disclosure.
+- **Email delivery.** [Resend](https://resend.com) sends every outbound invoice email and waitlist notification. Resend processes the recipient address, sender name, invoice items, and the public viewer URL. See `docs/dpa.md` for sub-processor disclosure.
 - **Time tracking (optional).** When a user connects Toggl Track, an AES-256-GCM encrypted API token is stored in the `TimeTrackingConnection` table. The plaintext token is held by Toggl, not by GetPaid. Encryption key (`ENCRYPTION_KEY` env) lives only on the server.
 - **No third-party tracking** is wired into the `community` edition. `pro` operators may layer their own analytics; this is operator-controlled, not built-in.
 
@@ -37,8 +35,8 @@ What is **not** collected:
 
 Default posture: **data is retained for the lifetime of the user account**.
 
-- All user-owned rows (`User`, `Client`, `Invoice`, `Payment`, `InvoiceEvent`, `InvoiceTemplate`, `RecurringInvoice`, `FollowUpJob`, `TimeTrackingConnection`) cascade-delete only when the parent `User` is deleted.
-- There is no automated time-based prune. Append-only tables (`InvoiceEvent`, `FollowUpJob`) grow with usage. See `.audit/1778157009/data-lifecycle.md` (DATA-001) for the open finding on prune cadence.
+- All user-owned rows (`User`, `Client`, `Invoice`, `Payment`, `InvoiceEvent`, `InvoiceTemplate`, `TimeTrackingConnection`) cascade-delete only when the parent `User` is deleted.
+- There is no automated time-based prune. The append-only `InvoiceEvent` table grows with usage. See `.audit/1778157009/data-lifecycle.md` (DATA-001) for the open finding on prune cadence.
 - `WaitlistEntry` rows persist after the user signs up (denormalised email lookup). Cleanup of converted-to-user entries is a known gap (DATA-006).
 
 ## GDPR posture

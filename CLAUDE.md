@@ -297,7 +297,6 @@ Server enforcement (today):
 
 - `POST /api/invoices` (create invoice)
 - `POST /api/invoices/:id/payments` (record payment)
-- `POST /api/recurring/:id/generate` (manual recurring generate)
 
 Behavior:
 
@@ -349,8 +348,7 @@ Key rules:
 - The DB writes that change user-visible state and the `createEmailOutbox` call MUST be in the same `prisma.$transaction`. Email payload is captured (rendered HTML/text) inside the transaction so a template change between send and retry can't desync.
 - The Resend call lives in `dispatchOutbox(rowId)` and happens AFTER the transaction commits. Best-effort: if Resend fails, the outbox row stays `PENDING` and `scripts/process-outbox.ts` (cron entry, `pnpm outbox:run`) retries with exponential backoff (5min × 2^attempts up to 5 attempts, then `FAILED`).
 - `dispatchOutbox` calls `sendEmail()` from `@app/server/email` with `idempotencyKey` set to the row's stable key (`${kind}-${relatedId}-${outboxRowId}`). Resend's per-call idempotency dedupes the actual API call across retries.
-- Three flows currently use the outbox: `sendInvoice`, the follow-up worker (`scripts/run-followups.ts`), and the waitlist routes (sign-up + admin approval).
-- `FollowUpJob` carries `attempts` / `lastError` / `nextAttemptAt`, gated by `getPendingFollowUpJobs`. After 5 failed attempts the job flips to `FAILED` and the worker stops retrying.
+- Two flows currently use the outbox: `sendInvoice` and the waitlist routes (sign-up + admin approval).
 
 When adding a new email-send: build a `ResendEmailPayload` via a `buildXxxEmailPayload` helper in `@app/server/email`, then write the state change + `createEmailOutbox` in one transaction, then `dispatchOutbox` outside.
 

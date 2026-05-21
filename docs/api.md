@@ -1,6 +1,6 @@
 # API Reference
 
-Hand-written reference for GetPaid's 31 REST endpoints. The actual route handlers live under `src/app/api/**/route.ts`; request and response shapes are validated against the Zod schemas in `src/shared/schemas/`. This document is the index — when in doubt, the schema is the source of truth.
+Hand-written reference for GetPaid's 27 REST endpoints. The actual route handlers live under `src/app/api/**/route.ts`; request and response shapes are validated against the Zod schemas in `src/shared/schemas/`. This document is the index — when in doubt, the schema is the source of truth.
 
 ## Conventions
 
@@ -25,7 +25,7 @@ Hand-written reference for GetPaid's 31 REST endpoints. The actual route handler
 | `EMAIL_EXISTS`             | 409    | Sign-up email already has an account                               |
 | `ALREADY_SENT`             | 400    | Invoice already in SENT/VIEWED/PAID state                          |
 | `INVALID_STATE`            | 400    | Resource not in a state that permits the requested action          |
-| `CLIENT_HAS_DEPENDENTS`    | 409    | Client has active invoices or recurring schedules                  |
+| `CLIENT_HAS_DEPENDENTS`    | 409    | Client has active invoices                                         |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400    | `Idempotency-Key` header missing on enforced route                 |
 | `IDEMPOTENCY_KEY_INVALID`  | 400    | `Idempotency-Key` malformed (length / chars)                       |
 | `IDEMPOTENCY_KEY_REUSED`   | 422    | Same key + different request body within 24h                       |
@@ -43,10 +43,8 @@ Request and response shapes are defined as Zod schemas. Cite them by name; the d
 | `createInvoiceSchema`, `updateInvoiceSchema`                                                                                                                        | `src/shared/schemas/invoice.ts`        |
 | `lineItemSchema`, `lineItemGroupSchema`                                                                                                                             | `src/shared/schemas/line-item.ts`      |
 | `recordPaymentApiSchema`                                                                                                                                            | `src/shared/schemas/payment.ts`        |
-| `createRecurringApiSchema`, `updateRecurringApiSchema`                                                                                                              | `src/shared/schemas/recurring.ts`      |
 | `createTemplateSchema`, `updateTemplateSchema`                                                                                                                      | `src/shared/schemas/template.ts`       |
 | `createSenderProfileSchema` (`senderProfileSchema`)                                                                                                                 | `src/shared/schemas/sender-profile.ts` |
-| `updateReminderSettingsSchema`                                                                                                                                      | `src/shared/schemas/reminder.ts`       |
 | `waitlistSchema`                                                                                                                                                    | `src/shared/schemas/waitlist.ts`       |
 | Response shapes (`invoiceSchema`, `invoiceListItemSchema`, `clientSchema`, `paymentSchema`, `senderProfileResponseSchema`, `publicInvoiceSchema`, `apiErrorSchema`) | `src/shared/schemas/api.ts`            |
 
@@ -136,7 +134,7 @@ Create a new client.
 
 ### `GET /api/clients/[id]`, `PATCH /api/clients/[id]`, `DELETE /api/clients/[id]`
 
-CRUD on a client by id. PATCH uses `updateClientSchema` (partial). DELETE is forbidden when the client has dependents — returns `409 CLIENT_HAS_DEPENDENTS` with `details: { invoiceCount, recurringCount }` per `DATA-002`'s fix.
+CRUD on a client by id. PATCH uses `updateClientSchema` (partial). DELETE is forbidden when the client has dependents — returns `409 CLIENT_HAS_DEPENDENTS` with `details: { invoiceCount }` per `DATA-002`'s fix.
 
 - **Auth:** `withAuth`.
 - **Idempotency:** Not enforced.
@@ -172,12 +170,12 @@ Read / update / delete an invoice by internal id.
 - **Auth:** `withAuth`.
 - **Idempotency:** Not enforced (PATCH replaces line items in a transaction; DELETE cascades).
 - **PATCH body:** `updateInvoiceSchema`. Items + groups are full replacements.
-- **DELETE response:** `{ success: true }` — also cascades item / event / payment / follow-up rows.
+- **DELETE response:** `{ success: true }` — also cascades item / event / payment rows.
 - **Source:** `src/app/api/invoices/[id]/route.ts`.
 
 ### `POST /api/invoices/[id]/send`
 
-Send an invoice via Resend (transitions DRAFT → SENT, schedules follow-ups, writes `InvoiceEvent.SENT`). Uses the transactional outbox pattern — DB writes + outbox row commit together; Resend dispatch happens after commit. See `CLAUDE.md` "Email Outbox" for the contract.
+Send an invoice via Resend (transitions DRAFT → SENT, writes `InvoiceEvent.SENT`). Uses the transactional outbox pattern — DB writes + outbox row commit together; Resend dispatch happens after commit. See `CLAUDE.md` "Email Outbox" for the contract.
 
 - **Auth:** `withAuth`.
 - **Idempotency:** Not enforced at the route layer. Outbox-level idempotency on the actual Resend call (`Idempotency-Key` per outbox row) prevents duplicate sends across retries.
@@ -196,7 +194,7 @@ Clone an invoice as a new DRAFT (regenerates `publicId`, copies items + groups, 
 
 ### `POST /api/invoices/[id]/mark-paid`
 
-Mark an invoice as PAID with method `MANUAL`. No partial — sets `paidAmount = total`, transitions to PAID, cancels pending follow-ups, writes `InvoiceEvent.PAID_MANUAL`.
+Mark an invoice as PAID with method `MANUAL`. No partial — sets `paidAmount = total`, transitions to PAID, writes `InvoiceEvent.PAID_MANUAL`.
 
 - **Auth:** `withAuth`.
 - **Idempotency:** Not enforced (idempotent at the application level — the lifecycle service is a no-op if already PAID).
@@ -215,7 +213,7 @@ List payments on an invoice.
 
 ### `POST /api/invoices/[id]/payments`
 
-Record a payment against an invoice. Atomic transaction: writes `Payment`, recomputes status (PARTIALLY_PAID / PAID), writes `InvoiceEvent.PAYMENT_RECORDED`, cancels pending follow-ups when fully paid.
+Record a payment against an invoice. Atomic transaction: writes `Payment`, recomputes status (PARTIALLY_PAID / PAID), writes `InvoiceEvent.PAYMENT_RECORDED`.
 
 - **Auth:** `withAuth`.
 - **Idempotency:** **Required.** Endpoint key: `POST /api/invoices/:id/payments`.
@@ -248,47 +246,6 @@ Public endpoint hit by the public viewer (`/i/[publicId]`) to record a view. No-
 
 ---
 
-## Recurring invoices
-
-### `GET /api/recurring`
-
-List the authenticated user's recurring invoice schedules.
-
-- **Auth:** `withAuth`.
-- **Response:** Array of `RecurringInvoice` (see `src/shared/schemas/recurring.ts`).
-- **Source:** `src/app/api/recurring/route.ts`.
-
-### `POST /api/recurring`
-
-Create a new recurring schedule. Generates the first run-at via `frequency` + `startDate`.
-
-- **Auth:** `withAuth`.
-- **Idempotency:** Not enforced.
-- **Request body:** `createRecurringApiSchema` (the form schema with date strings transformed to `Date`).
-- **Response:** `201 RecurringInvoice`.
-- **Errors:** `NOT_FOUND` (404 if `clientId` doesn't belong to the user — `ClientNotFoundError`).
-- **Source:** `src/app/api/recurring/route.ts`.
-
-### `GET /api/recurring/[id]`, `PATCH /api/recurring/[id]`, `DELETE /api/recurring/[id]`
-
-CRUD on a recurring schedule. PATCH uses `updateRecurringApiSchema` (partial; allows status flip ACTIVE / PAUSED / CANCELED).
-
-- **Auth:** `withAuth`.
-- **Errors:** `NOT_FOUND` (404).
-- **Source:** `src/app/api/recurring/[id]/route.ts`.
-
-### `POST /api/recurring/[id]/generate`
-
-Generate an invoice from a recurring schedule on demand (manual trigger, used in addition to the scheduled cron). Only allowed when `status === 'ACTIVE'`.
-
-- **Auth:** `withAuth`.
-- **Idempotency:** **Required.** Endpoint key: `POST /api/recurring/:id/generate`.
-- **Errors:** `NOT_FOUND` (404), `INVALID_STATE` (400 if not ACTIVE).
-- **Response:** `{ success: true, invoiceId, publicId }`.
-- **Source:** `src/app/api/recurring/[id]/generate/route.ts`.
-
----
-
 ## Templates
 
 ### `GET /api/templates`
@@ -316,28 +273,6 @@ CRUD on a template by id. PATCH uses `updateTemplateSchema` (partial; full item 
 - **Auth:** `withAuth`.
 - **Errors:** `NOT_FOUND` (404), `VALIDATION_ERROR`.
 - **Source:** `src/app/api/templates/[id]/route.ts`.
-
----
-
-## Reminders / follow-ups
-
-### `GET /api/reminders`
-
-Read the authenticated user's follow-up rule (creates an in-memory default if no row exists yet — does not persist).
-
-- **Auth:** `withAuth`.
-- **Response:** `{ enabled, mode, delaysDays }`. Defaults: `enabled: false`, `mode: AFTER_DUE`, `delaysDays` from `REMINDER.DEFAULT_DAYS`.
-- **Source:** `src/app/api/reminders/route.ts`.
-
-### `PUT /api/reminders`
-
-Upsert the user's follow-up rule. Bounded by `REMINDER.MIN_DAYS` / `REMINDER.MAX_DAYS` / `REMINDER.MAX_REMINDER_COUNT`.
-
-- **Auth:** `withAuth`.
-- **Idempotency:** Not enforced (PUT is naturally idempotent).
-- **Request body:** `updateReminderSettingsSchema`.
-- **Response:** Same shape as GET.
-- **Source:** `src/app/api/reminders/route.ts`.
 
 ---
 

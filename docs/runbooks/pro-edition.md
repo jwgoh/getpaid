@@ -29,7 +29,6 @@ The current observability surface is thin (see `.audit/1778157009/observability.
 - [ ] Vercel runtime logs: scan for `INTERNAL_ERROR` / 500 stack traces.
 - [ ] Resend dashboard: bounce rate, complaint rate, blocked addresses.
 - [ ] `EmailOutbox` table: any rows >1 hour old in PENDING or FAILED state?
-- [ ] `FollowUpJob` table: PENDING count + the oldest `nextAttemptAt`.
 
 ### Weekly
 
