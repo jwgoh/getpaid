@@ -38,7 +38,7 @@ import { WaitlistForm } from "@app/features/waitlist/components/waitlist-form";
 
 const SIGN_UP_FEATURES = [
   "Create professional invoices in minutes",
-  "Track payments and send reminders",
+  "Track payments",
   "Record payments with multiple methods",
   "Manage all your clients in one place",
 ] as const;
