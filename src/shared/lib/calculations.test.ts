@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DISCOUNT_TYPE } from "@app/shared/config/invoice-status";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
 
-import { buildDiscountInput, calculateTotals } from "./calculations";
+import { buildDiscountInput, calculateTotals, isMoneyLimitExceeded } from "./calculations";
 
 describe("calculateTotals — basic arithmetic", () => {
   it("sums line items into the subtotal", () => {
@@ -95,5 +95,58 @@ describe("buildDiscountInput", () => {
       type: DISCOUNT_TYPE.PERCENTAGE,
       value: 15,
     });
+  });
+});
+
+describe("isMoneyLimitExceeded", () => {
+  const limit = SCHEMA_LIMITS.MONEY_MAX_CENTS;
+
+  it("returns false for totals at the limit", () => {
+    expect(
+      isMoneyLimitExceeded(
+        { subtotal: limit, discountAmount: 0, taxAmount: 0, total: limit },
+        limit
+      )
+    ).toBe(false);
+  });
+
+  it("returns true when the total exceeds the limit", () => {
+    expect(
+      isMoneyLimitExceeded(
+        { subtotal: limit, discountAmount: 0, taxAmount: 1, total: limit + 1 },
+        limit
+      )
+    ).toBe(true);
+  });
+
+  it("returns true when the subtotal alone exceeds the limit", () => {
+    expect(
+      isMoneyLimitExceeded(
+        { subtotal: limit + 1, discountAmount: 0, taxAmount: 0, total: 0 },
+        limit
+      )
+    ).toBe(true);
+  });
+
+  it("returns true when the tax amount alone exceeds the limit", () => {
+    expect(
+      isMoneyLimitExceeded(
+        { subtotal: 0, discountAmount: 0, taxAmount: limit + 1, total: 0 },
+        limit
+      )
+    ).toBe(true);
+  });
+});
+
+describe("calculateTotals — persisted tax overflow vector (QA-001 PATCH path)", () => {
+  it("produces a total above MONEY_MAX_CENTS from an in-range subtotal once tax is applied", () => {
+    const maxLine = {
+      quantity: SCHEMA_LIMITS.QUANTITY_MAX,
+      unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
+    };
+    const result = calculateTotals([maxLine], undefined, 10);
+
+    expect(result.subtotal).toBeLessThanOrEqual(SCHEMA_LIMITS.MONEY_MAX_CENTS);
+    expect(result.total).toBeGreaterThan(SCHEMA_LIMITS.MONEY_MAX_CENTS);
   });
 });

@@ -13,6 +13,7 @@ import {
   ClientNotFoundError,
   deleteInvoice,
   getInvoice,
+  MoneyOverflowError,
   updateInvoice,
 } from "@app/server/invoices";
 
@@ -48,6 +49,10 @@ export const PATCH = withAuth(
     {
       check: (error) => error instanceof ClientNotFoundError,
       respond: (error) => errorResponse("NOT_FOUND", error.message, 404),
+    },
+    {
+      check: (error) => error instanceof MoneyOverflowError,
+      respond: (error) => errorResponse("BAD_REQUEST", error.message, 400),
     },
   ]
 );

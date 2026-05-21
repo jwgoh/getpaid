@@ -16,7 +16,7 @@ interface LineItem {
   unitPrice: number;
 }
 
-interface TotalsResult {
+export interface TotalsResult {
   subtotal: number;
   discountAmount: number;
   taxAmount: number;
@@ -60,4 +60,13 @@ export function buildDiscountInput(
   }
 
   return { type: discountType, value: discountValue };
+}
+
+export function isMoneyLimitExceeded(totals: TotalsResult, limit: number): boolean {
+  return (
+    totals.subtotal > limit ||
+    totals.discountAmount > limit ||
+    totals.taxAmount > limit ||
+    totals.total > limit
+  );
 }
