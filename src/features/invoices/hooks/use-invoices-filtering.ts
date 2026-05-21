@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { SEARCH } from "@app/shared/config/config";
-import { useDebouncedValue } from "@app/shared/hooks";
+import { useDebouncedValue, useResetOnChange } from "@app/shared/hooks";
 import type { InvoiceListItem } from "@app/shared/schemas/api";
 
 export function useInvoicesFiltering(
@@ -90,9 +90,7 @@ export function useInvoicesPagination(
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [showAll, setShowAll] = React.useState(false);
 
-  React.useEffect(() => {
-    setPage(0);
-  }, [debouncedSearch, statusFilter]);
+  useResetOnChange(() => setPage(0), [debouncedSearch, statusFilter]);
 
   const paginatedInvoices = React.useMemo(() => {
     if (showAll) {

@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 
 import { UI } from "@app/shared/config/config";
+import { useResetOnChange } from "@app/shared/hooks";
 import { type CommandItem, useCommandPalette } from "@app/shared/hooks/use-command-palette";
 
 const GROUP_ORDER = ["Navigation", "Actions", "Recent"] as const;
@@ -175,7 +176,7 @@ export function CommandPalette() {
   const [query, setQuery] = React.useState("");
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
-  React.useEffect(() => {
+  useResetOnChange(() => {
     if (isOpen) {
       setQuery("");
       setSelectedIndex(0);
@@ -192,9 +193,7 @@ export function CommandPalette() {
     return items.filter((item) => item.label.toLowerCase().includes(lower));
   }, [items, query]);
 
-  React.useEffect(() => {
-    setSelectedIndex(0);
-  }, [filtered]);
+  useResetOnChange(() => setSelectedIndex(0), [filtered]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {

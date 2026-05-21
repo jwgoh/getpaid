@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 
 import {
@@ -51,7 +51,7 @@ export default function OnboardingPage() {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
+    control,
   } = useForm<SenderProfileFormInput>({
     resolver: zodResolver(senderProfileFormSchema),
     defaultValues: {
@@ -75,7 +75,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const currency = watch("defaultCurrency");
+  const currency = useWatch({ control, name: "defaultCurrency" });
 
   const stepperNode = (
     <Stepper activeStep={1} alternativeLabel sx={{ mb: 4, width: "100%" }}>

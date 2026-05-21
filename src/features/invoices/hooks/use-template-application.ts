@@ -16,10 +16,10 @@ export function useTemplateApplication(
   reset: (values: InvoiceFormInput) => void
 ) {
   const toast = useToast();
-  const [isTemplateApplied, setIsTemplateApplied] = React.useState(false);
+  const isAppliedRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (mode === "create" && template && !isTemplateApplied && !isTemplateLoading) {
+    if (mode === "create" && template && !isAppliedRef.current && !isTemplateLoading) {
       reset({
         clientId: "",
         currency: template.currency,
@@ -41,8 +41,8 @@ export function useTemplateApplication(
         })),
         notes: template.notes || "",
       });
-      setIsTemplateApplied(true);
+      isAppliedRef.current = true;
       toast.success(`Template "${template.name}" applied`);
     }
-  }, [mode, template, isTemplateApplied, isTemplateLoading, reset, toast]);
+  }, [mode, template, isTemplateLoading, reset, toast]);
 }

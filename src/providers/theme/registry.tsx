@@ -47,10 +47,6 @@ export function ThemeRegistry({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = React.useState<ThemeMode>(readInitialMode);
 
   React.useEffect(() => {
-    const next = readInitialMode();
-
-    setMode((prev) => (prev === next ? prev : next));
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Tab") {
         document.body.classList.add("user-is-tabbing");

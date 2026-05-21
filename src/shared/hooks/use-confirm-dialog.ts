@@ -46,7 +46,9 @@ export function useConfirmDialog() {
 
   const onConfirmRef = React.useRef(state.onConfirm);
 
-  onConfirmRef.current = state.onConfirm;
+  React.useEffect(() => {
+    onConfirmRef.current = state.onConfirm;
+  }, [state.onConfirm]);
 
   const handleConfirm = React.useCallback(async () => {
     setIsLoading(true);

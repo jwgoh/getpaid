@@ -69,7 +69,7 @@ function buildOnboardingSteps(
 
 export function useDashboard(external: ExternalData) {
   const { data: analytics, isLoading, error } = useAnalytics();
-  const [selectedCurrency, setSelectedCurrency] = React.useState<string | null>(null);
+  const [selectedCurrencyOverride, setSelectedCurrency] = React.useState<string | null>(null);
 
   const onboardingSteps = React.useMemo(
     () =>
@@ -82,12 +82,7 @@ export function useDashboard(external: ExternalData) {
     [external.hasProfile, external.clientCount, external.invoiceCount, external.hasSentInvoice]
   );
 
-  React.useEffect(() => {
-    if (analytics?.currencies && analytics.currencies.length > 0 && !selectedCurrency) {
-      setSelectedCurrency(analytics.currencies[0]);
-    }
-  }, [analytics?.currencies, selectedCurrency]);
-
+  const selectedCurrency = selectedCurrencyOverride ?? analytics?.currencies?.[0] ?? null;
   const currencyValues = deriveCurrencyValues(analytics, selectedCurrency);
 
   const revenueChange =

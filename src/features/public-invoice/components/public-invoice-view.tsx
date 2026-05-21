@@ -71,14 +71,14 @@ interface Props {
 const PUBLIC_VISIBLE_STATUSES: Set<string> = new Set([INVOICE_STATUS.PAID, INVOICE_STATUS.OVERDUE]);
 
 export default function PublicInvoiceView({ publicId, invoice, branding, justPaid }: Props) {
-  const [isViewTracked, setIsViewTracked] = React.useState(false);
+  const isViewTrackedRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (!isViewTracked) {
+    if (!isViewTrackedRef.current) {
+      isViewTrackedRef.current = true;
       publicApi.markViewed(publicId).catch(console.error);
-      setIsViewTracked(true);
     }
-  }, [publicId, isViewTracked]);
+  }, [publicId]);
 
   const isPaid = invoice.status === INVOICE_STATUS.PAID;
   const isOverdue = invoice.status === INVOICE_STATUS.OVERDUE;

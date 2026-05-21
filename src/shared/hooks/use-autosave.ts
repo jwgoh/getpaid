@@ -19,23 +19,7 @@ interface UseAutosaveOptions<T> {
 
 export function useAutosave<T>({ key, data, onRestore, enabled = true }: UseAutosaveOptions<T>) {
   const [lastSaved, setLastSaved] = React.useState<Date | null>(null);
-  const [hasDraft, setHasDraft] = React.useState(false);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialCheckDone = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!enabled || initialCheckDone.current) {
-      return;
-    }
-
-    initialCheckDone.current = true;
-
-    const saved = storage.getJson<AutosavePayload<T>>(key);
-
-    if (saved?.data && saved?.timestamp) {
-      setHasDraft(true);
-    }
-  }, [key, enabled]);
 
   React.useEffect(() => {
     if (!enabled) {
@@ -54,7 +38,6 @@ export function useAutosave<T>({ key, data, onRestore, enabled = true }: UseAuto
 
       storage.setJson(key, payload);
       setLastSaved(new Date());
-      setHasDraft(true);
     }, AUTOSAVE.DELAY_MS);
 
     return () => {
@@ -78,7 +61,6 @@ export function useAutosave<T>({ key, data, onRestore, enabled = true }: UseAuto
 
   const clearDraft = React.useCallback(() => {
     storage.remove(key);
-    setHasDraft(false);
     setLastSaved(null);
   }, [key]);
 
@@ -94,7 +76,6 @@ export function useAutosave<T>({ key, data, onRestore, enabled = true }: UseAuto
 
   return {
     lastSaved,
-    hasDraft,
     restoreDraft,
     clearDraft,
     getDraftTimestamp,
