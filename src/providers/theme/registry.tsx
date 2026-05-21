@@ -4,12 +4,12 @@ import * as React from "react";
 
 import { CssBaseline, ThemeProvider } from "@mui/material";
 
-import { STORAGE_KEYS } from "@app/shared/config/config";
-import { storage } from "@app/shared/lib/storage";
+import type { ThemeMode } from "@app/shared/lib/theme-mode";
 
 import { darkTheme, lightTheme } from ".";
+import { getSnapshot, setThemeMode, subscribe } from "./theme-store";
 
-export type ThemeMode = "light" | "dark";
+export type { ThemeMode } from "@app/shared/lib/theme-mode";
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -25,26 +25,15 @@ export function useThemeMode() {
   return React.useContext(ThemeContext);
 }
 
-function readInitialMode(): ThemeMode {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-
-  const stored = storage.get(STORAGE_KEYS.THEME_MODE);
-
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-
-  if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
-    return "dark";
-  }
-
-  return "light";
-}
-
-export function ThemeRegistry({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = React.useState<ThemeMode>(readInitialMode);
+export function ThemeRegistry({
+  initialMode,
+  children,
+}: {
+  initialMode: ThemeMode;
+  children: React.ReactNode;
+}) {
+  const getServerSnapshot = React.useCallback(() => initialMode, [initialMode]);
+  const mode = React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -67,13 +56,7 @@ export function ThemeRegistry({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleTheme = React.useCallback(() => {
-    setMode((prev) => {
-      const next = prev === "light" ? "dark" : "light";
-
-      storage.set(STORAGE_KEYS.THEME_MODE, next);
-
-      return next;
-    });
+    setThemeMode(getSnapshot() === "dark" ? "light" : "dark");
   }, []);
 
   const theme = mode === "dark" ? darkTheme : lightTheme;
