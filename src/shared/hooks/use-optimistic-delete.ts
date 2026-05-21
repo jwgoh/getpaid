@@ -29,7 +29,9 @@ export function useOptimisticDelete<T>({
   const pendingRef = React.useRef(new Map<string, NodeJS.Timeout>());
   const optionsRef = React.useRef({ queryKey, getId, entityName, deleteFn, onError });
 
-  optionsRef.current = { queryKey, getId, entityName, deleteFn, onError };
+  React.useEffect(() => {
+    optionsRef.current = { queryKey, getId, entityName, deleteFn, onError };
+  });
 
   const deleteItem = React.useCallback(
     (item: T) => {

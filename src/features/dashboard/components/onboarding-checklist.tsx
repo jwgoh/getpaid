@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 
 import { PERCENT, STORAGE_KEYS, UI } from "@app/shared/config/config";
+import { useHydrated } from "@app/shared/hooks";
 import { storage } from "@app/shared/lib/storage";
 
 const COLLAPSED_KEY = STORAGE_KEYS.ONBOARDING_DISMISSED;
@@ -85,19 +86,14 @@ function ChecklistSteps({
 
 export function OnboardingChecklist({ steps, isLoading, onNavigate }: OnboardingChecklistProps) {
   const theme = useTheme();
-  const [expanded, setExpanded] = React.useState(true);
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setExpanded(storage.get(COLLAPSED_KEY) !== "true");
-    setIsMounted(true);
-  }, []);
+  const isHydrated = useHydrated();
+  const [expanded, setExpanded] = React.useState(() => storage.get(COLLAPSED_KEY) !== "true");
 
   const completedCount = steps.filter((s) => s.completed).length;
   const isAllComplete = completedCount === steps.length;
   const progress = (completedCount / steps.length) * PERCENT.DIVISOR;
 
-  if (!isMounted || isLoading || isAllComplete) {
+  if (!isHydrated || isLoading || isAllComplete) {
     return null;
   }
 

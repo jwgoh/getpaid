@@ -6,6 +6,7 @@ import { Divider, MenuItem, Stack, TextField, Typography } from "@mui/material";
 
 import { extractApiErrorMessage } from "@app/shared/api";
 import { BRANDING, FONT_FAMILY_MAP, VALIDATION } from "@app/shared/config/config";
+import { useResetOnChange } from "@app/shared/hooks";
 import { useToast } from "@app/shared/hooks/use-toast";
 import type { SenderProfile } from "@app/shared/schemas/api";
 import { LoadingButton } from "@app/shared/ui/loading-button";
@@ -26,24 +27,32 @@ export function BrandingTab({ profile }: BrandingTabProps) {
   const toast = useToast();
   const mutation = useUpdateSenderProfile();
 
-  const [logoUrl, setLogoUrl] = React.useState("");
-  const [primaryColor, setPrimaryColor] = React.useState(BRANDING.DEFAULT_PRIMARY_COLOR);
-  const [accentColor, setAccentColor] = React.useState(BRANDING.DEFAULT_ACCENT_COLOR);
-  const [footerText, setFooterText] = React.useState("");
-  const [fontFamily, setFontFamily] = React.useState("");
-  const [invoicePrefix, setInvoicePrefix] = React.useState("");
+  const [logoUrl, setLogoUrl] = React.useState(() => profile?.logoUrl || "");
+  const [primaryColor, setPrimaryColor] = React.useState(
+    () => profile?.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR
+  );
+  const [accentColor, setAccentColor] = React.useState(
+    () => profile?.accentColor || BRANDING.DEFAULT_ACCENT_COLOR
+  );
+  const [footerText, setFooterText] = React.useState(() => profile?.footerText || "");
+  const [fontFamily, setFontFamily] = React.useState(() =>
+    profile ? profile.fontFamily || "system" : ""
+  );
+  const [invoicePrefix, setInvoicePrefix] = React.useState(() => profile?.invoicePrefix || "");
   const [isDirty, setIsDirty] = React.useState(false);
 
-  React.useEffect(() => {
-    if (profile) {
-      setLogoUrl(profile.logoUrl || "");
-      setPrimaryColor(profile.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR);
-      setAccentColor(profile.accentColor || BRANDING.DEFAULT_ACCENT_COLOR);
-      setFooterText(profile.footerText || "");
-      setFontFamily(profile.fontFamily || "system");
-      setInvoicePrefix(profile.invoicePrefix || "");
-      setIsDirty(false);
+  useResetOnChange(() => {
+    if (!profile) {
+      return;
     }
+
+    setLogoUrl(profile.logoUrl || "");
+    setPrimaryColor(profile.primaryColor || BRANDING.DEFAULT_PRIMARY_COLOR);
+    setAccentColor(profile.accentColor || BRANDING.DEFAULT_ACCENT_COLOR);
+    setFooterText(profile.footerText || "");
+    setFontFamily(profile.fontFamily || "system");
+    setInvoicePrefix(profile.invoicePrefix || "");
+    setIsDirty(false);
   }, [profile]);
 
   const markDirty = () => setIsDirty(true);

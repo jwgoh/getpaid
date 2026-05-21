@@ -2,20 +2,10 @@
 
 import * as React from "react";
 
-import { keyframes, type SxProps, type Theme } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 
-import { ANIMATION, UI } from "@app/shared/config/config";
-
-const fadeSlideIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(${UI.PAGE_TRANSITION_OFFSET}px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-`;
+import { ANIMATION } from "@app/shared/config/config";
+import { fadeSlideIn } from "@app/shared/ui/keyframes";
 
 interface StaggerListProps {
   children: React.ReactNode;

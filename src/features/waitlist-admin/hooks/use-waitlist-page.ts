@@ -8,6 +8,7 @@ import {
   useDebouncedValue,
   useItemMenu,
   useOptimisticDelete,
+  useResetOnChange,
   useSort,
   useToast,
 } from "@app/shared/hooks";
@@ -83,9 +84,7 @@ export function useWaitlistPage() {
     [entries, pendingIds, debouncedSearch, sortColumn, sortDirection]
   );
 
-  React.useEffect(() => {
-    setPage(0);
-  }, [debouncedSearch]);
+  useResetOnChange(() => setPage(0), [debouncedSearch]);
 
   React.useEffect(() => {
     if (debouncedSearch) {

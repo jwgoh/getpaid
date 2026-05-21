@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 
 import { SHORTCUTS, UI } from "@app/shared/config/config";
+import { useResetOnChange } from "@app/shared/hooks";
 
 interface KeyboardShortcutsDialogProps {
   open: boolean;
@@ -147,7 +148,7 @@ function ShortcutGroup({
 export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDialogProps) {
   const [filter, setFilter] = React.useState("");
 
-  React.useEffect(() => {
+  useResetOnChange(() => {
     if (open) {
       setFilter("");
     }

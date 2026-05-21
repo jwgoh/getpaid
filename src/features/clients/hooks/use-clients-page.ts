@@ -9,6 +9,7 @@ import {
   useDebouncedValue,
   useItemMenu,
   useOptimisticDelete,
+  useResetOnChange,
   useSort,
   useToast,
 } from "@app/shared/hooks";
@@ -97,9 +98,7 @@ export function useClientsPage() {
     [clients, pendingIds, debouncedSearch, sortColumn, sortDirection]
   );
 
-  React.useEffect(() => {
-    setPage(0);
-  }, [debouncedSearch]);
+  useResetOnChange(() => setPage(0), [debouncedSearch]);
 
   React.useEffect(() => {
     if (debouncedSearch) {

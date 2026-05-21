@@ -57,9 +57,13 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
         email: client?.email || "",
         defaultRate: client?.defaultRate ? client.defaultRate / 100 : undefined,
       });
-      setError(null);
     }
   }, [open, client, reset]);
+
+  const handleClose = () => {
+    setError(null);
+    onClose();
+  };
 
   const createMutation = useCreateClient();
   const updateMutation = useUpdateClient();
@@ -101,7 +105,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 600 }}>
         {mode === "create" ? "Add New Client" : "Edit Client"}
       </DialogTitle>
@@ -148,7 +152,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={handleClose} disabled={isPending}>
             Cancel
           </Button>
           <LoadingButton type="submit" variant="contained" loading={isPending}>

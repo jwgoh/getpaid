@@ -4,7 +4,7 @@ import * as React from "react";
 import type { UseFormReset } from "react-hook-form";
 
 import { STORAGE_KEYS } from "@app/shared/config/config";
-import { useAutosave } from "@app/shared/hooks";
+import { useAutosave, useHydrated } from "@app/shared/hooks";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { storage } from "@app/shared/lib/storage";
 import type { InvoiceFormInput } from "@app/shared/schemas";
@@ -22,7 +22,8 @@ interface UseInvoiceDraftOptions {
 
 export function useInvoiceDraft({ mode, formValues, isDirty, reset }: UseInvoiceDraftOptions) {
   const toast = useToast();
-  const [isDraftBannerVisible, setIsDraftBannerVisible] = React.useState(false);
+  const isHydrated = useHydrated();
+  const [isDraftDismissed, setIsDraftDismissed] = React.useState(false);
   const isCreateMode = mode === "create";
 
   const { restoreDraft, clearDraft, lastSaved } = useAutosave({
@@ -35,24 +36,20 @@ export function useInvoiceDraft({ mode, formValues, isDirty, reset }: UseInvoice
     enabled: isCreateMode && isDirty,
   });
 
-  React.useEffect(() => {
-    if (!isCreateMode) {
-      return;
-    }
-
-    if (storage.get(DRAFT_KEY)) {
-      setIsDraftBannerVisible(true);
-    }
-  }, [isCreateMode]);
+  const hasDraftInStorage = React.useMemo(
+    () => isHydrated && Boolean(storage.get(DRAFT_KEY)),
+    [isHydrated]
+  );
+  const isDraftBannerVisible = hasDraftInStorage && isCreateMode && !isDraftDismissed;
 
   const handleRestoreDraft = React.useCallback(() => {
     restoreDraft();
-    setIsDraftBannerVisible(false);
+    setIsDraftDismissed(true);
   }, [restoreDraft]);
 
   const handleDiscardDraft = React.useCallback(() => {
     clearDraft();
-    setIsDraftBannerVisible(false);
+    setIsDraftDismissed(true);
   }, [clearDraft]);
 
   return {

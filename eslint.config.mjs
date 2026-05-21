@@ -56,9 +56,9 @@ const eslintConfig = defineConfig([
       "max-lines-per-function": ["error", { max: 100, skipBlankLines: true, skipComments: true }],
       "max-depth": ["error", 4],
       complexity: ["error", 15],
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/incompatible-library": "warn",
+      "react-hooks/set-state-in-effect": "error",
+      "react-hooks/refs": "error",
+      "react-hooks/incompatible-library": "error",
     },
   },
   {
