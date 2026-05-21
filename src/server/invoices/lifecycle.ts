@@ -67,6 +67,7 @@ export async function markInvoicePaid(
         status: INVOICE_STATUS.PAID,
         paidAt: new Date(),
         paymentMethod: method,
+        paidAmount: invoice.total,
       },
       include: INVOICE_PAID_INCLUDE,
     });
