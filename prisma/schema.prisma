@@ -20,8 +20,6 @@ model User {
   clients                 Client[]
   invoices                Invoice[]
   invoiceTemplates        InvoiceTemplate[]
-  followUpRules           FollowUpRule[]
-  recurringInvoices       RecurringInvoice[]
   timeTrackingConnections TimeTrackingConnection[]
 }
 
@@ -95,9 +93,8 @@ model Client {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoices          Invoice[]
-  recurringInvoices RecurringInvoice[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
 
   @@index([userId])
 }
@@ -153,13 +150,12 @@ model Invoice {
 
   paymentReference String? @unique
 
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client       Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  itemGroups   InvoiceItemGroup[]
-  items        InvoiceItem[]
-  events       InvoiceEvent[]
-  payments     Payment[]
-  followUpJobs FollowUpJob[]
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client     Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  itemGroups InvoiceItemGroup[]
+  items      InvoiceItem[]
+  events     InvoiceEvent[]
+  payments   Payment[]
 
   @@index([userId])
   @@index([clientId])
@@ -280,124 +276,6 @@ model InvoiceTemplateItem {
   group    InvoiceTemplateItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([templateId])
-  @@index([groupId])
-}
-
-enum FollowUpMode {
-  AFTER_SENT
-  AFTER_DUE
-}
-
-model FollowUpRule {
-  id         String       @id @default(cuid())
-  userId     String
-  enabled    Boolean      @default(true)
-  mode       FollowUpMode @default(AFTER_SENT)
-  delaysDays Json         @default("[1, 3, 7]")
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-enum FollowUpJobStatus {
-  PENDING
-  SENT
-  CANCELED
-  FAILED
-}
-
-model FollowUpJob {
-  id              String            @id @default(cuid())
-  invoiceId       String
-  scheduledFor    DateTime
-  sentAt          DateTime?
-  status          FollowUpJobStatus @default(PENDING)
-  attempts        Int               @default(0)
-  lastError       String?
-  lastAttemptedAt DateTime?
-  nextAttemptAt   DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([invoiceId])
-  @@index([status, scheduledFor])
-}
-
-enum RecurringFrequency {
-  WEEKLY
-  BIWEEKLY
-  MONTHLY
-  QUARTERLY
-  YEARLY
-}
-
-enum RecurringStatus {
-  ACTIVE
-  PAUSED
-  CANCELED
-}
-
-model RecurringInvoice {
-  id            String             @id @default(cuid())
-  userId        String
-  clientId      String
-  name          String
-  frequency     RecurringFrequency @default(MONTHLY)
-  status        RecurringStatus    @default(ACTIVE)
-  currency      String             @default("USD")
-  discountType  DiscountType?
-  discountValue Int                @default(0)
-  taxRate       Int                @default(0)
-  notes         String?            @db.Text
-  dueDays       Int                @default(30)
-  autoSend      Boolean            @default(false)
-  nextRunAt     DateTime
-  lastRunAt     DateTime?
-  endDate       DateTime?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-
-  user       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client     Client                      @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  items      RecurringInvoiceItem[]
-  itemGroups RecurringInvoiceItemGroup[]
-
-  @@index([userId])
-  @@index([clientId])
-  @@index([status, nextRunAt])
-}
-
-model RecurringInvoiceItemGroup {
-  id                 String @id @default(cuid())
-  recurringInvoiceId String
-  title              String
-  sortOrder          Int    @default(0)
-
-  recurringInvoice RecurringInvoice       @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
-  items            RecurringInvoiceItem[]
-
-  @@index([recurringInvoiceId])
-}
-
-model RecurringInvoiceItem {
-  id                 String  @id @default(cuid())
-  recurringInvoiceId String
-  groupId            String?
-  title              String
-  description        String?
-  quantity           Int
-  unitPrice          Int
-  sortOrder          Int     @default(0)
-
-  recurringInvoice RecurringInvoice           @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
-  group            RecurringInvoiceItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-
-  @@index([recurringInvoiceId])
   @@index([groupId])
 }
 
