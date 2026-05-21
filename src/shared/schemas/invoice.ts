@@ -50,11 +50,14 @@ interface InvoiceTotalsInput {
 }
 
 function refineInvoiceTotalsCeiling(data: InvoiceTotalsInput, ctx: z.RefinementCtx): void {
-  if (!data.items) {
+  if (!data.items && !data.itemGroups) {
     return;
   }
 
-  const allItems = [...data.items, ...(data.itemGroups?.flatMap((group) => group.items) ?? [])];
+  const allItems = [
+    ...(data.items ?? []),
+    ...(data.itemGroups?.flatMap((group) => group.items) ?? []),
+  ];
   const { subtotal, total } = calculateTotals(allItems, data.discount, data.taxRate);
 
   if (subtotal > SCHEMA_LIMITS.MONEY_MAX_CENTS || total > SCHEMA_LIMITS.MONEY_MAX_CENTS) {

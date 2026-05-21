@@ -162,4 +162,28 @@ describe("updateInvoiceSchema — aggregate total ceiling (QA-001)", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("rejects an items-absent update whose grouped items overflow MONEY_MAX_CENTS", () => {
+    const maxLine = {
+      title: "Max line",
+      quantity: SCHEMA_LIMITS.QUANTITY_MAX,
+      unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
+    };
+    const result = updateInvoiceSchema.safeParse({
+      itemGroups: [{ title: "Group", items: [maxLine, maxLine] }],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts an items-only update that overflows only once a persisted tax rate applies (the service guard is authoritative)", () => {
+    const maxLine = {
+      title: "Max line",
+      quantity: SCHEMA_LIMITS.QUANTITY_MAX,
+      unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
+    };
+    const result = updateInvoiceSchema.safeParse({ items: [maxLine] });
+
+    expect(result.success).toBe(true);
+  });
 });
