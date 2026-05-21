@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { BRANDING, INVOICE } from "@app/shared/config/config";
 import { DISCOUNT_TYPE } from "@app/shared/config/invoice-status";
+import { calculateTotals } from "@app/shared/lib/calculations";
 
 import { SCHEMA_LIMITS } from "./limits";
 import { lineItemGroupSchema, lineItemSchema } from "./line-item";
@@ -26,8 +27,44 @@ export const discountSchema = z
     type: discountTypeSchema,
     value: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS),
   })
+  .superRefine((discount, ctx) => {
+    if (
+      discount.type === DISCOUNT_TYPE.PERCENTAGE &&
+      discount.value > SCHEMA_LIMITS.MAX_DISCOUNT_PERCENT
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Percentage discount cannot exceed 100%",
+        path: ["value"],
+      });
+    }
+  })
   .nullable()
   .optional();
+
+interface InvoiceTotalsInput {
+  items?: { quantity: number; unitPrice: number }[];
+  itemGroups?: { items: { quantity: number; unitPrice: number }[] }[];
+  discount?: { type: DiscountType; value: number } | null;
+  taxRate?: number;
+}
+
+function refineInvoiceTotalsCeiling(data: InvoiceTotalsInput, ctx: z.RefinementCtx): void {
+  if (!data.items) {
+    return;
+  }
+
+  const allItems = [...data.items, ...(data.itemGroups?.flatMap((group) => group.items) ?? [])];
+  const { subtotal, total } = calculateTotals(allItems, data.discount, data.taxRate);
+
+  if (subtotal > SCHEMA_LIMITS.MONEY_MAX_CENTS || total > SCHEMA_LIMITS.MONEY_MAX_CENTS) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invoice total is too large",
+      path: ["items"],
+    });
+  }
+}
 
 export const invoiceFormSchema = z
   .object({
@@ -53,6 +90,7 @@ export const invoiceFormSchema = z
     },
     { message: "At least one item is required", path: ["items"] }
   )
+  .superRefine(refineInvoiceTotalsCeiling)
   .refine(
     (data) => {
       if (data.periodStart && data.periodEnd) {
@@ -97,26 +135,29 @@ export const createInvoiceSchema = z
       return ungroupedCount + groupedCount > 0;
     },
     { message: "At least one item is required", path: ["items"] }
-  );
+  )
+  .superRefine(refineInvoiceTotalsCeiling);
 
-export const updateInvoiceSchema = z.object({
-  clientId: z.string().optional(),
-  currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).optional(),
-  dueDate: z
-    .string()
-    .or(z.date())
-    .transform((val) => new Date(val))
-    .optional(),
-  periodStart: optionalDateTransform,
-  periodEnd: optionalDateTransform,
-  items: z.array(invoiceItemSchema).optional(),
-  itemGroups: z.array(invoiceItemGroupSchema).optional(),
-  notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional().nullable(),
-  message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional().nullable(),
-  tags: z.array(tagSchema).optional(),
-  discount: discountSchema,
-  taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
-});
+export const updateInvoiceSchema = z
+  .object({
+    clientId: z.string().optional(),
+    currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).optional(),
+    dueDate: z
+      .string()
+      .or(z.date())
+      .transform((val) => new Date(val))
+      .optional(),
+    periodStart: optionalDateTransform,
+    periodEnd: optionalDateTransform,
+    items: z.array(invoiceItemSchema).optional(),
+    itemGroups: z.array(invoiceItemGroupSchema).optional(),
+    notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional().nullable(),
+    message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional().nullable(),
+    tags: z.array(tagSchema).optional(),
+    discount: discountSchema,
+    taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
+  })
+  .superRefine(refineInvoiceTotalsCeiling);
 
 export type DiscountType = z.infer<typeof discountTypeSchema>;
 export type InvoiceItemInput = z.infer<typeof invoiceItemSchema>;
