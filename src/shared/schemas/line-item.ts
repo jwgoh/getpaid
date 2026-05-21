@@ -24,7 +24,7 @@ export const lineItemSchema = z
 export const lineItemGroupSchema = z.object({
   title: z.string().min(1, "Group title is required").max(SCHEMA_LIMITS.LINE_ITEM_GROUP_TITLE_MAX),
   sortOrder: z.number().int().optional(),
-  items: z.array(lineItemSchema),
+  items: z.array(lineItemSchema).max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items"),
 });
 
 export type LineItemInput = z.infer<typeof lineItemSchema>;

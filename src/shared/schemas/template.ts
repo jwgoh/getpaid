@@ -23,8 +23,11 @@ export const createTemplateSchema = z
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
     notes: z.string().max(SCHEMA_LIMITS.TEMPLATE_NOTES_MAX).optional(),
     dueDays: z.number().min(1).max(VALIDATION.MAX_DUE_DAYS).optional(),
-    items: z.array(lineItemSchema),
-    itemGroups: z.array(lineItemGroupSchema).optional(),
+    items: z.array(lineItemSchema).max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items"),
+    itemGroups: z
+      .array(lineItemGroupSchema)
+      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
+      .optional(),
   })
   .refine(
     (data) => {
@@ -50,8 +53,14 @@ export const updateTemplateSchema = z.object({
   taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
   notes: z.string().max(SCHEMA_LIMITS.TEMPLATE_NOTES_MAX).optional(),
   dueDays: z.number().min(1).max(VALIDATION.MAX_DUE_DAYS).optional(),
-  items: z.array(lineItemSchema).optional(),
-  itemGroups: z.array(lineItemGroupSchema).optional(),
+  items: z
+    .array(lineItemSchema)
+    .max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items")
+    .optional(),
+  itemGroups: z
+    .array(lineItemGroupSchema)
+    .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
+    .optional(),
 });
 
 export const templateFormSchema = z
@@ -64,8 +73,11 @@ export const templateFormSchema = z
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
     notes: z.string().max(SCHEMA_LIMITS.TEMPLATE_NOTES_MAX).optional(),
     dueDays: z.number().min(1, "Due days must be at least 1").max(VALIDATION.MAX_DUE_DAYS),
-    items: z.array(lineItemSchema),
-    itemGroups: z.array(lineItemGroupSchema).optional(),
+    items: z.array(lineItemSchema).max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items"),
+    itemGroups: z
+      .array(lineItemGroupSchema)
+      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
+      .optional(),
   })
   .refine(
     (data) => {

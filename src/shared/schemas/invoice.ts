@@ -4,6 +4,7 @@ import { BRANDING, INVOICE } from "@app/shared/config/config";
 import { DISCOUNT_TYPE } from "@app/shared/config/invoice-status";
 import { calculateTotals } from "@app/shared/lib/calculations";
 
+import { dateSchema, optionalDateSchema } from "./date";
 import { SCHEMA_LIMITS } from "./limits";
 import { lineItemGroupSchema, lineItemSchema } from "./line-item";
 
@@ -76,8 +77,11 @@ export const invoiceFormSchema = z
     dueDate: z.string().min(1, "Due date is required"),
     periodStart: z.string().optional(),
     periodEnd: z.string().optional(),
-    items: z.array(invoiceItemSchema),
-    itemGroups: z.array(invoiceItemGroupSchema).optional(),
+    items: z.array(invoiceItemSchema).max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items"),
+    itemGroups: z
+      .array(invoiceItemGroupSchema)
+      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
+      .optional(),
     notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional(),
     message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional(),
     tags: z.array(tagSchema).optional(),
@@ -105,25 +109,18 @@ export const invoiceFormSchema = z
     { message: "Period end must be after period start", path: ["periodEnd"] }
   );
 
-const optionalDateTransform = z
-  .string()
-  .or(z.date())
-  .transform((val) => new Date(val))
-  .optional()
-  .nullable();
-
 export const createInvoiceSchema = z
   .object({
     clientId: z.string().min(1, "Client is required"),
     currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).default(BRANDING.DEFAULT_CURRENCY),
-    dueDate: z
-      .string()
-      .or(z.date())
-      .transform((val) => new Date(val)),
-    periodStart: optionalDateTransform,
-    periodEnd: optionalDateTransform,
-    items: z.array(invoiceItemSchema),
-    itemGroups: z.array(invoiceItemGroupSchema).optional(),
+    dueDate: dateSchema,
+    periodStart: optionalDateSchema,
+    periodEnd: optionalDateSchema,
+    items: z.array(invoiceItemSchema).max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items"),
+    itemGroups: z
+      .array(invoiceItemGroupSchema)
+      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
+      .optional(),
     notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional(),
     message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional(),
     tags: z.array(tagSchema).optional(),
@@ -145,15 +142,17 @@ export const updateInvoiceSchema = z
   .object({
     clientId: z.string().optional(),
     currency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX).optional(),
-    dueDate: z
-      .string()
-      .or(z.date())
-      .transform((val) => new Date(val))
+    dueDate: dateSchema.optional(),
+    periodStart: optionalDateSchema,
+    periodEnd: optionalDateSchema,
+    items: z
+      .array(invoiceItemSchema)
+      .max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items")
       .optional(),
-    periodStart: optionalDateTransform,
-    periodEnd: optionalDateTransform,
-    items: z.array(invoiceItemSchema).optional(),
-    itemGroups: z.array(invoiceItemGroupSchema).optional(),
+    itemGroups: z
+      .array(invoiceItemGroupSchema)
+      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
+      .optional(),
     notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional().nullable(),
     message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional().nullable(),
     tags: z.array(tagSchema).optional(),
