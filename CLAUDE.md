@@ -162,6 +162,8 @@ pnpm build             # Production build
 pnpm lint              # Run ESLint
 pnpm typecheck         # TypeScript checking
 pnpm format            # Format with Prettier
+pnpm test              # Run unit tests (vitest)
+pnpm test:watch        # Run unit tests in watch mode
 pnpm db:migrate        # prisma migrate dev — local schema iteration
 pnpm db:migrate:deploy # prisma migrate deploy — apply migrations to a target DB (CI / prod)
 pnpm db:studio         # Open Prisma Studio
