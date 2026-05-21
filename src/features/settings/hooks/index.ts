@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys, STALE_TIME } from "@app/shared/config/query";
 import type { SenderProfileInput } from "@app/shared/schemas";
 
-import { remindersApi, type ReminderSettings, senderProfileApi } from "../api";
+import { senderProfileApi } from "../api";
 
 export function useSenderProfile() {
   return useQuery({
@@ -47,23 +47,4 @@ export function usePrefetchSenderProfile() {
       staleTime: STALE_TIME.long,
     });
   };
-}
-
-export function useReminderSettings() {
-  return useQuery({
-    queryKey: queryKeys.reminderSettings,
-    queryFn: remindersApi.get,
-    staleTime: STALE_TIME.long,
-  });
-}
-
-export function useUpdateReminderSettings() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: ReminderSettings) => remindersApi.update(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.reminderSettings });
-    },
-  });
 }

@@ -5,15 +5,14 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import BrushIcon from "@mui/icons-material/Brush";
 import BusinessIcon from "@mui/icons-material/Business";
 import ExtensionIcon from "@mui/icons-material/Extension";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import { alpha, Box, Paper, Tab, Tabs, Typography, useTheme } from "@mui/material";
 
 import { AppLayout } from "@app/shared/layout/app-layout";
 import { Breadcrumbs } from "@app/shared/ui/breadcrumbs";
 import { CardSkeleton } from "@app/shared/ui/skeletons";
 
-import { useReminderSettings, useSenderProfile } from "@app/features/settings";
-import { BrandingTab, BusinessProfileTab, RemindersTab } from "@app/features/settings/components";
+import { useSenderProfile } from "@app/features/settings";
+import { BrandingTab, BusinessProfileTab } from "@app/features/settings/components";
 import { IntegrationsTab } from "@app/features/time-tracking/components";
 
 interface TabDef {
@@ -25,7 +24,6 @@ interface TabDef {
 const ALL_TABS: TabDef[] = [
   { key: "profile", label: "Business Profile", icon: <BusinessIcon /> },
   { key: "integrations", label: "Integrations", icon: <ExtensionIcon /> },
-  { key: "reminders", label: "Reminders", icon: <NotificationsIcon /> },
   { key: "branding", label: "Branding", icon: <BrushIcon /> },
 ];
 
@@ -69,9 +67,6 @@ export default function SettingsPage() {
   };
 
   const { data: profile, isLoading } = useSenderProfile();
-  const { data: reminderSettings, isLoading: reminderLoading } = useReminderSettings();
-
-  const contentLoading = isLoading || reminderLoading;
 
   return (
     <AppLayout>
@@ -111,7 +106,7 @@ export default function SettingsPage() {
         </Tabs>
 
         <Box sx={{ p: 4 }}>
-          {contentLoading ? (
+          {isLoading ? (
             <CardSkeleton />
           ) : (
             <>
@@ -121,10 +116,6 @@ export default function SettingsPage() {
 
               <TabPanel tabKey="integrations" activeKey={activeKey}>
                 <IntegrationsTab />
-              </TabPanel>
-
-              <TabPanel tabKey="reminders" activeKey={activeKey}>
-                <RemindersTab settings={reminderSettings} />
               </TabPanel>
 
               <TabPanel tabKey="branding" activeKey={activeKey}>
