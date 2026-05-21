@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 
 import { INVOICE, NANOID, TIME } from "@app/shared/config/config";
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import { buildDiscountInput, calculateTotals } from "@app/shared/lib/calculations";
 import { parseInvoiceTags } from "@app/shared/schemas/invoice";
 import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
@@ -28,6 +29,13 @@ export async function duplicateInvoice(
 
   const publicId = nanoid(NANOID.PUBLIC_ID_LENGTH);
   const ungroupedItems = invoice.items.filter((item) => !item.groupId);
+  const groupedItems = invoice.itemGroups.flatMap((g) => g.items);
+  const discount = buildDiscountInput(invoice.discountType, invoice.discountValue);
+  const { subtotal, discountAmount, taxAmount, total } = calculateTotals(
+    [...ungroupedItems, ...groupedItems],
+    discount,
+    invoice.taxRate
+  );
 
   const newInvoice = await prisma.invoice.create({
     data: {
@@ -39,8 +47,13 @@ export async function duplicateInvoice(
       dueDate: new Date(Date.now() + INVOICE.DEFAULT_DUE_DAYS * TIME.DAY),
       periodStart: invoice.periodStart,
       periodEnd: invoice.periodEnd,
-      subtotal: invoice.subtotal,
-      total: invoice.total,
+      subtotal,
+      discountType: invoice.discountType,
+      discountValue: invoice.discountValue,
+      discountAmount,
+      taxRate: invoice.taxRate,
+      taxAmount,
+      total,
       message: invoice.message,
       tags: parseInvoiceTags(invoice.tags),
       items: {

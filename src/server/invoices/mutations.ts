@@ -3,8 +3,13 @@ import { nanoid } from "nanoid";
 
 import { NANOID } from "@app/shared/config/config";
 import { INVOICE_EVENT, INVOICE_STATUS, isDiscountType } from "@app/shared/config/invoice-status";
-import { calculateTotals, type DiscountInput } from "@app/shared/lib/calculations";
+import {
+  calculateTotals,
+  type DiscountInput,
+  isMoneyLimitExceeded,
+} from "@app/shared/lib/calculations";
 import { CreateInvoiceInput, InvoiceItemInput, UpdateInvoiceInput } from "@app/shared/schemas";
+import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
 import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
@@ -20,6 +25,35 @@ const INVOICE_WITH_RELATIONS_INCLUDE = {
 export type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
   include: typeof INVOICE_WITH_RELATIONS_INCLUDE;
 }>;
+
+export class ClientNotFoundError extends Error {
+  constructor() {
+    super("Client not found");
+    this.name = "ClientNotFoundError";
+  }
+}
+
+export class MoneyOverflowError extends Error {
+  constructor() {
+    super("Invoice total is too large");
+    this.name = "MoneyOverflowError";
+  }
+}
+
+async function assertClientOwned(
+  tx: Prisma.TransactionClient,
+  clientId: string,
+  userId: UserId
+): Promise<void> {
+  const client = await tx.client.findFirst({
+    where: { id: clientId, userId },
+    select: { id: true },
+  });
+
+  if (!client) {
+    throw new ClientNotFoundError();
+  }
+}
 
 function buildBasicUpdateFields(data: UpdateInvoiceInput): Prisma.InvoiceUncheckedUpdateInput {
   const updateData: Prisma.InvoiceUncheckedUpdateInput = {};
@@ -105,14 +139,18 @@ export async function createInvoice(
   data: CreateInvoiceInput
 ): Promise<InvoiceWithRelations> {
   const allItems = [...data.items, ...(data.itemGroups?.flatMap((g) => g.items) ?? [])];
-  const { subtotal, discountAmount, taxAmount, total } = calculateTotals(
-    allItems,
-    data.discount,
-    data.taxRate
-  );
+  const totals = calculateTotals(allItems, data.discount, data.taxRate);
+
+  if (isMoneyLimitExceeded(totals, SCHEMA_LIMITS.MONEY_MAX_CENTS)) {
+    throw new MoneyOverflowError();
+  }
+
+  const { subtotal, discountAmount, taxAmount, total } = totals;
   const publicId = nanoid(NANOID.PUBLIC_ID_LENGTH);
 
   return prisma.$transaction(async (tx) => {
+    await assertClientOwned(tx, data.clientId, userId);
+
     const invoice = await tx.invoice.create({
       data: {
         userId,
@@ -226,6 +264,10 @@ export async function updateInvoice(
       return null;
     }
 
+    if (data.clientId) {
+      await assertClientOwned(tx, data.clientId, userId);
+    }
+
     const updateData: Prisma.InvoiceUncheckedUpdateInput = {
       ...buildBasicUpdateFields(data),
       ...buildDiscountFields(data),
@@ -238,6 +280,10 @@ export async function updateInvoice(
       const taxRate = data.taxRate !== undefined ? data.taxRate : invoice.taxRate;
       const itemsForCalc = await getItemsForCalculation(tx, id, data);
       const totals = calculateTotals(itemsForCalc, discount, taxRate);
+
+      if (isMoneyLimitExceeded(totals, SCHEMA_LIMITS.MONEY_MAX_CENTS)) {
+        throw new MoneyOverflowError();
+      }
 
       updateData.subtotal = totals.subtotal;
       updateData.discountAmount = totals.discountAmount;
@@ -264,10 +310,6 @@ export async function deleteInvoice(
   if (!invoice) {
     return null;
   }
-
-  await prisma.invoiceItem.deleteMany({
-    where: { invoiceId: id },
-  });
 
   await prisma.invoice.delete({
     where: { id },

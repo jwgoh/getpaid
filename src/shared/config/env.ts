@@ -27,7 +27,13 @@ const serverSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).default("invoices@example.com"),
   ADMIN_EMAIL: z.string().email().optional(),
-  ENCRYPTION_KEY: z.string().min(32).optional(),
+  ENCRYPTION_KEY: z
+    .string()
+    .refine(
+      (value) => Buffer.from(value, "base64").length === 32,
+      "ENCRYPTION_KEY must decode to exactly 32 bytes — generate via: openssl rand -base64 32"
+    )
+    .optional(),
 });
 
 const editionSchema = z.enum(EDITIONS).default(EDITIONS[0]);
