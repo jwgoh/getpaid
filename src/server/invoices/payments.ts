@@ -152,27 +152,30 @@ export async function deletePayment(paymentId: string, userId: string) {
     return null;
   }
 
-  const newPaidAmount = payment.invoice.paidAmount - payment.amount;
-
-  let newStatus: InvoiceStatusValue;
-
-  if (newPaidAmount > 0) {
-    newStatus = INVOICE_STATUS.PARTIALLY_PAID;
-  } else if (payment.invoice.viewedAt) {
-    newStatus = INVOICE_STATUS.VIEWED;
-  } else {
-    newStatus = INVOICE_STATUS.SENT;
-  }
-
   return prisma.$transaction(async (tx) => {
     await tx.payment.delete({
       where: { id: paymentId },
     });
 
+    const decremented = await tx.invoice.update({
+      where: { id: payment.invoiceId },
+      data: { paidAmount: { decrement: payment.amount } },
+      select: { paidAmount: true, viewedAt: true },
+    });
+
+    let newStatus: InvoiceStatusValue;
+
+    if (decremented.paidAmount > 0) {
+      newStatus = INVOICE_STATUS.PARTIALLY_PAID;
+    } else if (decremented.viewedAt) {
+      newStatus = INVOICE_STATUS.VIEWED;
+    } else {
+      newStatus = INVOICE_STATUS.SENT;
+    }
+
     const updatedInvoice = await tx.invoice.update({
       where: { id: payment.invoiceId },
       data: {
-        paidAmount: newPaidAmount,
         status: newStatus,
         paidAt: null,
         paymentMethod: null,
