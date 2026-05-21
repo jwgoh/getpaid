@@ -5,6 +5,7 @@ import { env } from "@app/shared/config/env";
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
+const KEY_LENGTH = 32;
 
 function getKey(): Buffer {
   const key = env.ENCRYPTION_KEY;
@@ -15,7 +16,15 @@ function getKey(): Buffer {
     );
   }
 
-  return Buffer.from(key, "hex");
+  const decoded = Buffer.from(key, "base64");
+
+  if (decoded.length !== KEY_LENGTH) {
+    throw new Error(
+      "ENCRYPTION_KEY must decode to exactly 32 bytes — generate via: openssl rand -base64 32"
+    );
+  }
+
+  return decoded;
 }
 
 export function encrypt(plaintext: string): string {
