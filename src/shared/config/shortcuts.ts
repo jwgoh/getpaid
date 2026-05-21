@@ -66,6 +66,9 @@ export const STORAGE_KEYS = {
   RECENT_ITEMS: "getpaid-recent-items",
   INVOICE_DRAFT: "invoice-draft-new",
   ONBOARDING_DISMISSED: "getpaid-onboarding-dismissed",
-  THEME_MODE: "theme-mode",
   SIDEBAR_COLLAPSED: "getpaid-sidebar-collapsed",
+} as const;
+
+export const COOKIE_KEYS = {
+  THEME_MODE: "getpaid-theme",
 } as const;

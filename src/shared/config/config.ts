@@ -69,6 +69,6 @@ export type FormMode = "create" | "edit";
 
 export { BRANDING, EMAIL, FONT_FAMILY_MAP } from "./email";
 export { PAYMENT_METHOD, PAYMENT_METHOD_LABELS, type PaymentMethodValue } from "./payment-method";
-export { SHORTCUTS, STORAGE_KEYS } from "./shortcuts";
+export { COOKIE_KEYS, SHORTCUTS, STORAGE_KEYS } from "./shortcuts";
 export { TIME_TRACKING } from "./time-tracking";
 export { ANIMATION, CHART, RESPONSIVE_SX, UI, VIRTUALIZATION } from "./ui";
