@@ -38,13 +38,6 @@ export const INVOICE_EVENT = {
 
 export type InvoiceEventValue = (typeof INVOICE_EVENT)[keyof typeof INVOICE_EVENT];
 
-export const FOLLOWUP_STATUS = {
-  PENDING: "PENDING",
-  SENT: "SENT",
-  CANCELED: "CANCELED",
-  FAILED: "FAILED",
-} as const;
-
 export const STATUS_CONFIG: Record<
   string,
   { color: NonNullable<ChipProps["color"]>; label: string }

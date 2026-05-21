@@ -9,7 +9,7 @@ const MAX_ITEMS = 10;
 
 export interface RecentItem {
   id: string;
-  type: "invoice" | "client" | "template" | "recurring";
+  type: "invoice" | "client" | "template";
   label: string;
   href: string;
   timestamp: number;

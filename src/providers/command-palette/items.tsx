@@ -5,7 +5,6 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PeopleIcon from "@mui/icons-material/People";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import RepeatIcon from "@mui/icons-material/Repeat";
 import SettingsIcon from "@mui/icons-material/Settings";
 
 import { SHORTCUTS } from "@app/shared/config/config";
@@ -56,14 +55,6 @@ export function buildNavItems(router: AppRouterInstance): CommandItem[] {
       action: () => router.push("/app/templates"),
     },
     {
-      id: "nav-recurring",
-      label: "Recurring",
-      icon: <RepeatIcon fontSize="small" />,
-      shortcut: SHORTCUTS.GO_RECURRING.keys,
-      group: "Navigation",
-      action: () => router.push("/app/recurring"),
-    },
-    {
       id: "nav-settings",
       label: "Settings",
       icon: <SettingsIcon fontSize="small" />,
@@ -97,13 +88,6 @@ export function buildActionItems(router: AppRouterInstance): CommandItem[] {
       icon: <AddIcon fontSize="small" />,
       group: "Actions",
       action: () => router.push("/app/templates/new"),
-    },
-    {
-      id: "action-new-recurring",
-      label: "New Recurring Invoice",
-      icon: <AddIcon fontSize="small" />,
-      group: "Actions",
-      action: () => router.push("/app/recurring/new"),
     },
   ];
 }

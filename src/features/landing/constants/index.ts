@@ -1,8 +1,6 @@
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import RepeatIcon from "@mui/icons-material/Repeat";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import { SEO } from "@app/shared/config/seo";
@@ -21,16 +19,6 @@ export const FEATURES = [
     title: "View Tracking",
     icon: VisibilityIcon,
     description: "Know exactly when your client opens an invoice — no more guessing",
-  },
-  {
-    title: "Recurring",
-    icon: RepeatIcon,
-    description: "Set up recurring invoices that generate and send automatically",
-  },
-  {
-    title: "Follow-ups",
-    icon: NotificationsActiveIcon,
-    description: "Automated payment reminders so you never have to chase clients manually",
   },
   {
     title: "PDF Export",

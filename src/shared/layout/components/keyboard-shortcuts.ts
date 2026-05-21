@@ -54,13 +54,6 @@ export function buildShortcuts(
       description: SHORTCUTS.GO_TEMPLATES.description,
     },
     {
-      key: SHORTCUTS.GO_RECURRING.key,
-      ctrl: true,
-      shift: true,
-      handler: () => router.push("/app/recurring"),
-      description: SHORTCUTS.GO_RECURRING.description,
-    },
-    {
       key: SHORTCUTS.GO_SETTINGS.key,
       ctrl: true,
       shift: true,
