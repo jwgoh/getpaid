@@ -181,8 +181,8 @@ Schema changes are tracked via Prisma migration files under `prisma/migrations/`
 **Production (Vercel) deploy:**
 
 - Vercel does NOT run migrations on deploy.
-- BEFORE merging the PR, manually apply: `DATABASE_URL=$PROD pnpm db:migrate:deploy` (after a `pg_dump` backup).
-- Then merge → Vercel rebuilds → app sees the migrated schema.
+- **Additive / backward-compatible migration** (new table or column — the common case): apply the migration BEFORE merging — `DATABASE_URL=$PROD pnpm db:migrate:deploy` (after a `pg_dump` backup) — then merge → Vercel rebuilds → the new code sees the migrated schema.
+- **Destructive migration** (`DROP TABLE` / `DROP COLUMN` / `DROP TYPE`): reverse the order. Merge first → wait for Vercel to redeploy the code that no longer references the dropped objects → only THEN apply the migration (`pg_dump` backup first). Applying a destructive drop while the old code is still live breaks it — the old code queries objects that no longer exist.
 
 **Self-host (Docker):**
 
