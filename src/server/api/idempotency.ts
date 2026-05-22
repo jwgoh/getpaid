@@ -12,6 +12,10 @@ const KEY_MAX_LENGTH = 128;
 const KEY_PATTERN = /^[\x21-\x7e]+$/;
 const TTL_HOURS = 24;
 const MS_PER_HOUR = 60 * 60 * 1000;
+const PRISMA_UNIQUE_CONSTRAINT = "P2002";
+const IN_PROGRESS_STATUS = 409;
+const SUCCESS_STATUS_MIN = 200;
+const SUCCESS_STATUS_MAX = 300;
 
 type AuthUser = { id: string; email: string };
 
@@ -26,6 +30,20 @@ type AuthHandler = (
 interface IdempotencyOptions {
   endpoint: string;
 }
+
+interface ClaimKey {
+  userId: string;
+  endpoint: string;
+  key: string;
+}
+
+type ClaimRow = {
+  id: string;
+  requestHash: string;
+  responseStatus: number | null;
+  responseBody: Prisma.JsonValue | null;
+  expiresAt: Date;
+};
 
 function isValidKey(value: string): boolean {
   if (value.length < KEY_MIN_LENGTH || value.length > KEY_MAX_LENGTH) {
@@ -43,6 +61,26 @@ function buildCachedResponse(status: number, body: Prisma.JsonValue): NextRespon
   return NextResponse.json(body, { status });
 }
 
+function inProgressResponse(): NextResponse {
+  return errorResponse(
+    "IDEMPOTENCY_KEY_IN_PROGRESS",
+    "A request with this Idempotency-Key is still being processed. Retry shortly.",
+    IN_PROGRESS_STATUS
+  );
+}
+
+function reusedResponse(): NextResponse {
+  return errorResponse(
+    "IDEMPOTENCY_KEY_REUSED",
+    `${IDEMPOTENCY_HEADER} reused with a different request body`,
+    422
+  );
+}
+
+function isSuccessStatus(status: number): boolean {
+  return status >= SUCCESS_STATUS_MIN && status < SUCCESS_STATUS_MAX;
+}
+
 function parseJsonInput(text: string): Prisma.InputJsonValue {
   if (text.length === 0) {
     return {};
@@ -57,10 +95,7 @@ function parseJsonInput(text: string): Prisma.InputJsonValue {
 
 function isUniqueConstraintError(error: unknown): boolean {
   return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === "P2002"
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_UNIQUE_CONSTRAINT
   );
 }
 
@@ -74,6 +109,112 @@ async function readBody(request: Request): Promise<{ raw: string; clone: Request
   });
 
   return { raw, clone: replay };
+}
+
+function findClaim(claimKey: ClaimKey) {
+  return prisma.idempotencyKey.findUnique({
+    where: { userId_endpoint_key: claimKey },
+  });
+}
+
+function releaseClaim(claimKey: ClaimKey) {
+  return prisma.idempotencyKey.deleteMany({
+    where: {
+      userId: claimKey.userId,
+      endpoint: claimKey.endpoint,
+      key: claimKey.key,
+    },
+  });
+}
+
+async function readResponseBody(response: NextResponse): Promise<Prisma.InputJsonValue> {
+  const rawText = await response.clone().text();
+
+  return parseJsonInput(rawText);
+}
+
+function resolveExistingClaim(
+  claim: ClaimRow,
+  requestHash: string,
+  now: Date
+): NextResponse | null {
+  if (claim.expiresAt <= now) {
+    return null;
+  }
+
+  if (claim.requestHash !== requestHash) {
+    return reusedResponse();
+  }
+
+  if (claim.responseStatus === null || claim.responseBody === null) {
+    return inProgressResponse();
+  }
+
+  return buildCachedResponse(claim.responseStatus, claim.responseBody);
+}
+
+async function claimKeyOrResolveRacer(
+  claimKey: ClaimKey,
+  requestHash: string,
+  now: Date
+): Promise<NextResponse | null> {
+  try {
+    await prisma.idempotencyKey.create({
+      data: {
+        key: claimKey.key,
+        userId: claimKey.userId,
+        endpoint: claimKey.endpoint,
+        requestHash,
+        responseStatus: null,
+        responseBody: Prisma.DbNull,
+        expiresAt: new Date(now.getTime() + TTL_HOURS * MS_PER_HOUR),
+      },
+    });
+
+    return null;
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) {
+      throw error;
+    }
+
+    const racing = await findClaim(claimKey);
+
+    if (!racing) {
+      return inProgressResponse();
+    }
+
+    return resolveExistingClaim(racing, requestHash, now) ?? inProgressResponse();
+  }
+}
+
+async function completeClaim(
+  claimKey: ClaimKey,
+  handler: AuthHandler,
+  user: AuthUser,
+  request: Request,
+  context: RouteContext
+): Promise<NextResponse> {
+  let response: NextResponse;
+
+  try {
+    response = await handler(user, request, context);
+  } catch (error) {
+    await releaseClaim(claimKey);
+    throw error;
+  }
+
+  if (!isSuccessStatus(response.status)) {
+    await releaseClaim(claimKey);
+
+    return response;
+  }
+
+  await prisma.idempotencyKey.update({
+    where: { userId_endpoint_key: claimKey },
+    data: { responseStatus: response.status, responseBody: await readResponseBody(response) },
+  });
+
+  return response;
 }
 
 export function withIdempotency(handler: AuthHandler, options: IdempotencyOptions) {
@@ -99,68 +240,28 @@ export function withIdempotency(handler: AuthHandler, options: IdempotencyOption
     const { raw, clone } = await readBody(request);
     const requestHash = hashRequest(request.method, raw);
     const now = new Date();
+    const claimKey: ClaimKey = { userId: user.id, endpoint: options.endpoint, key };
 
-    const existing = await prisma.idempotencyKey.findUnique({
-      where: {
-        userId_endpoint_key: {
-          userId: user.id,
-          endpoint: options.endpoint,
-          key,
-        },
-      },
-    });
+    const existing = await findClaim(claimKey);
 
-    if (existing && existing.expiresAt > now) {
-      if (existing.requestHash !== requestHash) {
-        return errorResponse(
-          "IDEMPOTENCY_KEY_REUSED",
-          `${IDEMPOTENCY_HEADER} reused with a different request body`,
-          422
-        );
+    if (existing) {
+      const resolved = resolveExistingClaim(existing, requestHash, now);
+
+      if (resolved) {
+        return resolved;
       }
 
-      return buildCachedResponse(existing.responseStatus, existing.responseBody);
+      await prisma.idempotencyKey.deleteMany({
+        where: { id: existing.id, expiresAt: { lte: now } },
+      });
     }
 
-    const response = await handler(user, clone, context);
-    const responseClone = response.clone();
-    const rawText = await responseClone.text();
-    const responseBody = parseJsonInput(rawText);
+    const racerResponse = await claimKeyOrResolveRacer(claimKey, requestHash, now);
 
-    if (response.status >= 200 && response.status < 300) {
-      try {
-        await prisma.idempotencyKey.create({
-          data: {
-            key,
-            userId: user.id,
-            endpoint: options.endpoint,
-            requestHash,
-            responseStatus: response.status,
-            responseBody,
-            expiresAt: new Date(now.getTime() + TTL_HOURS * MS_PER_HOUR),
-          },
-        });
-      } catch (error) {
-        if (!isUniqueConstraintError(error)) {
-          throw error;
-        }
-
-        const racing = await prisma.idempotencyKey.findUnique({
-          where: {
-            userId_endpoint_key: {
-              userId: user.id,
-              endpoint: options.endpoint,
-              key,
-            },
-          },
-        });
-
-        if (racing && racing.expiresAt > now && racing.requestHash === requestHash) {
-          return buildCachedResponse(racing.responseStatus, racing.responseBody);
-        }
-      }
+    if (racerResponse) {
+      return racerResponse;
     }
 
-    return response;
+    return completeClaim(claimKey, handler, user, clone, context);
   };
 }
