@@ -176,9 +176,16 @@ const eslintConfig = defineConfig([
               message: "A feature slice may not import another feature (FSD isolation).",
             },
             {
+              from: { type: "feature" },
+              disallow: { to: { type: "app" } },
+              message:
+                "A feature slice may not import the app/** routing layer (FSD layer direction).",
+            },
+            {
               from: { type: "shared" },
-              disallow: { to: { type: "feature" } },
-              message: "shared/** may not import features/** (FSD layer direction).",
+              disallow: { to: { type: ["feature", "server", "app"] } },
+              message:
+                "shared/** may not import features/**, server/**, or app/** (FSD layer direction).",
             },
             {
               from: { type: "server" },
