@@ -18,14 +18,22 @@ const paidAtSchema = dateSchema
   );
 
 export const recordPaymentSchema = z.object({
-  amount: z.number().positive().max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large"),
+  amount: z
+    .number()
+    .int("Amount must be a whole number of cents")
+    .positive()
+    .max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large"),
   method: paymentMethodSchema,
   note: z.string().max(SCHEMA_LIMITS.PAYMENT_NOTE_MAX).optional(),
   paidAt: z.string().optional(),
 });
 
 export const recordPaymentApiSchema = z.object({
-  amount: z.number().positive().max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large"),
+  amount: z
+    .number()
+    .int("Amount must be a whole number of cents")
+    .positive()
+    .max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large"),
   method: paymentMethodSchema,
   note: z.string().max(SCHEMA_LIMITS.PAYMENT_NOTE_MAX).optional(),
   paidAt: paidAtSchema.optional(),

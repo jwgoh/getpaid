@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 
-import { recordPaymentApiSchema } from "./payment";
+import { recordPaymentApiSchema, recordPaymentSchema } from "./payment";
 
 function buildPayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -39,5 +39,31 @@ describe("recordPaymentApiSchema — paidAt validation (QA-002, QA-003)", () => 
     const result = recordPaymentApiSchema.safeParse(buildPayload({ paidAt: "1999-12-31" }));
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe("payment amount validation — integer cents (QA-001)", () => {
+  it("rejects a fractional amount in recordPaymentApiSchema", () => {
+    const result = recordPaymentApiSchema.safeParse(buildPayload({ amount: 10.5 }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a fractional amount in recordPaymentSchema", () => {
+    const result = recordPaymentSchema.safeParse(buildPayload({ amount: 10.5 }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a whole-cent amount in recordPaymentApiSchema", () => {
+    const result = recordPaymentApiSchema.safeParse(buildPayload({ amount: 10_000 }));
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a whole-cent amount in recordPaymentSchema", () => {
+    const result = recordPaymentSchema.safeParse(buildPayload({ amount: 10_000 }));
+
+    expect(result.success).toBe(true);
   });
 });
