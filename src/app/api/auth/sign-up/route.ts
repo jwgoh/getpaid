@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
 import { features } from "@app/shared/config/features";
 import { signUpSchema } from "@app/shared/schemas";
 
+import { applyRateLimit, RATE_LIMITS } from "@app/server/api/rate-limit";
 import { errorResponse, internalErrorResponse, parseBody } from "@app/server/api/route-helpers";
 import { createUser, EmailExistsError } from "@app/server/auth/signup";
 import { isEmailApproved } from "@app/server/waitlist";

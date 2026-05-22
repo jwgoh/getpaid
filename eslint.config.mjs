@@ -1,4 +1,5 @@
 import { defineConfig, globalIgnores } from "eslint/config";
+import boundaries from "eslint-plugin-boundaries";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
@@ -26,6 +27,7 @@ const eslintConfig = defineConfig([
         },
       ],
       "simple-import-sort/exports": "error",
+      "import/no-cycle": ["error", { maxDepth: Infinity, ignoreExternal: true }],
       "no-warning-comments": [
         "error",
         { terms: ["todo", "fixme", "hack", "xxx"], location: "anywhere" },
@@ -143,6 +145,45 @@ const eslintConfig = defineConfig([
               group: ["@app/providers/*/*", "@app/providers/*"],
               message:
                 "Import from the @app/providers barrel instead of reaching into providers internals.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    plugins: { boundaries },
+    settings: {
+      "boundaries/elements": [
+        { type: "app", pattern: "src/app/**" },
+        { type: "server", pattern: "src/server/**" },
+        { type: "feature", pattern: "src/features/*", mode: "folder", capture: ["feature"] },
+        { type: "shared", pattern: "src/shared/**" },
+        { type: "providers", pattern: "src/providers/**" },
+        { type: "types", pattern: "src/types/**" },
+      ],
+    },
+    rules: {
+      "boundaries/dependencies": [
+        "error",
+        {
+          default: "allow",
+          rules: [
+            {
+              from: { type: "feature" },
+              disallow: { to: { type: "feature", captured: { feature: "!{{from.feature}}" } } },
+              message: "A feature slice may not import another feature (FSD isolation).",
+            },
+            {
+              from: { type: "shared" },
+              disallow: { to: { type: "feature" } },
+              message: "shared/** may not import features/** (FSD layer direction).",
+            },
+            {
+              from: { type: "server" },
+              disallow: { to: { type: ["feature", "app"] } },
+              message: "server/** may not import features/** or app/** (FSD layer direction).",
             },
           ],
         },

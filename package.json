@@ -66,6 +66,8 @@
     "dotenv": "^16.5.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "eslint-plugin-boundaries": "^6.0.2",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "lefthook": "^2.1.0",
     "prettier": "^3.8.1",

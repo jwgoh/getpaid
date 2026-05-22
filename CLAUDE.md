@@ -113,7 +113,7 @@ export const POST = withAdmin(async (user, request, context) => {
 **Idempotent write** (compose with `withAuth`):
 
 ```typescript
-import { withIdempotency } from "@app/shared/api/idempotency";
+import { withIdempotency } from "@app/server/api/idempotency";
 import { withAuth } from "@app/server/api/route-helpers";
 
 export const POST = withAuth(
@@ -287,7 +287,7 @@ State-changing endpoints with money / data-creation impact require an `Idempoten
 Pattern:
 
 ```typescript
-import { withIdempotency } from "@app/shared/api/idempotency";
+import { withIdempotency } from "@app/server/api/idempotency";
 import { withAuth } from "@app/server/api/route-helpers";
 
 export const POST = withAuth(

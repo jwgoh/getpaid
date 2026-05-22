@@ -11,19 +11,17 @@ import type { Invoice } from "@app/shared/schemas/api";
 import { ConfirmDialog } from "@app/shared/ui/confirm-dialog";
 import { CardSkeleton } from "@app/shared/ui/skeletons";
 
-import {
-  ActivityHistory,
-  InvoicePreviewDialog,
-  InvoiceTimeline,
-  MarkPaidDialog,
-  PaymentHistory,
-  RecordPaymentDialog,
-  SendDialog,
-} from "../components";
 import { useInvoice } from "../hooks";
 import { useInvoiceDetail } from "../hooks/use-invoice-detail";
+import { ActivityHistory } from "./activity-history";
 import { BillingCard } from "./billing-card";
 import { DetailHeader } from "./detail-header";
+import { InvoiceTimeline } from "./invoice-timeline";
+import { MarkPaidDialog } from "./mark-paid-dialog";
+import { PaymentHistory } from "./payment-history";
+import { InvoicePreviewDialog } from "./preview";
+import { RecordPaymentDialog } from "./record-payment-dialog";
+import { SendDialog } from "./send-dialog";
 
 type InvoiceDetailReturn = ReturnType<typeof useInvoiceDetail>;
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { withIdempotency } from "@app/shared/api/idempotency";
 import { recordPaymentApiSchema } from "@app/shared/schemas";
 
+import { withIdempotency } from "@app/server/api/idempotency";
 import {
   errorResponse,
   notFoundResponse,
