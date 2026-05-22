@@ -124,6 +124,10 @@ export async function recordPayment(id: string, userId: string, data: RecordPaym
       return updatedInvoice;
     });
   } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return null;
+    }
+
     if (isPaidAmountCheckViolation(error)) {
       throw new PaymentExceedsBalanceError();
     }
