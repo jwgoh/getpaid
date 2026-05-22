@@ -20,7 +20,7 @@ export function useInvoicesPage() {
   const { confirm, dialogProps } = useConfirmDialog();
   const announce = useAnnounce();
 
-  const { data: invoices, isLoading, error } = useInvoices();
+  const { data: invoices, isLoading, error, refetch } = useInvoices();
   const deleteMutation = useDeleteInvoice();
   const duplicateMutation = useDuplicateInvoice();
   const prefetchInvoice = usePrefetchInvoice();
@@ -97,6 +97,7 @@ export function useInvoicesPage() {
     invoices,
     isLoading,
     error,
+    refetch,
     ...filtering,
     ...pagination,
     ...selection,

@@ -63,7 +63,7 @@ function useSortedTemplates(
 
 export function useTemplatesPage() {
   const router = useRouter();
-  const { data: templates, isLoading, error } = useTemplates();
+  const { data: templates, isLoading, error, refetch } = useTemplates();
   const { deleteItem, pendingIds } = useOptimisticDelete<Template>({
     queryKey: queryKeys.templates,
     getId: (template) => template.id,
@@ -131,6 +131,7 @@ export function useTemplatesPage() {
   return {
     isLoading,
     error,
+    refetch,
     sortedTemplates,
     allTemplatesCount,
     searchQuery,

@@ -1,9 +1,10 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import { Alert, Button } from "@mui/material";
+import { Button } from "@mui/material";
 
 import { RESPONSIVE_SX } from "@app/shared/config/config";
+import { ListErrorState } from "@app/shared/ui/list-error-state";
 import { MobileFab } from "@app/shared/ui/mobile-fab";
 import { PageHeader } from "@app/shared/ui/page-header";
 
@@ -16,28 +17,35 @@ import { ClientsSearchField } from "./clients-search-field";
 export function ClientsPageContent() {
   const state = useClientsPage();
 
+  const header = (
+    <PageHeader
+      title="Clients"
+      subtitle="Manage your clients and contacts"
+      actions={
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => state.setCreateDialogOpen(true)}
+          sx={RESPONSIVE_SX.DESKTOP_ONLY}
+        >
+          Add Client
+        </Button>
+      }
+    />
+  );
+
+  if (state.error) {
+    return (
+      <>
+        {header}
+        <ListErrorState entity="clients" onRetry={() => void state.refetch()} />
+      </>
+    );
+  }
+
   return (
     <>
-      <PageHeader
-        title="Clients"
-        subtitle="Manage your clients and contacts"
-        actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => state.setCreateDialogOpen(true)}
-            sx={RESPONSIVE_SX.DESKTOP_ONLY}
-          >
-            Add Client
-          </Button>
-        }
-      />
-
-      {state.error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          Failed to load clients. Please try again.
-        </Alert>
-      )}
+      {header}
 
       {!state.isLoading && state.clients && state.clients.length > 0 && (
         <ClientsSearchField
