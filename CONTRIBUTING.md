@@ -5,17 +5,20 @@ Thanks for your interest in contributing! Here's how to get started.
 ## Development Setup
 
 1. **Clone the repo**
+
    ```bash
    git clone https://github.com/maksim-pokhiliy/getpaid.git
    cd getpaid
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Set up the database**
+
    ```bash
    cp .env.example .env
    # Edit .env with your PostgreSQL connection string
@@ -33,6 +36,7 @@ Thanks for your interest in contributing! Here's how to get started.
 This project follows **Feature-Sliced Design (FSD)** architecture. See [CLAUDE.md](./CLAUDE.md) for detailed architecture rules.
 
 Key directories:
+
 - `src/app/` — Next.js routing only (no components)
 - `src/features/` — Domain-specific feature slices
 - `src/shared/` — Shared utilities, UI components, config
@@ -48,6 +52,7 @@ Key directories:
 - No code comments (code should be self-documenting)
 
 Run checks before submitting:
+
 ```bash
 pnpm lint
 pnpm typecheck

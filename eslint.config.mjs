@@ -1,7 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import boundaries from "eslint-plugin-boundaries";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import boundaries from "eslint-plugin-boundaries";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 
 const eslintConfig = defineConfig([
@@ -118,6 +118,15 @@ const eslintConfig = defineConfig([
     rules: {
       "max-lines-per-function": ["error", { max: 200, skipBlankLines: true, skipComments: true }],
       complexity: ["error", 20],
+    },
+  },
+  {
+    files: ["prisma/**/*.ts", "scripts/**/*.ts"],
+    rules: {
+      "no-console": "off",
+      "max-lines": "off",
+      "max-lines-per-function": "off",
+      complexity: "off",
     },
   },
   {
