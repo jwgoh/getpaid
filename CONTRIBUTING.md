@@ -61,6 +61,8 @@ pnpm format:check
 3. Ensure lint and typecheck pass
 4. Submit a PR with a clear description of the change
 
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, ...) — enforced by a `commit-msg` git hook, so a non-conventional message is rejected on commit.
+
 ## Reporting Issues
 
 Use [GitHub Issues](https://github.com/maksim-pokhiliy/getpaid/issues) to report bugs or suggest features. Include steps to reproduce for bugs.
