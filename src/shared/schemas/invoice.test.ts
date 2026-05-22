@@ -187,3 +187,45 @@ describe("updateInvoiceSchema — aggregate total ceiling (QA-001)", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("createInvoiceSchema — date validity (QA-002)", () => {
+  it("rejects an unparseable dueDate", () => {
+    const result = createInvoiceSchema.safeParse(buildCreatePayload({ dueDate: "garbage" }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an out-of-range calendar dueDate", () => {
+    const result = createInvoiceSchema.safeParse(buildCreatePayload({ dueDate: "2026-13-45" }));
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("createInvoiceSchema — item array caps (QA-007)", () => {
+  it("accepts an invoice at the item-count cap", () => {
+    const items = Array.from({ length: SCHEMA_LIMITS.INVOICE_ITEMS_MAX }, () => validItem);
+    const result = createInvoiceSchema.safeParse(buildCreatePayload({ items }));
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invoice above the item-count cap", () => {
+    const items = Array.from({ length: SCHEMA_LIMITS.INVOICE_ITEMS_MAX + 1 }, () => validItem);
+    const result = createInvoiceSchema.safeParse(buildCreatePayload({ items }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invoice above the item-group cap", () => {
+    const itemGroups = Array.from({ length: SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX + 1 }, () => ({
+      title: "Group",
+      items: [validItem],
+    }));
+    const result = createInvoiceSchema.safeParse(
+      buildCreatePayload({ items: [validItem], itemGroups })
+    );
+
+    expect(result.success).toBe(false);
+  });
+});
