@@ -8,10 +8,4 @@ export const dateSchema = z
   .transform((value) => new Date(value))
   .refine(isValidDate, "Invalid date");
 
-export const optionalDateSchema = z
-  .string()
-  .or(z.date())
-  .transform((value) => new Date(value))
-  .refine(isValidDate, "Invalid date")
-  .optional()
-  .nullable();
+export const optionalDateSchema = dateSchema.optional().nullable();
