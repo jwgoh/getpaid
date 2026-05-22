@@ -3,15 +3,14 @@ import { z } from "zod";
 import { TIME } from "@app/shared/config/config";
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 
+import { dateSchema } from "./date";
 import { SCHEMA_LIMITS } from "./limits";
 
 const paymentMethodSchema = z.nativeEnum(PAYMENT_METHOD);
 
 const PAYMENT_PAID_AT_MIN_DATE = new Date("2000-01-01T00:00:00.000Z");
 
-const paidAtSchema = z.coerce
-  .date()
-  .refine((value) => !Number.isNaN(value.getTime()), "Invalid date")
+const paidAtSchema = dateSchema
   .refine((value) => value >= PAYMENT_PAID_AT_MIN_DATE, "Payment date is too far in the past")
   .refine(
     (value) => value.getTime() <= Date.now() + SCHEMA_LIMITS.PAYMENT_PAID_AT_GRACE_DAYS * TIME.DAY,
