@@ -10,6 +10,7 @@ import { prisma } from "@app/server/db";
 
 const PG_CHECK_VIOLATION = "23514";
 const INVOICE_PAID_AMOUNT_CHECK = "Invoice_paidAmount_lte_total_check";
+const PRISMA_RECORD_NOT_FOUND = "P2025";
 
 export class PaymentExceedsBalanceError extends Error {
   constructor() {
@@ -41,6 +42,12 @@ function isPaidAmountCheckViolation(error: unknown): boolean {
   return (
     message.includes(INVOICE_PAID_AMOUNT_CHECK) ||
     (message.includes(PG_CHECK_VIOLATION) && message.includes("paidAmount"))
+  );
+}
+
+function isRecordNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_RECORD_NOT_FOUND
   );
 }
 
@@ -152,58 +159,66 @@ export async function deletePayment(paymentId: string, userId: string) {
     return null;
   }
 
-  return prisma.$transaction(async (tx) => {
-    await tx.payment.delete({
-      where: { id: paymentId },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.payment.delete({
+        where: { id: paymentId },
+      });
+
+      const decremented = await tx.invoice.update({
+        where: { id: payment.invoiceId },
+        data: { paidAmount: { decrement: payment.amount } },
+        select: { paidAmount: true, viewedAt: true },
+      });
+
+      let newStatus: InvoiceStatusValue;
+
+      if (decremented.paidAmount > 0) {
+        newStatus = INVOICE_STATUS.PARTIALLY_PAID;
+      } else if (decremented.viewedAt) {
+        newStatus = INVOICE_STATUS.VIEWED;
+      } else {
+        newStatus = INVOICE_STATUS.SENT;
+      }
+
+      const updatedInvoice = await tx.invoice.update({
+        where: { id: payment.invoiceId },
+        data: {
+          status: newStatus,
+          paidAt: null,
+          paymentMethod: null,
+        },
+        include: {
+          client: true,
+          items: true,
+          payments: {
+            orderBy: { paidAt: "desc" },
+          },
+        },
+      });
+
+      await tx.invoiceEvent.create({
+        data: {
+          invoiceId: payment.invoiceId,
+          type: INVOICE_EVENT.PAYMENT_DELETED,
+          payload: {
+            paymentId,
+            amount: payment.amount,
+            method: payment.method,
+            actorUserId: userId,
+            previousStatus: payment.invoice.status,
+            newStatus,
+          },
+        },
+      });
+
+      return updatedInvoice;
     });
-
-    const decremented = await tx.invoice.update({
-      where: { id: payment.invoiceId },
-      data: { paidAmount: { decrement: payment.amount } },
-      select: { paidAmount: true, viewedAt: true },
-    });
-
-    let newStatus: InvoiceStatusValue;
-
-    if (decremented.paidAmount > 0) {
-      newStatus = INVOICE_STATUS.PARTIALLY_PAID;
-    } else if (decremented.viewedAt) {
-      newStatus = INVOICE_STATUS.VIEWED;
-    } else {
-      newStatus = INVOICE_STATUS.SENT;
+  } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return null;
     }
 
-    const updatedInvoice = await tx.invoice.update({
-      where: { id: payment.invoiceId },
-      data: {
-        status: newStatus,
-        paidAt: null,
-        paymentMethod: null,
-      },
-      include: {
-        client: true,
-        items: true,
-        payments: {
-          orderBy: { paidAt: "desc" },
-        },
-      },
-    });
-
-    await tx.invoiceEvent.create({
-      data: {
-        invoiceId: payment.invoiceId,
-        type: INVOICE_EVENT.PAYMENT_DELETED,
-        payload: {
-          paymentId,
-          amount: payment.amount,
-          method: payment.method,
-          actorUserId: userId,
-          previousStatus: payment.invoice.status,
-          newStatus,
-        },
-      },
-    });
-
-    return updatedInvoice;
-  });
+    throw error;
+  }
 }
