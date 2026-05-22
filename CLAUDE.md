@@ -81,18 +81,18 @@ src/
 
 ### Canonical Route Patterns
 
-Every route in `src/app/api/*` is composed from the helpers in `src/shared/api/route-helpers.ts`. Use them — do not reinvent auth, body parsing, or error shapes per route.
+Every route in `src/app/api/*` is composed from the helpers in `src/server/api/route-helpers.ts`. Use them — do not reinvent auth, body parsing, or error shapes per route.
 
 **Authenticated route:**
 
 ```typescript
-import { parseBody, withAuth } from "@app/shared/api/route-helpers";
+import { parseBody, withAuth } from "@app/server/api/route-helpers";
 
-import { invoiceCreateSchema } from "@app/features/invoices/schemas/invoice";
+import { createInvoiceSchema } from "@app/shared/schemas";
 import { createInvoice } from "@app/server/invoices";
 
 export const POST = withAuth(async (user, request) => {
-  const { data, error } = await parseBody(request, invoiceCreateSchema);
+  const { data, error } = await parseBody(request, createInvoiceSchema);
   if (error) return error;
 
   const invoice = await createInvoice(user.id, data);
@@ -103,7 +103,7 @@ export const POST = withAuth(async (user, request) => {
 **Admin-only route** (gated by `ADMIN_EMAIL` env, used for waitlist-admin endpoints):
 
 ```typescript
-import { withAdmin } from "@app/shared/api/route-helpers";
+import { withAdmin } from "@app/server/api/route-helpers";
 
 export const POST = withAdmin(async (user, request, context) => {
   return NextResponse.json({ data: { ok: true } });
@@ -114,14 +114,14 @@ export const POST = withAdmin(async (user, request, context) => {
 
 ```typescript
 import { withIdempotency } from "@app/shared/api/idempotency";
-import { withAuth } from "@app/shared/api/route-helpers";
+import { withAuth } from "@app/server/api/route-helpers";
 
 export const POST = withAuth(
   withIdempotency(handler, { endpoint: "POST /api/invoices/:id/payments" })
 );
 ```
 
-**Helper inventory** (`src/shared/api/route-helpers.ts`):
+**Helper inventory** (`src/server/api/route-helpers.ts`):
 
 - `withAuth(handler, errorHandlers?)` — verifies session, surfaces `UNAUTHORIZED` (401) on failure, dispatches custom `errorHandlers` (e.g. domain-error → 400) before falling back to `INTERNAL_ERROR` (500).
 - `withAdmin(handler, errorHandlers?)` — `withAuth` plus `env.ADMIN_EMAIL` check; non-admins get `FORBIDDEN` (403).
@@ -202,7 +202,7 @@ shared/hooks/use-autosave.ts
 features/invoices/hooks/use-invoice.ts
 
 # Schemas
-features/invoices/schemas/invoice.ts
+shared/schemas/invoice.ts
 
 # API
 features/invoices/api/index.ts
@@ -288,7 +288,7 @@ Pattern:
 
 ```typescript
 import { withIdempotency } from "@app/shared/api/idempotency";
-import { withAuth } from "@app/shared/api/route-helpers";
+import { withAuth } from "@app/server/api/route-helpers";
 
 export const POST = withAuth(
   withIdempotency(handler, { endpoint: "POST /api/invoices/:id/payments" })
