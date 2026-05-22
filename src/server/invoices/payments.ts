@@ -147,15 +147,15 @@ export async function getPayments(invoiceId: string, userId: string) {
   });
 }
 
-export async function deletePayment(paymentId: string, userId: string) {
+export async function deletePayment(invoiceId: string, paymentId: string, userId: string) {
   const payment = await prisma.payment.findFirst({
-    where: { id: paymentId },
+    where: { id: paymentId, invoice: { id: invoiceId, userId } },
     include: {
       invoice: true,
     },
   });
 
-  if (!payment || payment.invoice.userId !== userId) {
+  if (!payment) {
     return null;
   }
 
