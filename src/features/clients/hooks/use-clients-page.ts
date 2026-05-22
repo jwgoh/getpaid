@@ -64,7 +64,7 @@ function filterAndSortClients(
 }
 
 export function useClientsPage() {
-  const { data: clients, isLoading, error } = useClients();
+  const { data: clients, isLoading, error, refetch } = useClients();
   const toast = useToast();
   const { deleteItem, pendingIds } = useOptimisticDelete({
     queryKey: queryKeys.clients,
@@ -126,6 +126,7 @@ export function useClientsPage() {
     clients,
     isLoading,
     error,
+    refetch,
     searchQuery,
     setSearchQuery,
     createDialogOpen,

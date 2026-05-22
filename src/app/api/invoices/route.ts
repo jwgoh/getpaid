@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { withIdempotency } from "@app/shared/api/idempotency";
 import { createInvoiceSchema } from "@app/shared/schemas";
 import { asUserId } from "@app/shared/types/ids";
 
+import { withIdempotency } from "@app/server/api/idempotency";
 import { errorResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
 import {
   ClientNotFoundError,

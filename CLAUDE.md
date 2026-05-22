@@ -113,7 +113,7 @@ export const POST = withAdmin(async (user, request, context) => {
 **Idempotent write** (compose with `withAuth`):
 
 ```typescript
-import { withIdempotency } from "@app/shared/api/idempotency";
+import { withIdempotency } from "@app/server/api/idempotency";
 import { withAuth } from "@app/server/api/route-helpers";
 
 export const POST = withAuth(
@@ -277,7 +277,7 @@ Common error codes:
 - `NOT_FOUND` - Resource not found or not owned by the caller
 - `EMAIL_EXISTS` - Sign-up attempted with an email that already has an account
 - `REGISTRATION_DISABLED` - Sign-up blocked by edition (`pro` rejects public registration)
-- `IDEMPOTENCY_KEY_REQUIRED` / `IDEMPOTENCY_KEY_INVALID` / `IDEMPOTENCY_KEY_REUSED` - Idempotency-Key header issues (see Idempotency below)
+- `IDEMPOTENCY_KEY_REQUIRED` / `IDEMPOTENCY_KEY_INVALID` / `IDEMPOTENCY_KEY_REUSED` / `IDEMPOTENCY_KEY_IN_PROGRESS` - Idempotency-Key header issues (see Idempotency below)
 - `INTERNAL_ERROR` - Unexpected server error
 
 ## Idempotency
@@ -287,7 +287,7 @@ State-changing endpoints with money / data-creation impact require an `Idempoten
 Pattern:
 
 ```typescript
-import { withIdempotency } from "@app/shared/api/idempotency";
+import { withIdempotency } from "@app/server/api/idempotency";
 import { withAuth } from "@app/server/api/route-helpers";
 
 export const POST = withAuth(
@@ -306,6 +306,7 @@ Behavior:
 - Same key + same body within 24h -> cached `(status, body)` returned.
 - Same key + different body within 24h -> `422 IDEMPOTENCY_KEY_REUSED`.
 - Key validation: 8-128 printable ASCII chars, else `400 IDEMPOTENCY_KEY_INVALID`.
+- The key row is claimed (inserted with an empty response) BEFORE the handler runs, so the unique constraint serializes concurrent same-key requests — only the INSERT winner executes the handler. A concurrent same-key request that loses the INSERT while the winner is still in flight gets `409 IDEMPOTENCY_KEY_IN_PROGRESS` (retryable) and never re-runs the handler. If the handler throws, the claim row is deleted so the key stays retryable.
 
 Frontend convention: React Query mutations call `generateIdempotencyKey()` from `@app/shared/api/idempotency-key` per submit (one fresh UUID per user action). Pass it through the API client; the API client puts it into `Idempotency-Key` via `idempotencyHeader()`.
 

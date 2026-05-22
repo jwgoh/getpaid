@@ -20,31 +20,27 @@ const INVOICE_PAID_INCLUDE = {
 export type InvoicePaidEntity = Prisma.InvoiceGetPayload<{ include: typeof INVOICE_PAID_INCLUDE }>;
 
 export async function markInvoiceViewed(publicId: PublicId): Promise<Invoice | null> {
-  const invoice = await prisma.invoice.findUnique({
-    where: { publicId },
+  const claim = await prisma.invoice.updateMany({
+    where: { publicId, viewedAt: null },
+    data: { viewedAt: new Date() },
   });
 
-  if (!invoice || invoice.viewedAt) {
-    return invoice;
+  if (claim.count === 1) {
+    await prisma.$transaction(async (tx) => {
+      await tx.invoice.updateMany({
+        where: { publicId, status: INVOICE_STATUS.SENT },
+        data: { status: INVOICE_STATUS.VIEWED },
+      });
+
+      const invoice = await tx.invoice.findUnique({ where: { publicId } });
+
+      if (invoice) {
+        await logInvoiceEvent(invoice.id, INVOICE_EVENT.VIEWED, {}, tx);
+      }
+    });
   }
 
-  const updated = await prisma.invoice.update({
-    where: { publicId },
-    data: {
-      viewedAt: new Date(),
-      status: invoice.status === INVOICE_STATUS.SENT ? INVOICE_STATUS.VIEWED : invoice.status,
-    },
-  });
-
-  await prisma.invoiceEvent.create({
-    data: {
-      invoiceId: invoice.id,
-      type: INVOICE_EVENT.VIEWED,
-      payload: {},
-    },
-  });
-
-  return updated;
+  return prisma.invoice.findUnique({ where: { publicId } });
 }
 
 export async function markInvoicePaid(

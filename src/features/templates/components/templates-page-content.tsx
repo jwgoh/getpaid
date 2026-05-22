@@ -1,10 +1,11 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import { Alert, Button } from "@mui/material";
+import { Button } from "@mui/material";
 
 import { RESPONSIVE_SX } from "@app/shared/config/config";
 import { HelpTooltip } from "@app/shared/ui/help-tooltip";
+import { ListErrorState } from "@app/shared/ui/list-error-state";
 import { MobileFab } from "@app/shared/ui/mobile-fab";
 import { PageHeader } from "@app/shared/ui/page-header";
 
@@ -19,6 +20,7 @@ export function TemplatesPageContent() {
   const {
     isLoading,
     error,
+    refetch,
     sortedTemplates,
     allTemplatesCount,
     searchQuery,
@@ -36,33 +38,40 @@ export function TemplatesPageContent() {
     navigateToNewTemplate,
   } = state;
 
+  const header = (
+    <PageHeader
+      title={
+        <>
+          Invoice Templates
+          <HelpTooltip title="Templates are reusable invoice blueprints with predefined items, tax rates, and due dates. Click 'Use Template' to create a new invoice from any template." />
+        </>
+      }
+      subtitle="Create reusable templates to speed up invoice creation"
+      actions={
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={navigateToNewTemplate}
+          sx={RESPONSIVE_SX.DESKTOP_ONLY}
+        >
+          New Template
+        </Button>
+      }
+    />
+  );
+
+  if (error) {
+    return (
+      <>
+        {header}
+        <ListErrorState entity="templates" onRetry={() => void refetch()} />
+      </>
+    );
+  }
+
   return (
     <>
-      <PageHeader
-        title={
-          <>
-            Invoice Templates
-            <HelpTooltip title="Templates are reusable invoice blueprints with predefined items, tax rates, and due dates. Click 'Use Template' to create a new invoice from any template." />
-          </>
-        }
-        subtitle="Create reusable templates to speed up invoice creation"
-        actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={navigateToNewTemplate}
-            sx={RESPONSIVE_SX.DESKTOP_ONLY}
-          >
-            New Template
-          </Button>
-        }
-      />
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          Failed to load templates. Please try again.
-        </Alert>
-      )}
+      {header}
 
       {!isLoading && allTemplatesCount > 0 && (
         <TemplatesSearchBar

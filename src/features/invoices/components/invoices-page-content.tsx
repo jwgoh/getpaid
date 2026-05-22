@@ -2,9 +2,9 @@
 
 import AddIcon from "@mui/icons-material/Add";
 import DownloadIcon from "@mui/icons-material/Download";
-import { Alert } from "@mui/material";
 
 import { ConfirmDialog } from "@app/shared/ui/confirm-dialog";
+import { ListErrorState } from "@app/shared/ui/list-error-state";
 import { MobileFab } from "@app/shared/ui/mobile-fab";
 import { PageHeader } from "@app/shared/ui/page-header";
 
@@ -19,25 +19,32 @@ export function InvoicesPageContent() {
   const state = useInvoicesPage();
   const hasInvoices = !state.isLoading && !!state.invoices && state.invoices.length > 0;
 
+  const header = (
+    <PageHeader
+      title="Invoices"
+      subtitle="Manage and track all your invoices"
+      actions={
+        <InvoicesHeaderActions
+          hasInvoices={hasInvoices}
+          onExport={state.handleExportCSV}
+          onNew={state.navigateToNew}
+        />
+      }
+    />
+  );
+
+  if (state.error) {
+    return (
+      <>
+        {header}
+        <ListErrorState entity="invoices" onRetry={() => void state.refetch()} />
+      </>
+    );
+  }
+
   return (
     <>
-      <PageHeader
-        title="Invoices"
-        subtitle="Manage and track all your invoices"
-        actions={
-          <InvoicesHeaderActions
-            hasInvoices={hasInvoices}
-            onExport={state.handleExportCSV}
-            onNew={state.navigateToNew}
-          />
-        }
-      />
-
-      {state.error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          Failed to load invoices. Please try again.
-        </Alert>
-      )}
+      {header}
 
       <InvoicesSearchFilters
         searchQuery={state.searchQuery}

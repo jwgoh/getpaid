@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
 import { asPublicId } from "@app/shared/types/ids";
 
+import { applyRateLimit, RATE_LIMITS } from "@app/server/api/rate-limit";
 import { getUser } from "@app/server/auth/require-user";
 import { tryMarkViewed } from "@app/server/invoices";
 

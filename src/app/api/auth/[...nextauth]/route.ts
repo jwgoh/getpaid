@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
-
+import { applyRateLimit, RATE_LIMITS } from "@app/server/api/rate-limit";
 import { handlers } from "@app/server/auth";
 
 const CREDENTIALS_CALLBACK_PATH = "/api/auth/callback/credentials";

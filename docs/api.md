@@ -14,23 +14,24 @@ Hand-written reference for GetPaid's 27 REST endpoints. The actual route handler
 
 ### Error codes
 
-| Code                       | Status | Meaning                                                            |
-| -------------------------- | ------ | ------------------------------------------------------------------ |
-| `VALIDATION_ERROR`         | 400    | Zod parse failed; first issue's message is in `error.message`      |
-| `BAD_REQUEST`              | 400    | Well-formed input rejected by a business rule                      |
-| `UNAUTHORIZED`             | 401    | Session missing or expired                                         |
-| `FORBIDDEN`                | 403    | Authenticated but not allowed (`withAdmin` route hit by non-admin) |
-| `REGISTRATION_DISABLED`    | 403    | Public sign-up blocked (`pro` edition + email not approved)        |
-| `NOT_FOUND`                | 404    | Resource not found or not owned by the caller                      |
-| `EMAIL_EXISTS`             | 409    | Sign-up email already has an account                               |
-| `ALREADY_SENT`             | 400    | Invoice already in SENT/VIEWED/PAID state                          |
-| `INVALID_STATE`            | 400    | Resource not in a state that permits the requested action          |
-| `CLIENT_HAS_DEPENDENTS`    | 409    | Client has active invoices                                         |
-| `IDEMPOTENCY_KEY_REQUIRED` | 400    | `Idempotency-Key` header missing on enforced route                 |
-| `IDEMPOTENCY_KEY_INVALID`  | 400    | `Idempotency-Key` malformed (length / chars)                       |
-| `IDEMPOTENCY_KEY_REUSED`   | 422    | Same key + different request body within 24h                       |
-| `RATE_LIMITED`             | 429    | IP rate-limit bucket exhausted                                     |
-| `INTERNAL_ERROR`           | 500    | Unexpected error                                                   |
+| Code                          | Status | Meaning                                                            |
+| ------------------------------ | ------ | ------------------------------------------------------------------ |
+| `VALIDATION_ERROR`            | 400    | Zod parse failed; first issue's message is in `error.message`      |
+| `BAD_REQUEST`                 | 400    | Well-formed input rejected by a business rule                      |
+| `UNAUTHORIZED`                | 401    | Session missing or expired                                         |
+| `FORBIDDEN`                   | 403    | Authenticated but not allowed (`withAdmin` route hit by non-admin) |
+| `REGISTRATION_DISABLED`       | 403    | Public sign-up blocked (`pro` edition + email not approved)        |
+| `NOT_FOUND`                   | 404    | Resource not found or not owned by the caller                      |
+| `EMAIL_EXISTS`                | 409    | Sign-up email already has an account                               |
+| `ALREADY_SENT`                | 400    | Invoice already in SENT/VIEWED/PAID state                          |
+| `INVALID_STATE`               | 400    | Resource not in a state that permits the requested action          |
+| `CLIENT_HAS_DEPENDENTS`       | 409    | Client has active invoices                                         |
+| `IDEMPOTENCY_KEY_REQUIRED`    | 400    | `Idempotency-Key` header missing on enforced route                 |
+| `IDEMPOTENCY_KEY_INVALID`     | 400    | `Idempotency-Key` malformed (length / chars)                       |
+| `IDEMPOTENCY_KEY_REUSED`      | 422    | Same key + different request body within 24h                       |
+| `IDEMPOTENCY_KEY_IN_PROGRESS` | 409    | Same key still being processed by a concurrent request; retry      |
+| `RATE_LIMITED`                | 429    | IP rate-limit bucket exhausted                                     |
+| `INTERNAL_ERROR`              | 500    | Unexpected error                                                   |
 
 ### Schema reference
 
