@@ -66,7 +66,6 @@ The actual underlying issue (not the symptom). If multiple contributing causes, 
 
 Each action item should map to either:
 
-- A finding ID in `.audit/<ts>/` (file an update if it's already known), or
 - A new GitHub issue (link here), or
 - An ADR if it's a one-way-door change to architecture.
 

@@ -69,7 +69,7 @@ Click "Delete" on the row. UI calls `DELETE /api/waitlist/[id]`. Hard-delete; no
 
 The waitlist table is small (single-digit to low-double-digit entries during invite-only beta). Two known gaps:
 
-- **Approved-and-converted entries persist.** When a user signs up, the `WaitlistEntry` is not auto-deleted. Tracked as DATA-006.
+- **Approved-and-converted entries persist.** When a user signs up, the `WaitlistEntry` is not auto-deleted. Known gap — see "Open work" below.
 - **No conversion-rate metric.** No dashboard shows "X approved, Y converted to users". Today this is a manual SQL query against `WaitlistEntry` joined with `User` by email.
 
 ## Common operator tasks
@@ -96,6 +96,6 @@ The audit trail is currently `WaitlistEntry.updatedAt` only — there's no `appr
 
 ## Open work
 
-- **`WaitlistStatus.CONVERTED`** state + auto-flip on sign-up — DATA-006.
+- **`WaitlistStatus.CONVERTED`** state + auto-flip on sign-up — not yet built.
 - **Audit trail** for who approved an entry — not currently filed (single-admin model).
 - **Bulk-approve UI / API** — not currently filed.

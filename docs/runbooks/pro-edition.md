@@ -21,7 +21,7 @@ In addition to the baseline variables in `deployment.md`:
 
 ## Monitoring
 
-The current observability surface is thin (see `.audit/1778157009/observability.md` — score D). Until OBS-001 / OBS-002 land, monitoring is manual:
+The current observability surface is thin — no error-tracking service and no metrics pipeline are wired up. Until structured logging/metrics and an error tracker land, monitoring is manual:
 
 ### Daily
 
@@ -40,11 +40,11 @@ The current observability surface is thin (see `.audit/1778157009/observability.
 
 - [ ] Quarterly restore drill (every third month — see `docs/backup.md`).
 - [ ] Sub-processor change check (Resend / Postgres host plan changes, region adds).
-- [ ] Review `.audit/<ts>/` for any newly opened findings that affect prod.
+- [ ] Review any newly opened findings or issues that affect prod.
 
 ## Alerting (placeholder)
 
-No automated alerting today. When alerting lands (OBS-002 / OBS-007), this section names:
+No automated alerting today. When alerting lands (error tracker plus an alert-routing integration — see Open work), this section names:
 
 - The error-rate threshold per route.
 - The latency P95 threshold.
@@ -68,7 +68,7 @@ Inbound channels: email to operator, GitHub Issues, direct message on social. Th
 
 ### Common requests
 
-- **"Delete my account."** No self-service path today (DATA-003 / CROSS-DATA-003). Manual `User` row deletion cascades to all owned data. Ack within 24h, complete within 30 days per GDPR Article 17.
+- **"Delete my account."** No self-service path today — self-service GDPR export/erasure endpoints are not yet built. Manual `User` row deletion cascades to all owned data. Ack within 24h, complete within 30 days per GDPR Article 17.
 - **"Export my data."** No self-service path today. Manual `pg_dump --table` for the user's owned tables, then JSON-encode for the user. Same SLA.
 - **"I forgot my password."** No password-reset flow today (Security gap, not currently filed). Manual fallback: regenerate `passwordHash` to a known value, send to user via secure channel, force them to change on first login (no UI for this either — interim fix).
 - **"My invoice email never arrived."** Check `EmailOutbox` + Resend dashboard per `oncall.md`.
@@ -79,7 +79,7 @@ Inbound channels: email to operator, GitHub Issues, direct message on social. Th
 These are documented gaps a `pro` operator should be aware of and ready to explain to customers:
 
 - **No tests.** ADR 0003. Regressions surface via user reports.
-- **No self-service GDPR endpoints.** DATA-003. Manual fulfilment within 30 days.
+- **No self-service GDPR endpoints.** Export/erasure are fulfilled manually within 30 days.
 - **No password-reset flow.** Manual operator workflow until built.
 - **No SLO / status page.** Best-effort uptime; no formal commitment until the instance leaves beta.
 - **Single admin.** `ADMIN_EMAIL` accepts exactly one email. Multi-admin support requires schema work.
@@ -102,7 +102,7 @@ Use `incident-template.md` and additionally tag incidents:
 ## Open work (pro-specific)
 
 - **Status page** at `status.getpaid.dev` (or hosted via UptimeRobot / Better Stack) — not deployed.
-- **Sentry / Glitchtip** for error tracking — OBS-002.
-- **PagerDuty / Opsgenie / Slack webhook** for alert routing — OBS-007.
+- **Sentry / Glitchtip** for error tracking — not deployed.
+- **PagerDuty / Opsgenie / Slack webhook** for alert routing — not deployed.
 - **In-app support form** — not currently filed.
 - **Multi-admin support** — schema change required; not currently filed.

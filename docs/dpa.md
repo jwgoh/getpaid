@@ -59,7 +59,7 @@ Where Personal Data is transferred outside the EEA / UK to a country without an 
 
 [Operator] shall, taking into account the nature of the processing, assist [Customer] by appropriate technical and organisational measures, insofar as this is possible, for the fulfilment of [Customer]'s obligation to respond to requests for exercising the data subject's rights laid down in Chapter III of the GDPR.
 
-> **Implementation note.** Self-service data export and erasure endpoints are not yet implemented in GetPaid. See DATA-003 in `.audit/1778157009/data-lifecycle.md`. Until those land, [Operator] commits to fulfilling Article 15 / 17 / 20 requests within 30 days via manual SQL operations.
+> **Implementation note.** Self-service data export and erasure endpoints are not yet implemented in GetPaid — a known, tracked gap. Until those land, [Operator] commits to fulfilling Article 15 / 17 / 20 requests within 30 days via manual SQL operations.
 
 ### 8. Personal data breach notification
 
@@ -79,10 +79,10 @@ See the table at the top of this document.
 
 ### Annex B — Technical and organisational measures
 
-Refer to `docs/privacy.md` (Security baseline) and `.audit/1778157009/security.md` for the operative posture. Operators may extend with their own measures (SOC 2 attestation, ISO 27001, etc.) when applicable.
+Refer to `docs/privacy.md` (Security baseline) for the operative posture. Operators may extend with their own measures (SOC 2 attestation, ISO 27001, etc.) when applicable.
 
 ## Open work
 
-- Self-service data export endpoint (DATA-003).
-- Self-service data erasure with anonymisation flow (DATA-003).
+- Self-service data export endpoint.
+- Self-service data erasure with anonymisation flow.
 - Automated sub-processor change notification (operator-side; not in code).

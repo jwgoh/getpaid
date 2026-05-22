@@ -1,6 +1,6 @@
 # On-call runbook
 
-Where to look first, what to check, common failure modes. Scoped to the current observability posture (no Sentry, no aggregated metrics — see `.audit/1778157009/observability.md` OBS-001/002 for the open work).
+Where to look first, what to check, common failure modes. Scoped to the current observability posture: no error-tracking service (Sentry/Glitchtip) and no aggregated metrics are wired up — both are known open work.
 
 ## Paging triggers
 
@@ -21,7 +21,7 @@ In rough order of "answers most failures fastest":
 - Vercel Dashboard → Project → Logs.
 - Filter by time window matching the user-reported issue.
 - Search by route path (`/api/invoices/`) or error message.
-- Caveat: no request IDs in logs today (OBS-003 open). To correlate a specific user's request to a log line you grep by their email address (which leaks into logs via Resend errors — itself OBS-004).
+- Caveat: there are no request IDs in logs today, so requests cannot be correlated by a stable identifier. To trace a specific user's request you grep by their email address — which itself leaks into logs via Resend error messages, a known PII-in-logs gap.
 
 ### 2. EmailOutbox table
 
@@ -119,7 +119,7 @@ Triage:
 ## What to do after triage
 
 - Document the root cause inline in `docs/runbooks/incident-template.md` (per-incident copy).
-- If the failure is recurring, file a finding (or update `.audit/1778157009/observability.md`) so the underlying gap gets fixed in the next iteration.
+- If the failure is recurring, file an issue capturing the underlying gap so it gets fixed in the next iteration.
 - If a code or env change was required, follow `deployment.md` to roll out the fix (with backup + smoke test).
 
 ## Pro-edition specifics

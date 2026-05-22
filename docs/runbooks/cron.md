@@ -12,7 +12,7 @@ There is no internal scheduler — the operator wires it up to an external trigg
 
 The repo does not currently ship a `vercel.json` (the previous Salt Edge cron was removed when banking was deleted). To re-enable scheduled tasks, create `vercel.json` at the project root with a cron entry pointing at a route that invokes the worker. The current shape of the worker is a **CLI script**, not an HTTP route — so wiring it to Vercel cron requires either:
 
-1. **Adding an HTTP wrapper.** Open work — see OBS-010 for the proposed design (`POST /api/cron/outbox`, gated by an `x-cron-secret` header). Until that lands, Vercel cron cannot drive it directly.
+1. **Adding an HTTP wrapper.** Open work — the proposed design is a `POST /api/cron/outbox` route gated by an `x-cron-secret` header. Until that lands, Vercel cron cannot drive it directly.
 2. **External scheduler that invokes the script.** A GitHub Actions workflow on `schedule:` triggers can SSH into a runner with the env set and execute `pnpm outbox:run` — works for managed Postgres because the connection string is the only state needed.
 
 ### Minimal GitHub Actions example (until HTTP cron wrappers land)
@@ -90,7 +90,7 @@ Output: the script logs `attempted=N sent=N failed=N pending=N`. On failure, exi
 
 ## Verifying the schedule is running
 
-There is no application-level "did the cron run today?" alert (open work — see OBS-010). To verify manually:
+There is no application-level "did the cron run today?" alert (open work — see "Open work" below). To verify manually:
 
 1. Check the GitHub Actions / systemd timer logs for the last successful run.
 2. Confirm `EmailOutbox.status = PENDING` rows older than 30 minutes are decreasing.
@@ -99,5 +99,5 @@ If that count climbs monotonically, the cron is not firing — see `oncall.md` "
 
 ## Open work
 
-- **HTTP cron wrapper** (`POST /api/cron/outbox`) gated by `x-cron-secret`. Tracked as OBS-010.
-- **"Cron didn't run in last 24h" alert.** Tracked as OBS-007 — depends on a structured logger (OBS-001) shipping first.
+- **HTTP cron wrapper** (`POST /api/cron/outbox`) gated by `x-cron-secret` — not yet built.
+- **"Cron didn't run in last 24h" alert.** Not yet built — depends on a structured logger shipping first.
