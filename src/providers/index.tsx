@@ -16,6 +16,7 @@ import { ToastProvider } from "./toast";
 
 export { QueryProvider } from "./query";
 export { SessionProvider } from "./session-provider";
+export { darkTheme, lightTheme } from "./theme";
 export { type ThemeMode, ThemeRegistry, useThemeMode } from "./theme/registry";
 
 export function Providers({
