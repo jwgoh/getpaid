@@ -153,4 +153,4 @@ After deploy, ensure the background workers are scheduled. See `docs/runbooks/cr
 ## Open work
 
 - **Automated smoke-test post-deploy.** Today the smoke test is manual — see ADR 0003 (test strategy) for the back-fill plan.
-- **Staging environment.** None today. Migrations are dry-run only via `prisma migrate diff` against `$PROD_DATABASE_URL`. Tracked as DATA-009.
+- **Staging environment.** None today. Migrations are dry-run only via `prisma migrate diff` against `$PROD_DATABASE_URL`. A representative staging DB for dry-running migrations is a known open item.

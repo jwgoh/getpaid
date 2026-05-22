@@ -10,6 +10,7 @@ import { prisma } from "@app/server/db";
 
 const PG_CHECK_VIOLATION = "23514";
 const INVOICE_PAID_AMOUNT_CHECK = "Invoice_paidAmount_lte_total_check";
+const PRISMA_RECORD_NOT_FOUND = "P2025";
 
 export class PaymentExceedsBalanceError extends Error {
   constructor() {
@@ -41,6 +42,12 @@ function isPaidAmountCheckViolation(error: unknown): boolean {
   return (
     message.includes(INVOICE_PAID_AMOUNT_CHECK) ||
     (message.includes(PG_CHECK_VIOLATION) && message.includes("paidAmount"))
+  );
+}
+
+function isRecordNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_RECORD_NOT_FOUND
   );
 }
 
@@ -117,6 +124,10 @@ export async function recordPayment(id: string, userId: string, data: RecordPaym
       return updatedInvoice;
     });
   } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return null;
+    }
+
     if (isPaidAmountCheckViolation(error)) {
       throw new PaymentExceedsBalanceError();
     }
@@ -140,67 +151,78 @@ export async function getPayments(invoiceId: string, userId: string) {
   });
 }
 
-export async function deletePayment(paymentId: string, userId: string) {
+export async function deletePayment(invoiceId: string, paymentId: string, userId: string) {
   const payment = await prisma.payment.findFirst({
-    where: { id: paymentId },
+    where: { id: paymentId, invoice: { id: invoiceId, userId } },
     include: {
       invoice: true,
     },
   });
 
-  if (!payment || payment.invoice.userId !== userId) {
+  if (!payment) {
     return null;
   }
 
-  const newPaidAmount = payment.invoice.paidAmount - payment.amount;
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.payment.delete({
+        where: { id: paymentId },
+      });
 
-  let newStatus: InvoiceStatusValue;
+      const decremented = await tx.invoice.update({
+        where: { id: payment.invoiceId },
+        data: { paidAmount: { decrement: payment.amount } },
+        select: { paidAmount: true, viewedAt: true },
+      });
 
-  if (newPaidAmount > 0) {
-    newStatus = INVOICE_STATUS.PARTIALLY_PAID;
-  } else if (payment.invoice.viewedAt) {
-    newStatus = INVOICE_STATUS.VIEWED;
-  } else {
-    newStatus = INVOICE_STATUS.SENT;
+      let newStatus: InvoiceStatusValue;
+
+      if (decremented.paidAmount > 0) {
+        newStatus = INVOICE_STATUS.PARTIALLY_PAID;
+      } else if (decremented.viewedAt) {
+        newStatus = INVOICE_STATUS.VIEWED;
+      } else {
+        newStatus = INVOICE_STATUS.SENT;
+      }
+
+      const updatedInvoice = await tx.invoice.update({
+        where: { id: payment.invoiceId },
+        data: {
+          status: newStatus,
+          paidAt: null,
+          paymentMethod: null,
+        },
+        include: {
+          client: true,
+          items: true,
+          payments: {
+            orderBy: { paidAt: "desc" },
+          },
+        },
+      });
+
+      await tx.invoiceEvent.create({
+        data: {
+          invoiceId: payment.invoiceId,
+          type: INVOICE_EVENT.PAYMENT_DELETED,
+          payload: {
+            paymentId,
+            amount: payment.amount,
+            method: payment.method,
+            actorUserId: userId,
+            previousStatus: payment.invoice.status,
+            newStatus,
+          },
+        },
+      });
+
+      return updatedInvoice;
+    });
+  } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return null;
+    }
+
+    throw error;
   }
-
-  return prisma.$transaction(async (tx) => {
-    await tx.payment.delete({
-      where: { id: paymentId },
-    });
-
-    const updatedInvoice = await tx.invoice.update({
-      where: { id: payment.invoiceId },
-      data: {
-        paidAmount: newPaidAmount,
-        status: newStatus,
-        paidAt: null,
-        paymentMethod: null,
-      },
-      include: {
-        client: true,
-        items: true,
-        payments: {
-          orderBy: { paidAt: "desc" },
-        },
-      },
-    });
-
-    await tx.invoiceEvent.create({
-      data: {
-        invoiceId: payment.invoiceId,
-        type: INVOICE_EVENT.PAYMENT_DELETED,
-        payload: {
-          paymentId,
-          amount: payment.amount,
-          method: payment.method,
-          actorUserId: userId,
-          previousStatus: payment.invoice.status,
-          newStatus,
-        },
-      },
-    });
-
-    return updatedInvoice;
-  });
 }

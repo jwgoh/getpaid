@@ -74,14 +74,10 @@ export const DELETE = withAuth(async (user, request, context) => {
     return errorResponse("VALIDATION_ERROR", "Payment ID is required", 400);
   }
 
-  const invoice = await deletePayment(paymentId, user.id);
+  const invoice = await deletePayment(invoiceId, paymentId, user.id);
 
   if (!invoice) {
     return notFoundResponse("Payment not found or cannot be deleted");
-  }
-
-  if (invoice.id !== invoiceId) {
-    return errorResponse("BAD_REQUEST", "Payment does not belong to this invoice", 400);
   }
 
   return NextResponse.json(invoice);

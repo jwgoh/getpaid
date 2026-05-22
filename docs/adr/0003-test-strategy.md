@@ -1,6 +1,6 @@
-# ADR 0003: Test strategy — Vitest + Playwright (deferred until post-MVP)
+# ADR 0003: Test strategy — Vitest + Playwright
 
-- **Status:** Accepted (debt explicitly acknowledged)
+- **Status:** Accepted (partially implemented — see Update 2026-05-22)
 - **Date:** 2026-05-08
 
 ## Context
@@ -11,7 +11,7 @@ The project shipped its v0.1.0 MVP without any automated tests:
 - No `vitest.config.*`, no `playwright.config.*`, no test runner configured.
 - No CI gating — type-check + lint + format-check pre-commit hooks are the only mechanical guard.
 
-This was a deliberate (but unrecorded) trade-off during the initial Feb 2026 build sprint: ship the MVP, validate the product with real waitlist signups, then back-fill tests once the schema and feature surface stabilised. The audit (`.audit/1778157009/`) flagged this as DEC-002 / CROSS-003 (decision-level + cross-block finding) — "no tests implemented yet". Without an ADR, the next contributor risks either:
+This was a deliberate (but unrecorded) trade-off during the initial Feb 2026 build sprint: ship the MVP, validate the product with real waitlist signups, then back-fill tests once the schema and feature surface stabilised. A project health audit flagged the test-free state as a decision-level, cross-block gap — "no tests implemented yet". Without an ADR, the next contributor risks either:
 
 - Reinventing the same trade-off (and slipping it again), or
 - Layering tests onto a stack with no test infrastructure, requiring a setup phase before any single test can land.
@@ -37,7 +37,7 @@ Pyramid target (post-MVP backfill goal):
 - **30% integration** — server services in `src/server/*` against a test Postgres (Prisma + transaction-rollback fixtures), API route handlers via `withAuth` + `parseBody`.
 - **10% E2E** — Playwright covering the money-flow critical paths only: sign-up → create invoice → send invoice → record payment → mark paid; plus the public viewer (`/i/[publicId]`).
 
-**Note:** No tests are currently implemented. See `CROSS-003` in `.audit/1778157009/report.md` for the open finding. This ADR records the chosen tools and the pyramid target; the actual test back-fill is a separate effort.
+**Note:** The Vitest framework choice is now realised — `vitest.config.ts` exists and a unit-test suite runs via `pnpm test`. The integration and E2E tiers are still outstanding. See "Update 2026-05-22" below for the current state against the pyramid target.
 
 ## Alternatives considered
 
@@ -56,19 +56,31 @@ Pyramid target (post-MVP backfill goal):
 
 **Negative / costs to acknowledge today:**
 
-- **Zero regression coverage right now.** Every refactor lands on hand-checking + lint. The audit found no test-flakiness because there are no tests; the absence is the entire risk.
-- **CI gap.** No CI workflow exists (`.github/workflows/` only has Claude-related workflows, no `test.yml`). When tests land, CI must land with them.
-- **Schema-evolution risk.** Without integration tests against a Prisma test DB, schema migrations cannot be verified end-to-end pre-deploy. Mitigated for now by manual smoke testing + the `prisma migrate diff` dry-run discipline (DATA-009).
+- **Partial regression coverage.** A unit-test suite exists (pure logic in `src/shared/lib/*`, Zod schema parse/refine paths, the time-tracking token encryption). The integration and E2E tiers are not yet built, so service-layer and money-flow regressions still rely on hand-checking + lint until that backfill lands.
+- **Schema-evolution risk.** Without integration tests against a Prisma test DB, schema migrations cannot be verified end-to-end pre-deploy. Mitigated for now by manual smoke testing + the `prisma migrate diff` dry-run discipline.
 
 **Operational implications:**
 
-- Until tests exist, the type-check + lint + format-check pre-commit gate is the only mechanical guard.
-- Manual smoke-test checklist (login, create invoice, send invoice, view PDF, record payment) lives in `docs/runbooks/deployment.md`.
-- When the test back-fill starts, prioritise the integration tier (60→30 split) and the money-flow E2E first.
+- The unit suite plus the type-check + lint + format-check gate are the current mechanical guards. CI runs all of them on every push and pull request.
+- Manual smoke-test checklist (login, create invoice, send invoice, view PDF, record payment) lives in `docs/runbooks/deployment.md` — it remains the stand-in until the E2E tier covers the money flow.
+- The remaining back-fill should prioritise the integration tier (toward the 60→30 split) and the money-flow E2E first.
 
-## Open work
+## Update 2026-05-22
 
-Tracked as **CROSS-003** in `.audit/1778157009/report.md`. Re-evaluate this ADR when:
+The Vitest framework choice in this ADR is realised; the back-fill is in progress.
 
-1. The first integration test lands (revise the consequences section), or
+**Done:**
+
+- `vitest.config.ts` is committed and `pnpm test` runs the suite.
+- A unit suite exists and passes — covering `src/shared/lib/*` (calculations, theme mode), Zod schema parse/refine paths in `src/shared/schemas/*`, and the time-tracking token encryption in `src/server/time-tracking/*`.
+- CI runs the suite. The `.github/workflows/ci.yml` `check` job runs `pnpm test` alongside type-check, lint, and format-check — the earlier "CI gap" is closed.
+
+**Still outstanding (toward the 60/30/10 pyramid):**
+
+- **Integration tier** — server services in `src/server/*` against a test Postgres, and API route handlers via `withAuth` + `parseBody`. Not yet started.
+- **E2E tier** — Playwright is not yet installed; the money-flow critical paths (sign-up → create invoice → send → record payment → mark paid) and the public viewer (`/i/[publicId]`) are still covered only by the manual smoke-test checklist.
+
+## Re-evaluate this ADR when
+
+1. The first integration test lands (revise the Update section), or
 2. A regression in production traces back to untested logic (escalate the back-fill priority).

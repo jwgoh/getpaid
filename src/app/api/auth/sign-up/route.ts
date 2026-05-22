@@ -4,12 +4,7 @@ import { applyRateLimit, RATE_LIMITS } from "@app/shared/api/rate-limit";
 import { features } from "@app/shared/config/features";
 import { signUpSchema } from "@app/shared/schemas";
 
-import {
-  errorResponse,
-  internalErrorResponse,
-  parseBody,
-  validationErrorResponse,
-} from "@app/server/api/route-helpers";
+import { errorResponse, internalErrorResponse, parseBody } from "@app/server/api/route-helpers";
 import { createUser, EmailExistsError } from "@app/server/auth/signup";
 import { isEmailApproved } from "@app/server/waitlist";
 
@@ -23,13 +18,7 @@ export async function POST(request: Request) {
     return limited;
   }
 
-  let parsed;
-
-  try {
-    parsed = await parseBody(request, signUpSchema);
-  } catch {
-    return validationErrorResponse({ issues: [{ message: "Invalid JSON body" }] });
-  }
+  const parsed = await parseBody(request, signUpSchema);
 
   if (parsed.error) {
     return parsed.error;

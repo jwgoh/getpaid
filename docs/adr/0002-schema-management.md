@@ -13,7 +13,7 @@ The project now operates a managed `pro` instance at `getpaid.dev` with real use
 - There is no audit trail of how the schema arrived at its current shape.
 - Rolling back a bad schema change requires a backup restore, not a forward migration.
 
-The audit (`.audit/1778157009/`) flagged this as DEC-001 (decision-level finding). This ADR records the corrected posture so the original mistake is not reinvented.
+A project health audit flagged the `db push` posture as a decision-level mistake on a real-user database. This ADR records the corrected posture so the original mistake is not reinvented.
 
 ## Decision
 
@@ -24,7 +24,7 @@ Adopt **Prisma migration files committed to git**, applied via `prisma migrate d
 3. **Production application.** Vercel does NOT auto-apply migrations on deploy. Operators apply `DATABASE_URL=$PROD pnpm db:migrate:deploy` manually before merging the PR (after a `pg_dump` backup). See `docs/runbooks/deployment.md`.
 4. **Self-host (Docker).** The container `CMD` is `prisma migrate deploy && node server.js`. Pending migrations apply automatically on container boot — this is acceptable because `migrate deploy` only applies forward migrations and never destroys schema.
 5. **Baseline migration.** The first migration in the project — `prisma/migrations/20260508060000_baseline/migration.sql` — was committed in `306e4c9` (chore: adopt prisma migrate deploy with baseline migration). Existing prod databases that pre-date the migration history mark it applied via `prisma migrate resolve --applied 20260508060000_baseline`.
-6. **`db:push` script removed from `package.json`.** No path back to the unsafe pattern.
+6. **`db:push` script retained for local throwaway dev only.** `package.json` keeps `db:push` (`prisma db push`) — it is a legitimate tool for fast schema iteration against a disposable local database where migration history does not matter. It must NEVER run against a non-dev or production database: production and CI apply schema changes exclusively via `prisma migrate deploy`. `CLAUDE.md` ("Database migrations") documents `db push` on the same dev-only terms.
 
 ## Alternatives considered
 
@@ -45,7 +45,7 @@ Adopt **Prisma migration files committed to git**, applied via `prisma migrate d
 
 - Manual step in the production deploy flow (operators must remember to run `pnpm db:migrate:deploy`).
 - No automatic rollback — reverting a migration requires writing a forward migration that undoes it (or restoring from backup).
-- No staging environment (yet) for dry-running migrations against representative data — see DATA-009.
+- No staging environment (yet) for dry-running migrations against representative data before they hit production.
 
 **Operational implications:**
 

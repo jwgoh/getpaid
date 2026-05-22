@@ -36,12 +36,12 @@ What is **not** collected:
 Default posture: **data is retained for the lifetime of the user account**.
 
 - All user-owned rows (`User`, `Client`, `Invoice`, `Payment`, `InvoiceEvent`, `InvoiceTemplate`, `TimeTrackingConnection`) cascade-delete only when the parent `User` is deleted.
-- There is no automated time-based prune. The append-only `InvoiceEvent` table grows with usage. See `.audit/1778157009/data-lifecycle.md` (DATA-001) for the open finding on prune cadence.
-- `WaitlistEntry` rows persist after the user signs up (denormalised email lookup). Cleanup of converted-to-user entries is a known gap (DATA-006).
+- There is no automated time-based prune. The append-only `InvoiceEvent` table grows with usage; defining a retention/prune cadence for it is a known open item.
+- `WaitlistEntry` rows persist after the user signs up (denormalised email lookup). Cleanup of converted-to-user entries is a known gap.
 
 ## GDPR posture
 
-Right-to-export and right-to-erasure are **not yet implemented as self-service endpoints**. See `.audit/1778157009/data-lifecycle.md` (DATA-003) and the umbrella `CROSS-DATA-003` cross-block finding in `.audit/1778157009/report.md`.
+Right-to-export and right-to-erasure are **not yet implemented as self-service endpoints**. This is a known, tracked gap; until those endpoints land, GDPR data-subject requests are fulfilled manually (see below).
 
 Today's posture for a hosted `pro` instance:
 
@@ -58,11 +58,10 @@ This is a known gap and a tracked risk. `community` operators serving EU data su
 
 ## Security baseline
 
-- HTTPS-only deployments (HSTS + CSP headers configured per `SEC-003`).
+- HTTPS-only deployments (HSTS + CSP headers configured in `next.config.ts`).
 - `bcryptjs` for password hashing.
 - AES-256-GCM for at-rest token encryption (Toggl API tokens).
 - No raw `process.env` access outside `src/shared/config/env.ts` (lint-enforced).
-- See `.audit/1778157009/security.md` for the full security posture review.
 
 ## Operator responsibilities
 
@@ -77,4 +76,4 @@ If you operate a `pro` instance:
 
 - Sign your sub-processors' DPAs (Resend, Postgres host).
 - Add your own incident-response process to `docs/runbooks/incident-template.md`.
-- Track GDPR data subject requests until self-service endpoints land (DATA-003 / CROSS-DATA-003).
+- Track GDPR data subject requests until self-service export/erasure endpoints land.

@@ -1,6 +1,7 @@
 export * from "./api";
 export * from "./auth";
 export * from "./client";
+export * from "./date";
 export * from "./invoice";
 export * from "./line-item";
 export * from "./payment";

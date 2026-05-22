@@ -10,7 +10,7 @@ Hand-written reference for GetPaid's 27 REST endpoints. The actual route handler
 - **Success shape.** Routes return the resource directly (e.g. `{ id, ... }`) or an action ack (`{ success: true }`). List endpoints return arrays.
 - **Error shape.** Always `{ "error": { "code": "ERROR_CODE", "message": "Human readable message" } }` (sometimes with a `details` object). See the error code table below.
 - **Idempotency.** Money-changing or resource-creating writes require an `Idempotency-Key` header (8-128 printable ASCII chars). See `CLAUDE.md` "Idempotency" section. Endpoints that enforce this are flagged inline.
-- **Rate limits.** Public + auth endpoints are IP-rate-limited via an in-memory bucket (`src/shared/api/rate-limit.ts`). Limits surfaced via `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` / `Retry-After` headers; `429 RATE_LIMITED` on overflow.
+- **Rate limits.** Public + auth endpoints are IP-rate-limited via an in-memory bucket (`src/shared/api/rate-limit.ts`). Limits surfaced via `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` / `Retry-After` headers; `429 RATE_LIMITED` on overflow. The bucket is per server instance, so the configured limit is enforced as written only on a single-process deployment; on the multi-instance `pro` (Vercel) deployment the effective ceiling is the configured value times the live instance count, and a cold start resets a client's window.
 
 ### Error codes
 
@@ -134,7 +134,7 @@ Create a new client.
 
 ### `GET /api/clients/[id]`, `PATCH /api/clients/[id]`, `DELETE /api/clients/[id]`
 
-CRUD on a client by id. PATCH uses `updateClientSchema` (partial). DELETE is forbidden when the client has dependents — returns `409 CLIENT_HAS_DEPENDENTS` with `details: { invoiceCount }` per `DATA-002`'s fix.
+CRUD on a client by id. PATCH uses `updateClientSchema` (partial). DELETE is forbidden when the client has dependents — returns `409 CLIENT_HAS_DEPENDENTS` with `details: { invoiceCount }`.
 
 - **Auth:** `withAuth`.
 - **Idempotency:** Not enforced.
@@ -400,4 +400,4 @@ Admin: hard-delete a waitlist entry.
 
 - **The public viewer page (`/i/[publicId]`)** is server-rendered, not a JSON API. End-customers (the freelancer's clients) hit it directly in their browser.
 - **NextAuth callback URLs** other than `/api/auth/callback/credentials` are part of NextAuth's standard surface (`api/auth/csrf`, `api/auth/session`, `api/auth/providers`). Documented upstream by Auth.js.
-- **OpenAPI / Swagger.** Not generated; deferred per DOC-005's "skip auto-OpenAPI" decision.
+- **OpenAPI / Swagger.** Not generated; auto-OpenAPI is a deliberately deferred decision.
