@@ -1,9 +1,28 @@
-import { registerProvider } from "./registry";
 import { togglProvider } from "./toggl";
+import type { TimeTrackingProvider } from "./types";
 
-registerProvider(togglProvider);
+const PROVIDERS = [togglProvider] as const;
 
-export { getAllProviders, getProvider, registerProvider, UnknownProviderError } from "./registry";
+export class UnknownProviderError extends Error {
+  constructor(public readonly providerId: string) {
+    super(`Time tracking provider "${providerId}" is not registered`);
+    this.name = "UnknownProviderError";
+  }
+}
+
+export function getProvider(id: string): TimeTrackingProvider {
+  switch (id) {
+    case togglProvider.id:
+      return togglProvider;
+    default:
+      throw new UnknownProviderError(id);
+  }
+}
+
+export function getAllProviders(): TimeTrackingProvider[] {
+  return [...PROVIDERS];
+}
+
 export type {
   BreakdownOption,
   NormalizedClient,
