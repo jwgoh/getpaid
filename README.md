@@ -70,6 +70,25 @@ openssl rand -base64 32  # use this for NEXTAUTH_SECRET
 
 ### Database
 
+Provision a Postgres 16 instance first. The lowest-friction path is the `db` service bundled in this repo's `docker-compose.yml` (`postgres:16-alpine`, exposed on host port `5433`):
+
+```bash
+# Generate the password docker compose requires (it hard-fails without one)
+echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> .env
+
+docker compose up -d db
+```
+
+Then set `DATABASE_URL` in `.env` to point at the bundled service (note port `5433`, not the default `5432`):
+
+```
+DATABASE_URL="postgresql://getpaid:<POSTGRES_PASSWORD>@localhost:5433/getpaid?schema=public"
+```
+
+Substitute `<POSTGRES_PASSWORD>` with the value just written to `.env`. Prefer a natively installed Postgres 16 (Homebrew, apt, Postgres.app, …)? Skip `docker compose up -d db` and point `DATABASE_URL` at your local instance instead.
+
+Apply migrations and (optionally) seed demo data:
+
 ```bash
 pnpm db:migrate    # create + apply a new migration during development
 pnpm db:seed       # optional: load demo data

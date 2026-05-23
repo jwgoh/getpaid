@@ -21,6 +21,17 @@ Adopt **Prisma migration files committed to git**, applied via `prisma migrate d
 
 1. **Local workflow.** Schema edits go through `pnpm db:migrate -- --name <change-summary>` (which calls `prisma migrate dev`). The generated `prisma/migrations/<ts>_<name>/migration.sql` is reviewed and committed alongside the code change.
 2. **Migration discipline (manifesto 2.8 — expand-then-contract).** Destructive SQL (`DROP COLUMN`, `DROP TABLE`, `ALTER COLUMN TYPE` without backfill) is forbidden in a single migration. Multi-step releases follow the expand → backfill → contract pattern across separate PRs.
+
+   **Exception — complete feature teardown.** A single migration MAY contain multiple `DROP TABLE` / `DROP TYPE` statements when ALL of the following hold:
+
+   - The migration removes an entire feature whose models / enums no longer have any code references in the same PR — verified by grep of the post-change tree (no Prisma model usage, no enum import, no raw SQL referencing the dropped objects).
+   - The schema-drop SQL ships in the SAME PR as the code removal, so reviewers see the teardown as one atomic change rather than a schema-vs-code drift.
+   - The deploy order documented in `docs/runbooks/deployment.md` is followed: merge first, wait for Vercel (or the self-host container) to redeploy the code that no longer references the dropped objects, THEN run `pnpm db:migrate:deploy`. Applying the drop while the old code is still live would break it.
+   - A `pg_dump` backup is taken immediately before applying the migration (non-skippable for any migration whose SQL contains `DROP` — codified in the deployment runbook).
+
+   This carve-out reflects how a complete-feature deletion is actually safest expressed: a single migration + a single code-removal PR is reviewable as one decision, and the per-table expand-then-contract dance buys nothing when zero code paths read the dropped tables. Outside this carve-out, the general rule stands — partial drops, column drops on tables still referenced by code, and type changes on populated columns still require the multi-PR expand-then-contract pattern.
+
+   **`CHECK` constraints on populated tables.** Adding a `CHECK` to a non-empty table with a single `ADD CONSTRAINT … CHECK (…)` takes an `ACCESS EXCLUSIVE` lock while it validates every existing row. For non-trivial row counts, split it: `ALTER TABLE … ADD CONSTRAINT … CHECK (…) NOT VALID;` in one migration (cheap — no validation), then `ALTER TABLE … VALIDATE CONSTRAINT …;` in a follow-up (validates without the exclusive lock).
 3. **Production application.** Vercel does NOT auto-apply migrations on deploy. Operators apply `DATABASE_URL=$PROD pnpm db:migrate:deploy` manually before merging the PR (after a `pg_dump` backup). See `docs/runbooks/deployment.md`.
 4. **Self-host (Docker).** The container `CMD` is `prisma migrate deploy && node server.js`. Pending migrations apply automatically on container boot — this is acceptable because `migrate deploy` only applies forward migrations and never destroys schema.
 5. **Baseline migration.** The first migration in the project — `prisma/migrations/20260508060000_baseline/migration.sql` — was committed in `306e4c9` (chore: adopt prisma migrate deploy with baseline migration). Existing prod databases that pre-date the migration history mark it applied via `prisma migrate resolve --applied 20260508060000_baseline`.

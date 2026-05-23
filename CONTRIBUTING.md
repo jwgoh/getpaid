@@ -21,7 +21,28 @@ Thanks for your interest in contributing! Here's how to get started.
 
    ```bash
    cp .env.example .env
-   # Edit .env with your PostgreSQL connection string
+   ```
+
+   Start a Postgres 16 instance. The lowest-friction path is the `db` service bundled in this repo's `docker-compose.yml` (`postgres:16-alpine`, exposed on host port `5433`):
+
+   ```bash
+   # Generate a password (required by docker compose — it hard-fails without one)
+   echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> .env
+
+   docker compose up -d db
+   ```
+
+   Set `DATABASE_URL` in `.env` to match the bundled service (note port `5433`, not the default `5432`):
+
+   ```
+   DATABASE_URL="postgresql://getpaid:<POSTGRES_PASSWORD>@localhost:5433/getpaid?schema=public"
+   ```
+
+   Substitute `<POSTGRES_PASSWORD>` with the value just written to `.env`. If you prefer a natively installed Postgres 16 (Homebrew, apt, Postgres.app, …), skip `docker compose up -d db` and point `DATABASE_URL` at your local instance instead.
+
+   Then apply migrations and (optionally) seed demo data:
+
+   ```bash
    pnpm db:migrate
    pnpm db:seed  # Optional: loads demo data
    ```
