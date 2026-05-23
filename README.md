@@ -120,7 +120,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `RESEND_API_KEY`              | No                               | [Resend](https://resend.com) API key for sending emails                                                                                                                |
 | `EMAIL_FROM`                  | No                               | Sender email address (default: `invoices@example.com`)                                                                                                                 |
 | `ADMIN_EMAIL`                 | Yes (`pro` edition)              | Email of the user who can access waitlist-admin routes                                                                                                                 |
-| `ENCRYPTION_KEY`              | Yes (time tracking)              | AES-GCM key for Toggl OAuth tokens, min 32 chars (`openssl rand -base64 32`)                                                                                           |
+| `ENCRYPTION_KEY`              | Yes (time tracking)              | AES-GCM key for Toggl API tokens, min 32 chars (`openssl rand -base64 32`)                                                                                             |
 | `NEXT_PUBLIC_GETPAID_EDITION` | No                               | Edition toggle: `community` (default, open registration) or `pro` (invite-only + waitlist)                                                                             |
 | `AUTH_TRUST_HOST`             | No                               | Set to `"true"` when behind a reverse proxy (Docker, Vercel preview) so NextAuth trusts forwarded headers                                                              |
 
