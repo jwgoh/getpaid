@@ -128,6 +128,16 @@ describe("pruneConvertedWaitlistEntries", () => {
 
     warnSpy.mockRestore();
   });
+
+  it("throws RetentionMisconfiguredError when orphanDays override is 0", async () => {
+    const { pruneConvertedWaitlistEntries, prisma } = await loadModule();
+    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
+
+    await expect(
+      pruneConvertedWaitlistEntries(prisma, FIXED_NOW, { orphanDays: 0 })
+    ).rejects.toBeInstanceOf(RetentionMisconfiguredError);
+    expect(waitlistEntry.findMany).not.toHaveBeenCalled();
+  });
 });
 
 describe("countConvertedWaitlistEntries", () => {
@@ -174,5 +184,15 @@ describe("countConvertedWaitlistEntries", () => {
     expect(countWhere.where.createdAt.lt.getTime()).toBe(
       pruneFindManyWhere.where.createdAt.lt.getTime()
     );
+  });
+
+  it("throws RetentionMisconfiguredError when orphanDays override is 0", async () => {
+    const { countConvertedWaitlistEntries, prisma } = await loadModule();
+    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
+
+    await expect(
+      countConvertedWaitlistEntries(prisma, FIXED_NOW, { orphanDays: 0 })
+    ).rejects.toBeInstanceOf(RetentionMisconfiguredError);
+    expect(waitlistEntry.count).not.toHaveBeenCalled();
   });
 });

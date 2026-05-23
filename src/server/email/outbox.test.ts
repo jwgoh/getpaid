@@ -132,6 +132,26 @@ describe("pruneSentOutbox", () => {
 
     warnSpy.mockRestore();
   });
+
+  it("throws RetentionMisconfiguredError when sentDays override is 0", async () => {
+    const { pruneSentOutbox, prisma } = await loadModule();
+    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
+
+    await expect(pruneSentOutbox(prisma, FIXED_NOW, { sentDays: 0 })).rejects.toBeInstanceOf(
+      RetentionMisconfiguredError
+    );
+    expect(emailOutbox.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("throws RetentionMisconfiguredError when failedDays override is 0", async () => {
+    const { pruneSentOutbox, prisma } = await loadModule();
+    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
+
+    await expect(pruneSentOutbox(prisma, FIXED_NOW, { failedDays: 0 })).rejects.toBeInstanceOf(
+      RetentionMisconfiguredError
+    );
+    expect(emailOutbox.deleteMany).not.toHaveBeenCalled();
+  });
 });
 
 describe("countSentOutbox", () => {
@@ -178,5 +198,15 @@ describe("countSentOutbox", () => {
 
     expect(sentCountWhere).toEqual(sentPruneWhere);
     expect(failedCountWhere).toEqual(failedPruneWhere);
+  });
+
+  it("throws RetentionMisconfiguredError when sentDays override is 0", async () => {
+    const { countSentOutbox, prisma } = await loadModule();
+    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
+
+    await expect(countSentOutbox(prisma, FIXED_NOW, { sentDays: 0 })).rejects.toBeInstanceOf(
+      RetentionMisconfiguredError
+    );
+    expect(emailOutbox.count).not.toHaveBeenCalled();
   });
 });

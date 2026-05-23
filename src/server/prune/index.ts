@@ -7,6 +7,8 @@ import {
 import { countSentOutbox, pruneSentOutbox } from "@app/server/email/outbox";
 import { countConvertedWaitlistEntries, pruneConvertedWaitlistEntries } from "@app/server/waitlist";
 
+export { RetentionMisconfiguredError } from "./errors";
+
 export type PruneTableResult =
   | { ok: true; deleted: number; durationMs: number }
   | { ok: false; error: string; durationMs: number };

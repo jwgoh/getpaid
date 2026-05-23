@@ -14,6 +14,7 @@ import {
   buildWaitlistNotificationPayload,
 } from "@app/server/email";
 import { buildOutboxIdempotencyKey, createEmailOutbox } from "@app/server/email/outbox";
+import { RetentionMisconfiguredError } from "@app/server/prune/errors";
 
 export class WaitlistEntryNotFoundError extends Error {
   constructor() {
@@ -178,11 +179,22 @@ export async function deleteWaitlistEntry(id: string): Promise<WaitlistEntry | n
   return prisma.waitlistEntry.delete({ where: { id } });
 }
 
+export interface WaitlistRetentionOverrides {
+  orphanDays?: number;
+}
+
 export async function pruneConvertedWaitlistEntries(
   client: PrismaClient,
-  now: Date
+  now: Date,
+  retention: WaitlistRetentionOverrides = {}
 ): Promise<{ deleted: number }> {
-  const cutoff = new Date(now.getTime() - TIME.DAY * WAITLIST.ORPHAN_RETENTION_DAYS);
+  const orphanDays = retention.orphanDays ?? WAITLIST.ORPHAN_RETENTION_DAYS;
+
+  if (orphanDays <= 0) {
+    throw new RetentionMisconfiguredError("Waitlist orphan retention");
+  }
+
+  const cutoff = new Date(now.getTime() - TIME.DAY * orphanDays);
 
   const candidates = await client.waitlistEntry.findMany({
     where: { createdAt: { lt: cutoff } },
@@ -225,9 +237,16 @@ export async function pruneConvertedWaitlistEntries(
 
 export async function countConvertedWaitlistEntries(
   client: PrismaClient,
-  now: Date
+  now: Date,
+  retention: WaitlistRetentionOverrides = {}
 ): Promise<{ candidates: number }> {
-  const cutoff = new Date(now.getTime() - TIME.DAY * WAITLIST.ORPHAN_RETENTION_DAYS);
+  const orphanDays = retention.orphanDays ?? WAITLIST.ORPHAN_RETENTION_DAYS;
+
+  if (orphanDays <= 0) {
+    throw new RetentionMisconfiguredError("Waitlist orphan retention");
+  }
+
+  const cutoff = new Date(now.getTime() - TIME.DAY * orphanDays);
 
   const candidates = await client.waitlistEntry.count({
     where: { createdAt: { lt: cutoff } },

@@ -12,6 +12,7 @@ import { PRUNE } from "@app/shared/config/prune";
 import { runWithConcurrency } from "@app/shared/lib/concurrency";
 
 import { prisma } from "@app/server/db";
+import { RetentionMisconfiguredError } from "@app/server/prune/errors";
 
 import { type ResendEmailPayload, sendEmail } from "./index";
 import {
@@ -252,12 +253,25 @@ function warnIfLargeDelete(arm: "SENT" | "FAILED", deleted: number): void {
   }
 }
 
+export interface OutboxRetentionOverrides {
+  sentDays?: number;
+  failedDays?: number;
+}
+
 export async function pruneSentOutbox(
   client: PrismaClient,
-  now: Date
+  now: Date,
+  retention: OutboxRetentionOverrides = {}
 ): Promise<{ deletedSent: number; deletedFailed: number }> {
-  const cutoffSent = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_SENT_DAYS);
-  const cutoffFailed = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_FAILED_DAYS);
+  const sentDays = retention.sentDays ?? EMAIL_OUTBOX.RETENTION_SENT_DAYS;
+  const failedDays = retention.failedDays ?? EMAIL_OUTBOX.RETENTION_FAILED_DAYS;
+
+  if (sentDays <= 0 || failedDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox retention");
+  }
+
+  const cutoffSent = new Date(now.getTime() - TIME.DAY * sentDays);
+  const cutoffFailed = new Date(now.getTime() - TIME.DAY * failedDays);
 
   const sent = await client.emailOutbox.deleteMany({
     where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
@@ -276,10 +290,18 @@ export async function pruneSentOutbox(
 
 export async function countSentOutbox(
   client: PrismaClient,
-  now: Date
+  now: Date,
+  retention: OutboxRetentionOverrides = {}
 ): Promise<{ sent: number; failed: number }> {
-  const cutoffSent = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_SENT_DAYS);
-  const cutoffFailed = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_FAILED_DAYS);
+  const sentDays = retention.sentDays ?? EMAIL_OUTBOX.RETENTION_SENT_DAYS;
+  const failedDays = retention.failedDays ?? EMAIL_OUTBOX.RETENTION_FAILED_DAYS;
+
+  if (sentDays <= 0 || failedDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox retention");
+  }
+
+  const cutoffSent = new Date(now.getTime() - TIME.DAY * sentDays);
+  const cutoffFailed = new Date(now.getTime() - TIME.DAY * failedDays);
 
   const sent = await client.emailOutbox.count({
     where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
