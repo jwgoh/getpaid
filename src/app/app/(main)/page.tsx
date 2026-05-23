@@ -1,5 +1,6 @@
 "use client";
 
+import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { AppLayout } from "@app/shared/layout/app-layout";
 
 import { useClients } from "@app/features/clients";
@@ -17,7 +18,7 @@ export default function DashboardPage() {
       <DashboardContent
         clientCount={clients?.length ?? 0}
         invoiceCount={invoices?.length ?? 0}
-        hasSentInvoice={invoices?.some((inv) => inv.status !== "DRAFT") ?? false}
+        hasSentInvoice={invoices?.some((inv) => inv.status !== INVOICE_STATUS.DRAFT) ?? false}
         hasProfile={Boolean(profile?.companyName || profile?.displayName)}
         isExternalDataLoading={isClientsLoading || isInvoicesLoading || isProfileLoading}
       />
