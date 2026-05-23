@@ -1,3 +1,5 @@
+import type { ZodType } from "zod";
+
 export class ApiError extends Error {
   constructor(
     public code: string,
@@ -10,7 +12,21 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
+export class ApiResponseShapeError extends Error {
+  constructor(
+    public url: string,
+    public issues: unknown
+  ) {
+    super(`API response shape mismatch for ${url}`);
+    this.name = "ApiResponseShapeError";
+  }
+}
+
+export async function fetchApi<T>(
+  url: string,
+  options?: RequestInit,
+  schema?: ZodType<T>
+): Promise<T> {
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -40,5 +56,23 @@ export async function fetchApi<T>(url: string, options?: RequestInit): Promise<T
     );
   }
 
-  return json as T;
+  if (!schema) {
+    return json as T;
+  }
+
+  const parsed = schema.safeParse(json);
+
+  if (!parsed.success) {
+    console.error(
+      JSON.stringify({
+        event: "api.response.shape_mismatch",
+        url,
+        issues: parsed.error.issues,
+      })
+    );
+
+    throw new ApiResponseShapeError(url, parsed.error.issues);
+  }
+
+  return parsed.data;
 }

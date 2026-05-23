@@ -1,5 +1,5 @@
 import { fetchApi } from "@app/shared/api/base";
-import type { AnalyticsData } from "@app/shared/schemas/api";
+import { type AnalyticsData, analyticsDataSchema } from "@app/shared/schemas/api";
 
 export type {
   AnalyticsData,
@@ -9,5 +9,5 @@ export type {
 } from "@app/shared/schemas/api";
 
 export const analyticsApi = {
-  get: () => fetchApi<AnalyticsData>("/api/analytics"),
+  get: () => fetchApi<AnalyticsData>("/api/analytics", undefined, analyticsDataSchema),
 };

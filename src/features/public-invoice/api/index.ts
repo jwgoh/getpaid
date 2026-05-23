@@ -1,11 +1,16 @@
 import { fetchApi } from "@app/shared/api/base";
-import type { PublicInvoice } from "@app/shared/schemas/api";
+import { type PublicInvoice, publicInvoiceSchema, successAckSchema } from "@app/shared/schemas/api";
 
 export const publicApi = {
-  getInvoice: (publicId: string) => fetchApi<PublicInvoice>(`/api/public/invoices/${publicId}`),
+  getInvoice: (publicId: string) =>
+    fetchApi<PublicInvoice>(`/api/public/invoices/${publicId}`, undefined, publicInvoiceSchema),
 
   markViewed: (publicId: string) =>
-    fetchApi<void>(`/api/public/invoices/${publicId}/viewed`, {
-      method: "POST",
-    }),
+    fetchApi<{ success: boolean }>(
+      `/api/public/invoices/${publicId}/viewed`,
+      {
+        method: "POST",
+      },
+      successAckSchema
+    ),
 };
