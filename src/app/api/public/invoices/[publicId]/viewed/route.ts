@@ -10,9 +10,12 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ publicId: string }> }
 ) {
+  const user = await getUser();
+  const viewerUserId = user?.id ? asUserId(user.id) : null;
   const { response: limited } = await applyRateLimit(request, {
     bucket: "public.invoice.viewed",
     ...RATE_LIMITS.PUBLIC_VIEW,
+    ...(viewerUserId ? { identifier: `user:${viewerUserId}` } : {}),
   });
 
   if (limited) {
@@ -21,8 +24,6 @@ export async function POST(
 
   try {
     const { publicId } = await params;
-    const user = await getUser();
-    const viewerUserId = user?.id ? asUserId(user.id) : null;
     const result = await tryMarkViewed(asPublicId(publicId), viewerUserId);
 
     if (!result.found) {

@@ -34,6 +34,7 @@ const serverSchema = z.object({
       "ENCRYPTION_KEY must decode to exactly 32 bytes — generate via: openssl rand -base64 32"
     )
     .optional(),
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
 });
 
 const editionSchema = z.enum(EDITIONS).default(EDITIONS[0]);
@@ -57,6 +58,7 @@ function readServerRaw(): Record<string, string | undefined> {
     EMAIL_FROM: process.env.EMAIL_FROM || undefined,
     ADMIN_EMAIL: process.env.ADMIN_EMAIL || undefined,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || undefined,
+    TRUSTED_PROXY_HOPS: process.env.TRUSTED_PROXY_HOPS || undefined,
   };
 }
 
@@ -95,6 +97,7 @@ const SERVER_KEYS = new Set<string>([
   "EMAIL_FROM",
   "ADMIN_EMAIL",
   "ENCRYPTION_KEY",
+  "TRUSTED_PROXY_HOPS",
 ]);
 
 let serverCache: ServerEnv | undefined;
