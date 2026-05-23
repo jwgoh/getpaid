@@ -111,10 +111,10 @@ describe("resolveClientIp", () => {
       expect(resolveClientIp(request, 1)).toBe("unknown");
     });
 
-    it("falls back to x-real-ip even when hops is 0", () => {
+    it("ignores x-real-ip when hops is 0 (all proxy headers untrusted)", () => {
       const request = makeRequest({ "x-real-ip": "203.0.113.55" });
 
-      expect(resolveClientIp(request, 0)).toBe("203.0.113.55");
+      expect(resolveClientIp(request, 0)).toBe("unknown");
     });
   });
 });

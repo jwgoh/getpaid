@@ -11,7 +11,7 @@ const PUBLIC_INVOICE_RESPONSE_HEADERS: Record<string, string> = {
 function buildContentSecurityPolicy(nonce: string, isProd: boolean): string {
   const scriptSrc = isProd
     ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
-    : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' 'unsafe-eval'`;
+    : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`;
 
   return [
     "default-src 'self'",

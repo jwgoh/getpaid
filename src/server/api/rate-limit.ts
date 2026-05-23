@@ -45,13 +45,13 @@ function sweepIfDue(now: number): void {
 const UNKNOWN_CLIENT_IP = "unknown";
 
 export function resolveClientIp(request: Request, trustedProxyHops: number): string {
+  if (trustedProxyHops <= 0) {
+    return UNKNOWN_CLIENT_IP;
+  }
+
   const forwarded = request.headers.get("x-forwarded-for");
 
   if (forwarded) {
-    if (trustedProxyHops <= 0) {
-      return UNKNOWN_CLIENT_IP;
-    }
-
     const entries = forwarded
       .split(",")
       .map((entry) => entry.trim())
