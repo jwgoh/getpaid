@@ -5,6 +5,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
+import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { OverflowMenu } from "@app/shared/ui/overflow-menu";
 
 interface InvoicesOverflowMenuProps {
@@ -37,7 +38,7 @@ export function InvoicesOverflowMenu({
           label: "Edit",
           icon: <EditIcon fontSize="small" />,
           onClick: onEdit,
-          show: selectedInvoiceStatus === "DRAFT",
+          show: selectedInvoiceStatus === INVOICE_STATUS.DRAFT,
         },
         { label: "Duplicate", icon: <ContentCopyIcon fontSize="small" />, onClick: onDuplicate },
         {

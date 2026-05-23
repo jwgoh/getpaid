@@ -1,6 +1,8 @@
 "use client";
 
 import { extractApiErrorMessage } from "@app/shared/api";
+import { CURRENCY } from "@app/shared/config/config";
+import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 import { useConfirmDialog } from "@app/shared/hooks/use-confirm-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
 
@@ -34,7 +36,7 @@ export function usePaymentHandlers(
   };
 
   const handleRecordPayment = (amount: string, note: string) => {
-    const amountInCents = Math.round(parseFloat(amount) * 100);
+    const amountInCents = Math.round(parseFloat(amount) * CURRENCY.CENTS_MULTIPLIER);
 
     if (isNaN(amountInCents) || amountInCents <= 0) {
       toast.error("Please enter a valid amount");
@@ -43,7 +45,10 @@ export function usePaymentHandlers(
     }
 
     recordPaymentMutation.mutate(
-      { invoiceId, data: { amount: amountInCents, method: "MANUAL", note: note || undefined } },
+      {
+        invoiceId,
+        data: { amount: amountInCents, method: PAYMENT_METHOD.MANUAL, note: note || undefined },
+      },
       {
         onSuccess: () => {
           controls.closePaymentDialog();

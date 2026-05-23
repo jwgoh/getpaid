@@ -51,9 +51,10 @@ src/
    - UI components NEVER import Prisma
    - Only `src/server/` can access Prisma
 
-4. **No magic strings or numbers**
+4. **No magic strings or numbers in server / shared/lib / shared/api code**
    - All constants in `shared/config/` or feature `constants/`
    - Use enums or const objects for repeated values
+   - MUI `sx`/Grid layout literals and theme tokens are exempt (positional design values, not magic)
 
 5. **No code comments except JSDoc**
    - Code should be self-documenting

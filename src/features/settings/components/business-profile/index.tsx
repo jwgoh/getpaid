@@ -8,7 +8,7 @@ import { Alert, Box, Stack } from "@mui/material";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { extractApiErrorMessage } from "@app/shared/api";
-import { BRANDING } from "@app/shared/config/config";
+import { BRANDING, CURRENCY } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { SenderProfileFormInput, senderProfileFormSchema } from "@app/shared/schemas";
 import type { SenderProfile } from "@app/shared/schemas/api";
@@ -56,7 +56,9 @@ export function BusinessProfileTab({ profile }: BusinessProfileTabProps) {
         address: profile.address || "",
         taxId: profile.taxId || "",
         defaultCurrency: profile.defaultCurrency || BRANDING.DEFAULT_CURRENCY,
-        defaultRate: profile.defaultRate ? profile.defaultRate / 100 : undefined,
+        defaultRate: profile.defaultRate
+          ? profile.defaultRate / CURRENCY.CENTS_MULTIPLIER
+          : undefined,
       });
     }
   }, [profile, reset]);
@@ -67,7 +69,9 @@ export function BusinessProfileTab({ profile }: BusinessProfileTabProps) {
     setError(null);
     const payload = {
       ...data,
-      defaultRate: data.defaultRate ? Math.round(data.defaultRate * 100) : undefined,
+      defaultRate: data.defaultRate
+        ? Math.round(data.defaultRate * CURRENCY.CENTS_MULTIPLIER)
+        : undefined,
     };
 
     updateProfileMutation.mutate(payload, {

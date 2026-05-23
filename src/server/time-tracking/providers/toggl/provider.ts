@@ -1,4 +1,4 @@
-import { CURRENCY, TIME_TRACKING } from "@app/shared/config/config";
+import { CURRENCY, DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
 
 import type {
   NormalizedClient,
@@ -117,7 +117,9 @@ function mapGroup(
 
       itemRateCents = rate.hourly_rate_in_cents;
       itemCurrency = rate.currency;
-      const roundedHours = Math.round((sub.seconds / TIME_TRACKING.SECONDS_PER_HOUR) * 100) / 100;
+      const roundedHours =
+        Math.round((sub.seconds / TIME_TRACKING.SECONDS_PER_HOUR) * DECIMAL_ROUNDING_FACTOR) /
+        DECIMAL_ROUNDING_FACTOR;
 
       itemAmountCents = Math.round(roundedHours * rate.hourly_rate_in_cents);
 
