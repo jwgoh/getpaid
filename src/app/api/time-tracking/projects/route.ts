@@ -3,34 +3,33 @@ import { NextResponse } from "next/server";
 import { asUserId } from "@app/shared/types/ids";
 
 import { errorResponse, withAuth } from "@app/server/api/route-helpers";
-import {
-  ConnectionNotFoundError,
-  getProjects,
-  UnknownProviderError,
-} from "@app/server/time-tracking";
+import { createRequestBudget } from "@app/server/api/timeout";
+import { getProjects } from "@app/server/time-tracking";
+import { timeTrackingErrorHandlers } from "@app/server/time-tracking/api-errors";
+import { TIME_TRACKING_REQUEST_BUDGET_MS } from "@app/server/time-tracking/budget";
 
-export const GET = withAuth(
-  async (user, request) => {
-    const { searchParams } = new URL(request.url);
-    const provider = searchParams.get("provider");
-    const workspaceId = searchParams.get("workspaceId");
+export const maxDuration = 10;
 
-    if (!provider || !workspaceId) {
-      return errorResponse("VALIDATION_ERROR", "Provider and workspaceId are required", 400);
-    }
+export const GET = withAuth(async (user, request) => {
+  const { searchParams } = new URL(request.url);
+  const provider = searchParams.get("provider");
+  const workspaceId = searchParams.get("workspaceId");
 
-    const projects = await getProjects(asUserId(user.id), provider, workspaceId);
+  if (!provider || !workspaceId) {
+    return errorResponse("VALIDATION_ERROR", "Provider and workspaceId are required", 400);
+  }
+
+  const budget = createRequestBudget(TIME_TRACKING_REQUEST_BUDGET_MS);
+
+  try {
+    const projects = await getProjects(asUserId(user.id), provider, workspaceId, {
+      signal: budget.signal,
+    });
 
     return NextResponse.json(projects);
-  },
-  [
-    {
-      check: (error) => error instanceof UnknownProviderError,
-      respond: (error) => errorResponse("BAD_REQUEST", error.message, 400),
-    },
-    {
-      check: (error) => error instanceof ConnectionNotFoundError,
-      respond: (error) => errorResponse("NOT_FOUND", error.message, 404),
-    },
-  ]
-);
+  } catch (error) {
+    return budget.rethrowIfExceeded(error);
+  } finally {
+    budget.cancel();
+  }
+}, timeTrackingErrorHandlers);

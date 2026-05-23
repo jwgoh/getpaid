@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { extractApiErrorMessage } from "@app/shared/api";
+import { generateIdempotencyKey } from "@app/shared/api/idempotency-key";
 import { queryKeys } from "@app/shared/config/query";
 import { useConfirmDialog } from "@app/shared/hooks/use-confirm-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
@@ -194,14 +195,14 @@ export function useBulkActions(
 
   const handleBulkMarkPaid = () =>
     runBulkAction(
-      invoicesApi.markPaid,
+      (id) => invoicesApi.markPaid(id, generateIdempotencyKey()),
       `${selectedIds.size} invoice(s) marked as paid`,
       "Some invoices could not be marked as paid"
     );
 
   const handleBulkSend = () =>
     runBulkAction(
-      invoicesApi.send,
+      (id) => invoicesApi.send(id, generateIdempotencyKey()),
       `${selectedIds.size} invoice(s) sent`,
       "Some invoices could not be sent"
     );

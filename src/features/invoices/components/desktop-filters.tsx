@@ -37,7 +37,7 @@ export function DesktopFilters({
   invoicesCount,
 }: DesktopFiltersProps) {
   return (
-    <Box sx={{ ...RESPONSIVE_SX.DESKTOP_ONLY, gap: 2, mb: 3 }}>
+    <Box sx={{ ...RESPONSIVE_SX.DESKTOP_MD_ONLY, gap: 2, mb: 3 }}>
       <TextField
         placeholder="Search invoices..."
         size="small"

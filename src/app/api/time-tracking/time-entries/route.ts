@@ -4,12 +4,13 @@ import { z } from "zod";
 
 import { asUserId } from "@app/shared/types/ids";
 
-import { errorResponse, parseBody, withAuth } from "@app/server/api/route-helpers";
-import {
-  ConnectionNotFoundError,
-  getTimeEntries,
-  UnknownProviderError,
-} from "@app/server/time-tracking";
+import { parseBody, withAuth } from "@app/server/api/route-helpers";
+import { createRequestBudget } from "@app/server/api/timeout";
+import { getTimeEntries } from "@app/server/time-tracking";
+import { timeTrackingErrorHandlers } from "@app/server/time-tracking/api-errors";
+import { TIME_TRACKING_REQUEST_BUDGET_MS } from "@app/server/time-tracking/budget";
+
+export const maxDuration = 10;
 
 const timeEntriesSchema = z.object({
   provider: z.string().min(1),
@@ -23,35 +24,36 @@ const timeEntriesSchema = z.object({
   billableOnly: z.boolean().optional(),
 });
 
-export const POST = withAuth(
-  async (user, request) => {
-    const { data, error } = await parseBody(request, timeEntriesSchema);
+export const POST = withAuth(async (user, request) => {
+  const { data, error } = await parseBody(request, timeEntriesSchema);
 
-    if (error) {
-      return error;
-    }
+  if (error) {
+    return error;
+  }
 
-    const result = await getTimeEntries(asUserId(user.id), data.provider, {
-      workspaceId: data.workspaceId,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      projectIds: data.projectIds,
-      grouping: data.grouping,
-      subGrouping: data.subGrouping,
-      roundingMinutes: data.roundingMinutes,
-      billableOnly: data.billableOnly,
-    });
+  const budget = createRequestBudget(TIME_TRACKING_REQUEST_BUDGET_MS);
+
+  try {
+    const result = await getTimeEntries(
+      asUserId(user.id),
+      data.provider,
+      {
+        workspaceId: data.workspaceId,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        projectIds: data.projectIds,
+        grouping: data.grouping,
+        subGrouping: data.subGrouping,
+        roundingMinutes: data.roundingMinutes,
+        billableOnly: data.billableOnly,
+      },
+      { signal: budget.signal }
+    );
 
     return NextResponse.json(result);
-  },
-  [
-    {
-      check: (error) => error instanceof UnknownProviderError,
-      respond: (error) => errorResponse("BAD_REQUEST", error.message, 400),
-    },
-    {
-      check: (error) => error instanceof ConnectionNotFoundError,
-      respond: (error) => errorResponse("NOT_FOUND", error.message, 404),
-    },
-  ]
-);
+  } catch (error) {
+    return budget.rethrowIfExceeded(error);
+  } finally {
+    budget.cancel();
+  }
+}, timeTrackingErrorHandlers);

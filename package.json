@@ -15,9 +15,10 @@
     "format:check": "prettier --check \"{src,prisma,scripts}/**/*.{ts,tsx,js,jsx,json,css,md}\" \"*.{ts,mjs,json,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:push": "prisma db push",
+    "db:push:dev-only": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "outbox:run": "tsx scripts/process-outbox.ts",
@@ -47,7 +48,6 @@
     "nanoid": "^5.1.6",
     "next": "16.2.6",
     "next-auth": "5.0.0-beta.30",
-    "pg": "^8.16.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
@@ -60,9 +60,9 @@
     "@commitlint/config-conventional": "^20.4.1",
     "@next/bundle-analyzer": "^16.2.6",
     "@types/node": "^22.19.19",
-    "@types/pg": "^8.15.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.7",
     "dotenv": "^16.5.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
@@ -91,5 +91,9 @@
       "@hono/node-server@<1.19.13": "^1.19.13"
     }
   },
-  "packageManager": "pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264"
+  "packageManager": "pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264",
+  "engines": {
+    "node": ">=22 <23",
+    "pnpm": ">=10"
+  }
 }

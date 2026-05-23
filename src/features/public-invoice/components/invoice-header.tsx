@@ -1,9 +1,10 @@
 "use client";
 
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 
 import { UI } from "@app/shared/config/config";
+import { ensureReadableForeground } from "@app/shared/lib/contrast";
 
 interface InvoiceHeaderProps {
   logoUrl: string | null;
@@ -18,6 +19,12 @@ export function InvoiceHeader({
   primaryColor,
   accentColor,
 }: InvoiceHeaderProps) {
+  const theme = useTheme();
+  const bg = theme.palette.background.default;
+  const fallback = theme.palette.text.primary;
+  const readablePrimary = ensureReadableForeground(primaryColor, bg, fallback);
+  const readableAccent = ensureReadableForeground(accentColor, bg, fallback);
+
   return (
     <Stack
       direction="row"
@@ -45,12 +52,12 @@ export function InvoiceHeader({
         />
       ) : (
         <>
-          <ReceiptLongIcon sx={{ color: primaryColor, fontSize: UI.ICON_SIZE_MD }} />
+          <ReceiptLongIcon sx={{ color: readablePrimary, fontSize: UI.ICON_SIZE_MD }} />
           <Typography
             variant="h5"
             fontWeight={700}
             sx={{
-              background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)`,
+              background: `linear-gradient(135deg, ${readablePrimary} 0%, ${readableAccent} 100%)`,
               backgroundClip: "text",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",

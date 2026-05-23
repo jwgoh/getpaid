@@ -1,59 +1,24 @@
 import { Prisma } from "@prisma/client";
-import { nanoid } from "nanoid";
 
-import { NANOID } from "@app/shared/config/config";
-import { INVOICE_EVENT, INVOICE_STATUS, isDiscountType } from "@app/shared/config/invoice-status";
+import { INVOICE_STATUS, isDiscountType } from "@app/shared/config/invoice-status";
 import {
   calculateTotals,
   type DiscountInput,
   isMoneyLimitExceeded,
 } from "@app/shared/lib/calculations";
-import { CreateInvoiceInput, InvoiceItemInput, UpdateInvoiceInput } from "@app/shared/schemas";
+import { InvoiceItemInput, UpdateInvoiceInput } from "@app/shared/schemas";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
 import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
-import { createItemGroups, ITEM_GROUPS_INCLUDE } from "./item-groups";
-
-const INVOICE_WITH_RELATIONS_INCLUDE = {
-  client: true,
-  items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
-  itemGroups: ITEM_GROUPS_INCLUDE,
-} as const satisfies Prisma.InvoiceInclude;
-
-export type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
-  include: typeof INVOICE_WITH_RELATIONS_INCLUDE;
-}>;
-
-export class ClientNotFoundError extends Error {
-  constructor() {
-    super("Client not found");
-    this.name = "ClientNotFoundError";
-  }
-}
-
-export class MoneyOverflowError extends Error {
-  constructor() {
-    super("Invoice total is too large");
-    this.name = "MoneyOverflowError";
-  }
-}
-
-async function assertClientOwned(
-  tx: Prisma.TransactionClient,
-  clientId: string,
-  userId: UserId
-): Promise<void> {
-  const client = await tx.client.findFirst({
-    where: { id: clientId, userId },
-    select: { id: true },
-  });
-
-  if (!client) {
-    throw new ClientNotFoundError();
-  }
-}
+import {
+  assertClientOwned,
+  INVOICE_WITH_RELATIONS_INCLUDE,
+  type InvoiceWithRelations,
+  MoneyOverflowError,
+} from "./invoice-fields";
+import { createItemGroups } from "./item-groups";
 
 function buildBasicUpdateFields(data: UpdateInvoiceInput): Prisma.InvoiceUncheckedUpdateInput {
   const updateData: Prisma.InvoiceUncheckedUpdateInput = {};
@@ -132,80 +97,6 @@ function resolveDiscount(
   }
 
   return null;
-}
-
-export async function createInvoice(
-  userId: UserId,
-  data: CreateInvoiceInput
-): Promise<InvoiceWithRelations> {
-  const allItems = [...data.items, ...(data.itemGroups?.flatMap((g) => g.items) ?? [])];
-  const totals = calculateTotals(allItems, data.discount, data.taxRate);
-
-  if (isMoneyLimitExceeded(totals, SCHEMA_LIMITS.MONEY_MAX_CENTS)) {
-    throw new MoneyOverflowError();
-  }
-
-  const { subtotal, discountAmount, taxAmount, total } = totals;
-  const publicId = nanoid(NANOID.PUBLIC_ID_LENGTH);
-
-  return prisma.$transaction(async (tx) => {
-    await assertClientOwned(tx, data.clientId, userId);
-
-    const invoice = await tx.invoice.create({
-      data: {
-        userId,
-        clientId: data.clientId,
-        publicId,
-        currency: data.currency,
-        dueDate: data.dueDate,
-        periodStart: data.periodStart ?? null,
-        periodEnd: data.periodEnd ?? null,
-        notes: data.notes,
-        message: data.message,
-        tags: data.tags || [],
-        subtotal,
-        discountType: data.discount?.type || null,
-        discountValue: data.discount?.value || 0,
-        discountAmount,
-        taxRate: data.taxRate || 0,
-        taxAmount,
-        total,
-        status: INVOICE_STATUS.DRAFT,
-        items: {
-          create: data.items.map((item, index) => ({
-            title: item.title,
-            description: item.description ?? null,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            amount: Math.round(item.quantity * item.unitPrice),
-            sortOrder: index,
-          })),
-        },
-      },
-      include: {
-        client: true,
-        items: true,
-        itemGroups: ITEM_GROUPS_INCLUDE,
-      },
-    });
-
-    if (data.itemGroups?.length) {
-      await createItemGroups(tx, invoice.id, data.itemGroups);
-    }
-
-    await tx.invoiceEvent.create({
-      data: {
-        invoiceId: invoice.id,
-        type: INVOICE_EVENT.CREATED,
-        payload: {},
-      },
-    });
-
-    return tx.invoice.findUniqueOrThrow({
-      where: { id: invoice.id },
-      include: INVOICE_WITH_RELATIONS_INCLUDE,
-    });
-  });
 }
 
 async function getItemsForCalculation(
@@ -297,23 +188,4 @@ export async function updateInvoice(
       include: INVOICE_WITH_RELATIONS_INCLUDE,
     });
   });
-}
-
-export async function deleteInvoice(
-  id: InvoiceId,
-  userId: UserId
-): Promise<{ success: true } | null> {
-  const invoice = await prisma.invoice.findFirst({
-    where: { id, userId },
-  });
-
-  if (!invoice) {
-    return null;
-  }
-
-  await prisma.invoice.delete({
-    where: { id },
-  });
-
-  return { success: true };
 }

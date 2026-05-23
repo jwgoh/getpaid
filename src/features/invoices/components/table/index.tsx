@@ -8,8 +8,9 @@ import { useTableKeyboardNav } from "@app/shared/hooks";
 import { DataTable, type DataTableColumn } from "@app/shared/ui/data-table";
 
 import type { InvoiceData } from "../invoice-row";
+import { PaginatedRows } from "./paginated-rows";
 import { InvoicesTableFooter } from "./table-footer";
-import { PaginatedRows, VirtualizedRows } from "./table-rows";
+import { VirtualizedRows } from "./virtualized-rows";
 
 interface VirtualItem {
   index: number;

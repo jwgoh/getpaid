@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 
+import { extractApiErrorMessage } from "@app/shared/api";
 import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 
 import { PROVIDER_META } from "../constants";
@@ -71,7 +72,7 @@ export function ConnectDialog({ open, onClose, providerId }: ConnectDialogProps)
 
           {mutation.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {mutation.error?.message ?? "Failed to connect"}
+              {extractApiErrorMessage(mutation.error, "Failed to connect")}
             </Alert>
           )}
 

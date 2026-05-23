@@ -3,13 +3,11 @@ import { NextResponse } from "next/server";
 import { asPublicId, asUserId } from "@app/shared/types/ids";
 
 import { applyRateLimit, RATE_LIMITS } from "@app/server/api/rate-limit";
+import { notFoundResponse, withPublic } from "@app/server/api/route-helpers";
 import { getUser } from "@app/server/auth/require-user";
 import { tryMarkViewed } from "@app/server/invoices";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ publicId: string }> }
-) {
+export const POST = withPublic(async (request, context) => {
   const user = await getUser();
   const viewerUserId = user?.id ? asUserId(user.id) : null;
   const { response: limited } = await applyRateLimit(request, {
@@ -22,24 +20,12 @@ export async function POST(
     return limited;
   }
 
-  try {
-    const { publicId } = await params;
-    const result = await tryMarkViewed(asPublicId(publicId), viewerUserId);
+  const { publicId } = await context.params;
+  const result = await tryMarkViewed(asPublicId(publicId), viewerUserId);
 
-    if (!result.found) {
-      return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "Invoice not found" } },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Mark invoice viewed error:", error);
-
-    return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" } },
-      { status: 500 }
-    );
+  if (!result.found) {
+    return notFoundResponse("Invoice");
   }
-}
+
+  return NextResponse.json({ success: true });
+});

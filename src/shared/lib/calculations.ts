@@ -23,12 +23,16 @@ export interface TotalsResult {
   total: number;
 }
 
+export function calculateSubtotal(items: LineItem[]): number {
+  return items.reduce((sum, item) => sum + Math.round(item.quantity * item.unitPrice), 0);
+}
+
 export function calculateTotals(
   items: LineItem[],
   discount?: DiscountInput | null,
   taxRate?: number
 ): TotalsResult {
-  const subtotal = items.reduce((sum, item) => sum + Math.round(item.quantity * item.unitPrice), 0);
+  const subtotal = calculateSubtotal(items);
 
   let discountAmount = 0;
 

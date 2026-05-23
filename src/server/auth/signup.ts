@@ -22,10 +22,16 @@ export async function createUser(email: string, password: string): Promise<void>
 
   const passwordHash = await bcrypt.hash(password, AUTH.BCRYPT_ROUNDS);
 
-  await prisma.user.create({
-    data: {
-      email,
-      passwordHash,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.user.create({
+      data: {
+        email,
+        passwordHash,
+      },
+    });
+
+    await tx.waitlistEntry.deleteMany({
+      where: { email },
+    });
   });
 }

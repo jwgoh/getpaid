@@ -41,15 +41,20 @@ tasks:
     cmds:
       - pnpm db:migrate
 
-  db:push:
-    desc: Push schema to database
+  db:push:dev-only:
+    desc: Push schema to a throwaway DEV database (NEVER against shared/prod — use db:migrate)
     cmds:
-      - pnpm db:push
+      - pnpm db:push:dev-only
 
   db:studio:
     desc: Open Prisma Studio
     cmds:
       - pnpm db:studio
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - pnpm test
 
   setup:
     desc: Initial project setup
@@ -59,8 +64,9 @@ tasks:
       - pnpm lefthook install
 
   check:
-    desc: Run all checks (lint, typecheck, format)
+    desc: Run all checks (typecheck, lint, test, format) — mirrors CI
     cmds:
-      - pnpm lint
       - pnpm typecheck
+      - pnpm lint
+      - pnpm test
       - pnpm format:check

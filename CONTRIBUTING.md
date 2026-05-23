@@ -74,11 +74,12 @@ Key directories:
 - **Zod** for all validation schemas
 - No code comments (code should be self-documenting)
 
-Run checks before submitting:
+Run checks before submitting (these mirror the CI gates):
 
 ```bash
-pnpm lint
 pnpm typecheck
+pnpm lint
+pnpm test
 pnpm format:check
 ```
 
@@ -86,7 +87,7 @@ pnpm format:check
 
 1. Fork the repo and create a branch from `master`
 2. Make your changes
-3. Ensure lint and typecheck pass
+3. Ensure `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm format:check` all pass
 4. Submit a PR with a clear description of the change
 
 Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, ...) — enforced by a `commit-msg` git hook, so a non-conventional message is rejected on commit.

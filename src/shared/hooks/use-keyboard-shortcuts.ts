@@ -44,10 +44,3 @@ export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [shortcuts]);
 }
-
-export const defaultShortcuts = [
-  { key: "n", ctrl: true, description: "New invoice" },
-  { key: "/", ctrl: true, description: "Show keyboard shortcuts" },
-  { key: "g", ctrl: true, shift: true, description: "Go to invoices" },
-  { key: "c", ctrl: true, shift: true, description: "Go to clients" },
-];

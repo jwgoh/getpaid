@@ -53,14 +53,14 @@ export function useUpdateInvoice() {
 
 export function useSendInvoice() {
   return useOptimisticInvoiceMutation({
-    mutationFn: (id) => invoicesApi.send(id),
+    mutationFn: (id) => invoicesApi.send(id, generateIdempotencyKey()),
     buildPatch: () => ({ status: INVOICE_STATUS.SENT, sentAt: new Date().toISOString() }),
   });
 }
 
 export function useMarkInvoicePaid() {
   return useOptimisticInvoiceMutation({
-    mutationFn: (id) => invoicesApi.markPaid(id),
+    mutationFn: (id) => invoicesApi.markPaid(id, generateIdempotencyKey()),
     buildPatch: () => ({ status: INVOICE_STATUS.PAID, paidAt: new Date().toISOString() }),
   });
 }
@@ -96,7 +96,7 @@ export function useDuplicateInvoice() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => invoicesApi.duplicate(id),
+    mutationFn: (id: string) => invoicesApi.duplicate(id, generateIdempotencyKey()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices });
     },

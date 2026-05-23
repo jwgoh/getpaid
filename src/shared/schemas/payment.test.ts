@@ -27,18 +27,36 @@ describe("recordPaymentApiSchema — paidAt validation (QA-002, QA-003)", () => 
     const result = recordPaymentApiSchema.safeParse(buildPayload({ paidAt: "garbage" }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["paidAt"]);
+      expect(result.error.issues[0].message).toMatch(/invalid date/i);
+    }
   });
 
   it("rejects a paidAt far in the future", () => {
     const result = recordPaymentApiSchema.safeParse(buildPayload({ paidAt: "9999-12-31" }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["paidAt"]);
+      expect(result.error.issues[0].message).toMatch(/cannot be in the future/i);
+    }
   });
 
   it("rejects a paidAt before the 2000-01-01 floor", () => {
     const result = recordPaymentApiSchema.safeParse(buildPayload({ paidAt: "1999-12-31" }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["paidAt"]);
+      expect(result.error.issues[0].message).toMatch(/too far in the past/i);
+    }
   });
 });
 
@@ -47,12 +65,22 @@ describe("payment amount validation — integer cents (QA-001)", () => {
     const result = recordPaymentApiSchema.safeParse(buildPayload({ amount: 10.5 }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("invalid_type");
+      expect(result.error.issues[0].path).toEqual(["amount"]);
+    }
   });
 
   it("rejects a fractional amount in recordPaymentSchema", () => {
     const result = recordPaymentSchema.safeParse(buildPayload({ amount: 10.5 }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("invalid_type");
+      expect(result.error.issues[0].path).toEqual(["amount"]);
+    }
   });
 
   it("accepts a whole-cent amount in recordPaymentApiSchema", () => {

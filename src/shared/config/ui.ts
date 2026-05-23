@@ -99,5 +99,5 @@ export const UI = {
 export const RESPONSIVE_SX = {
   DESKTOP_ONLY: { display: { xs: "none", sm: "flex" } },
   DESKTOP_MD_ONLY: { display: { xs: "none", md: "flex" } },
-  MOBILE_ONLY: { display: { xs: "flex", sm: "none" } },
+  MOBILE_ONLY: { display: { xs: "flex", md: "none" } },
 } as const;

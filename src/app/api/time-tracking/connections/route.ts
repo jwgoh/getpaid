@@ -9,8 +9,10 @@ import {
   connectProvider,
   getConnections,
   InvalidProviderTokenError,
-  UnknownProviderError,
 } from "@app/server/time-tracking";
+import { timeTrackingErrorHandlers } from "@app/server/time-tracking/api-errors";
+
+export const maxDuration = 10;
 
 const connectSchema = z.object({
   provider: z.string().min(1),
@@ -40,9 +42,6 @@ export const POST = withAuth(
       check: (error) => error instanceof InvalidProviderTokenError,
       respond: () => errorResponse("VALIDATION_ERROR", "Invalid API token", 400),
     },
-    {
-      check: (error) => error instanceof UnknownProviderError,
-      respond: (error) => errorResponse("BAD_REQUEST", error.message, 400),
-    },
+    ...timeTrackingErrorHandlers,
   ]
 );

@@ -6,16 +6,20 @@ function get(key: string): string | null {
   }
 }
 
-function set(key: string, value: string): void {
+function safeWrite(write: () => void): void {
   try {
-    localStorage.setItem(key, value);
-  } catch {}
+    write();
+  } catch {
+    return;
+  }
+}
+
+function set(key: string, value: string): void {
+  safeWrite(() => localStorage.setItem(key, value));
 }
 
 function remove(key: string): void {
-  try {
-    localStorage.removeItem(key);
-  } catch {}
+  safeWrite(() => localStorage.removeItem(key));
 }
 
 function getJson<T>(key: string): T | null {
@@ -33,9 +37,7 @@ function getJson<T>(key: string): T | null {
 }
 
 function setJson<T>(key: string, value: T): void {
-  try {
-    set(key, JSON.stringify(value));
-  } catch {}
+  safeWrite(() => localStorage.setItem(key, JSON.stringify(value)));
 }
 
 export const storage = { get, set, remove, getJson, setJson };

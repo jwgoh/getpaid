@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { waitlistSchema } from "@app/shared/schemas";
 
 import { applyRateLimit, RATE_LIMITS } from "@app/server/api/rate-limit";
-import { internalErrorResponse, parseBody } from "@app/server/api/route-helpers";
+import { parseBody, withPublic } from "@app/server/api/route-helpers";
 import { checkWaitlistStatus } from "@app/server/waitlist";
 
-export async function POST(request: Request) {
+export const POST = withPublic(async (request) => {
   const { response: limited } = await applyRateLimit(request, {
     bucket: "waitlist.check",
     ...RATE_LIMITS.WAITLIST_CHECK,
@@ -16,19 +16,13 @@ export async function POST(request: Request) {
     return limited;
   }
 
-  try {
-    const { data, error } = await parseBody(request, waitlistSchema);
+  const { data, error } = await parseBody(request, waitlistSchema);
 
-    if (error) {
-      return error;
-    }
-
-    const status = await checkWaitlistStatus(data.email);
-
-    return NextResponse.json({ status });
-  } catch (err) {
-    console.error("Waitlist check error:", err);
-
-    return internalErrorResponse();
+  if (error) {
+    return error;
   }
-}
+
+  const status = await checkWaitlistStatus(data.email);
+
+  return NextResponse.json({ status });
+});

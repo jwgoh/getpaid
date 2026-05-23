@@ -40,6 +40,11 @@ describe("lineItemSchema — per-line product ceiling", () => {
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("too_big");
+      expect(result.error.issues[0].path).toEqual(["quantity"]);
+    }
   });
 
   it("rejects a unit price above MONEY_MAX_LINE_ITEM_CENTS", () => {
@@ -50,6 +55,11 @@ describe("lineItemSchema — per-line product ceiling", () => {
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("too_big");
+      expect(result.error.issues[0].path).toEqual(["unitPrice"]);
+    }
   });
 
   it("keeps the per-line product within MONEY_MAX_CENTS at the maximum bounds", () => {
@@ -76,6 +86,12 @@ describe("discountSchema — percentage ceiling (QA-004)", () => {
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["value"]);
+      expect(result.error.issues[0].message).toMatch(/percentage discount cannot exceed/i);
+    }
   });
 
   it("rejects a 2.1-billion-percent discount", () => {
@@ -85,6 +101,12 @@ describe("discountSchema — percentage ceiling (QA-004)", () => {
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["value"]);
+      expect(result.error.issues[0].message).toMatch(/percentage discount cannot exceed/i);
+    }
   });
 
   it("accepts a fixed discount up to MONEY_MAX_CENTS", () => {
@@ -113,6 +135,12 @@ describe("createInvoiceSchema — aggregate total ceiling (QA-001)", () => {
     const result = createInvoiceSchema.safeParse(buildCreatePayload({ items: [maxLine, maxLine] }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["items"]);
+      expect(result.error.issues[0].message).toMatch(/invoice total is too large/i);
+    }
   });
 
   it("rejects an invoice whose grouped items overflow MONEY_MAX_CENTS", () => {
@@ -129,6 +157,12 @@ describe("createInvoiceSchema — aggregate total ceiling (QA-001)", () => {
     );
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["items"]);
+      expect(result.error.issues[0].message).toMatch(/invoice total is too large/i);
+    }
   });
 
   it("rejects an invoice whose total overflows MONEY_MAX_CENTS via tax", () => {
@@ -142,6 +176,12 @@ describe("createInvoiceSchema — aggregate total ceiling (QA-001)", () => {
     );
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["items"]);
+      expect(result.error.issues[0].message).toMatch(/invoice total is too large/i);
+    }
   });
 });
 
@@ -164,6 +204,12 @@ describe("updateInvoiceSchema — aggregate total ceiling (QA-001)", () => {
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["items"]);
+      expect(result.error.issues[0].message).toMatch(/invoice total is too large/i);
+    }
   });
 
   it("rejects an items-absent update whose grouped items overflow MONEY_MAX_CENTS", () => {
@@ -178,6 +224,12 @@ describe("updateInvoiceSchema — aggregate total ceiling (QA-001)", () => {
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["items"]);
+      expect(result.error.issues[0].message).toMatch(/invoice total is too large/i);
+    }
   });
 
   it("accepts an items-only update that overflows only once a persisted tax rate applies (the service guard is authoritative)", () => {
@@ -229,12 +281,24 @@ describe("updateInvoiceSchema — items/itemGroups all-or-nothing (PROD-004)", (
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["items"]);
+      expect(result.error.issues[0].message).toMatch(/must be provided together/i);
+    }
   });
 
   it("rejects a body with items but no itemGroups", () => {
     const result = updateInvoiceSchema.safeParse({ items: [validItemInput] });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["itemGroups"]);
+      expect(result.error.issues[0].message).toMatch(/must be provided together/i);
+    }
   });
 });
 
@@ -243,12 +307,24 @@ describe("createInvoiceSchema — date validity (QA-002)", () => {
     const result = createInvoiceSchema.safeParse(buildCreatePayload({ dueDate: "garbage" }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["dueDate"]);
+      expect(result.error.issues[0].message).toMatch(/invalid date/i);
+    }
   });
 
   it("rejects an out-of-range calendar dueDate", () => {
     const result = createInvoiceSchema.safeParse(buildCreatePayload({ dueDate: "2026-13-45" }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("custom");
+      expect(result.error.issues[0].path).toEqual(["dueDate"]);
+      expect(result.error.issues[0].message).toMatch(/invalid date/i);
+    }
   });
 });
 
@@ -265,6 +341,11 @@ describe("createInvoiceSchema — item array caps (QA-007)", () => {
     const result = createInvoiceSchema.safeParse(buildCreatePayload({ items }));
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("too_big");
+      expect(result.error.issues[0].path).toEqual(["items"]);
+    }
   });
 
   it("rejects an invoice above the item-group cap", () => {
@@ -277,5 +358,10 @@ describe("createInvoiceSchema — item array caps (QA-007)", () => {
     );
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe("too_big");
+      expect(result.error.issues[0].path).toEqual(["itemGroups"]);
+    }
   });
 });

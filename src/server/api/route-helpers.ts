@@ -101,6 +101,28 @@ export function withAdmin(handler: AuthHandler, errorHandlers?: ErrorHandler[]) 
   }, errorHandlers);
 }
 
+type PublicHandler = (request: Request, context: RouteContext) => Promise<NextResponse>;
+
+export function withPublic(handler: PublicHandler, errorHandlers?: ErrorHandler[]) {
+  return async (request: Request, context: RouteContext) => {
+    try {
+      return await handler(request, context);
+    } catch (error) {
+      if (errorHandlers) {
+        for (const { check, respond } of errorHandlers) {
+          if (check(error)) {
+            return respond(error as Error);
+          }
+        }
+      }
+
+      console.error(error);
+
+      return internalErrorResponse();
+    }
+  };
+}
+
 export async function parseBody<T>(request: Request, schema: ZodType<T>) {
   let body: unknown;
 

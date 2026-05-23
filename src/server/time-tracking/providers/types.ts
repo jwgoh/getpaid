@@ -82,14 +82,30 @@ export interface TimeEntriesResult {
   currency: string | null;
 }
 
+export interface ProviderCallContext {
+  signal?: AbortSignal;
+}
+
 export interface TimeTrackingProvider {
   id: string;
   name: string;
   capabilities: ProviderCapabilities;
 
   validateToken(token: string): Promise<{ valid: boolean; user?: ProviderUser }>;
-  getWorkspaces(token: string): Promise<NormalizedWorkspace[]>;
-  getProjects(token: string, workspaceId: string): Promise<NormalizedProject[]>;
-  getClients(token: string, workspaceId: string): Promise<NormalizedClient[]>;
-  getTimeEntries(token: string, query: TimeEntriesQuery): Promise<TimeEntriesResult>;
+  getWorkspaces(token: string, ctx?: ProviderCallContext): Promise<NormalizedWorkspace[]>;
+  getProjects(
+    token: string,
+    workspaceId: string,
+    ctx?: ProviderCallContext
+  ): Promise<NormalizedProject[]>;
+  getClients(
+    token: string,
+    workspaceId: string,
+    ctx?: ProviderCallContext
+  ): Promise<NormalizedClient[]>;
+  getTimeEntries(
+    token: string,
+    query: TimeEntriesQuery,
+    ctx?: ProviderCallContext
+  ): Promise<TimeEntriesResult>;
 }

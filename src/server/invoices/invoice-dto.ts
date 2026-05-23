@@ -11,6 +11,8 @@ import { parseInvoiceTags } from "@app/shared/schemas/invoice";
 
 import { ITEM_GROUPS_INCLUDE } from "./item-groups";
 
+const INVOICE_DETAIL_HISTORY_TAKE = 200;
+
 export const INVOICE_LIST_INCLUDE = {
   client: true,
 } as const satisfies Prisma.InvoiceInclude;
@@ -19,8 +21,8 @@ export const INVOICE_DETAIL_INCLUDE = {
   client: true,
   items: { where: { groupId: null }, orderBy: { sortOrder: "asc" } },
   itemGroups: ITEM_GROUPS_INCLUDE,
-  events: { orderBy: { createdAt: "desc" } },
-  payments: { orderBy: { paidAt: "desc" } },
+  events: { orderBy: { createdAt: "desc" }, take: INVOICE_DETAIL_HISTORY_TAKE },
+  payments: { orderBy: { paidAt: "desc" }, take: INVOICE_DETAIL_HISTORY_TAKE },
 } as const satisfies Prisma.InvoiceInclude;
 
 export type InvoiceListRow = Prisma.InvoiceGetPayload<{ include: typeof INVOICE_LIST_INCLUDE }>;
