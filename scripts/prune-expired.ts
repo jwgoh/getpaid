@@ -1,19 +1,8 @@
 import { prisma } from "../src/server/db";
 import { pruneExpired } from "../src/server/prune";
+import { extractDbHost } from "../src/shared/lib/extract-db-host";
 
 const DRY_RUN_FLAG = "--dry-run";
-
-function extractDbHost(url: string | undefined): string {
-  if (!url) {
-    return "unset";
-  }
-
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "invalid";
-  }
-}
 
 async function main() {
   const isDryRun = process.argv.includes(DRY_RUN_FLAG);
