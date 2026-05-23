@@ -1,2 +1,2 @@
 export { type ThemeMode, ThemeRegistry, useThemeMode } from "./registry";
-export { lightTheme, theme } from "./theme";
+export { lightTheme } from "./theme";

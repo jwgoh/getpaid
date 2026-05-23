@@ -2,7 +2,8 @@ import { createTheme } from "@mui/material/styles";
 
 import { UI } from "@app/shared/config/config";
 
-import { lightOnlyComponents, sharedComponents } from "./components";
+import { sharedComponents } from "./components";
+import { lightOnlyComponents } from "./components-light-only";
 import { darkPalette, lightPalette } from "./palettes";
 import { typography } from "./typography";
 
