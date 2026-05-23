@@ -1,4 +1,5 @@
 import { CURRENCY, DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
+import { runWithConcurrency } from "@app/shared/lib/concurrency";
 
 import type {
   NormalizedClient,
@@ -76,8 +77,10 @@ async function buildSubGroupNameMap(
 
   if (subGrouping === "tasks") {
     const projectIds = groups.map((g) => g.id).filter((id): id is number => id !== null);
-    const taskResults = await Promise.all(
-      projectIds.map((pid) => fetchTasks(token, workspaceId, pid).catch(() => []))
+    const taskResults = await runWithConcurrency(
+      projectIds,
+      TIME_TRACKING.TASKS_FETCH_CONCURRENCY,
+      (pid) => fetchTasks(token, workspaceId, pid).catch(() => [])
     );
 
     taskResults.flat().forEach((t) => map.set(String(t.id), t.name));
