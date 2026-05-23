@@ -1,11 +1,4 @@
-import {
-  Invoice,
-  InvoiceEvent,
-  InvoiceEventType,
-  InvoiceStatus,
-  PaymentMethod,
-  Prisma,
-} from "@prisma/client";
+import { Invoice, InvoiceEvent, InvoiceEventType, InvoiceStatus, Prisma } from "@prisma/client";
 
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
@@ -46,8 +39,7 @@ export async function markInvoiceViewed(publicId: PublicId): Promise<Invoice | n
 
 export async function markInvoicePaid(
   id: InvoiceId,
-  userId: UserId,
-  method: PaymentMethod = PAYMENT_METHOD.MANUAL
+  userId: UserId
 ): Promise<InvoicePaidEntity | null> {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
@@ -65,7 +57,7 @@ export async function markInvoicePaid(
       data: {
         status: INVOICE_STATUS.PAID,
         paidAt,
-        paymentMethod: method,
+        paymentMethod: PAYMENT_METHOD.MANUAL,
         paidAmount: invoice.total,
       },
     });
