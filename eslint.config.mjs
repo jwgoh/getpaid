@@ -143,6 +143,31 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/app/api/**/route.ts"],
+    ignores: ["src/app/api/auth/\\[...nextauth\\]/route.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[object.name='process'][property.name='env']",
+          message: "Use `env` from '@app/shared/config/env' instead of process.env.",
+        },
+        {
+          selector:
+            "ExportNamedDeclaration > VariableDeclaration > VariableDeclarator[id.name=/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)$/]:not([init.type='CallExpression'][init.callee.name=/^(withAuth|withAdmin|withPublic)$/])",
+          message:
+            "Route handlers in src/app/api/** must be wrapped with withAuth, withAdmin, or withPublic (default-deny).",
+        },
+        {
+          selector:
+            "ExportNamedDeclaration > FunctionDeclaration[id.name=/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)$/]",
+          message:
+            "Route handlers in src/app/api/** must be wrapped with withAuth, withAdmin, or withPublic (default-deny). Replace bare 'export async function' with 'export const <METHOD> = withPublic(async (request) => ...)'.",
+        },
+      ],
+    },
+  },
+  {
     files: ["src/**/*.ts", "src/**/*.tsx"],
     ignores: ["src/providers/**", "src/shared/ui/global-error-screen.tsx"],
     rules: {
