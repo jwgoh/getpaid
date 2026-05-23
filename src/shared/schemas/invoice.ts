@@ -159,6 +159,15 @@ export const updateInvoiceSchema = z
     discount: discountSchema,
     taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
   })
+  .superRefine((data, ctx) => {
+    if ((data.items === undefined) !== (data.itemGroups === undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "items and itemGroups must be provided together",
+        path: data.items === undefined ? ["items"] : ["itemGroups"],
+      });
+    }
+  })
   .superRefine(refineInvoiceTotalsCeiling);
 
 export type DiscountType = z.infer<typeof discountTypeSchema>;

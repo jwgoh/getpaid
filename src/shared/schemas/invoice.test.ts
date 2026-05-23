@@ -158,7 +158,10 @@ describe("updateInvoiceSchema — aggregate total ceiling (QA-001)", () => {
       quantity: SCHEMA_LIMITS.QUANTITY_MAX,
       unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
     };
-    const result = updateInvoiceSchema.safeParse({ items: [maxLine, maxLine] });
+    const result = updateInvoiceSchema.safeParse({
+      items: [maxLine, maxLine],
+      itemGroups: [],
+    });
 
     expect(result.success).toBe(false);
   });
@@ -170,6 +173,7 @@ describe("updateInvoiceSchema — aggregate total ceiling (QA-001)", () => {
       unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
     };
     const result = updateInvoiceSchema.safeParse({
+      items: [],
       itemGroups: [{ title: "Group", items: [maxLine, maxLine] }],
     });
 
@@ -182,9 +186,55 @@ describe("updateInvoiceSchema — aggregate total ceiling (QA-001)", () => {
       quantity: SCHEMA_LIMITS.QUANTITY_MAX,
       unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
     };
-    const result = updateInvoiceSchema.safeParse({ items: [maxLine] });
+    const result = updateInvoiceSchema.safeParse({
+      items: [maxLine],
+      itemGroups: [],
+    });
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe("updateInvoiceSchema — items/itemGroups all-or-nothing (PROD-004)", () => {
+  const validItemInput = {
+    title: "Consulting",
+    quantity: 1,
+    unitPrice: 10_000,
+  };
+
+  it("accepts a body with both items and itemGroups present", () => {
+    const result = updateInvoiceSchema.safeParse({
+      items: [validItemInput],
+      itemGroups: [{ title: "Group", items: [validItemInput] }],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a body with both items and itemGroups as empty arrays", () => {
+    const result = updateInvoiceSchema.safeParse({ items: [], itemGroups: [] });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a body with neither items nor itemGroups", () => {
+    const result = updateInvoiceSchema.safeParse({ taxRate: 5 });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a body with itemGroups but no items", () => {
+    const result = updateInvoiceSchema.safeParse({
+      itemGroups: [{ title: "Group", items: [validItemInput] }],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a body with items but no itemGroups", () => {
+    const result = updateInvoiceSchema.safeParse({ items: [validItemInput] });
+
+    expect(result.success).toBe(false);
   });
 });
 

@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
+import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 import { asInvoiceId, type InvoiceId, type PublicId, type UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
@@ -46,7 +47,7 @@ export async function markInvoiceViewed(publicId: PublicId): Promise<Invoice | n
 export async function markInvoicePaid(
   id: InvoiceId,
   userId: UserId,
-  method: PaymentMethod = "MANUAL"
+  method: PaymentMethod = PAYMENT_METHOD.MANUAL
 ): Promise<InvoicePaidEntity | null> {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
@@ -57,15 +58,41 @@ export async function markInvoicePaid(
       return null;
     }
 
-    const updated = await tx.invoice.update({
-      where: { id },
+    const paidAt = new Date();
+
+    const claim = await tx.invoice.updateMany({
+      where: { id, paidAt: null, paidAmount: 0 },
       data: {
         status: INVOICE_STATUS.PAID,
-        paidAt: new Date(),
+        paidAt,
         paymentMethod: method,
         paidAmount: invoice.total,
       },
-      include: INVOICE_PAID_INCLUDE,
+    });
+
+    if (claim.count !== 1) {
+      return null;
+    }
+
+    const payment = await tx.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        amount: invoice.total,
+        method: PAYMENT_METHOD.MANUAL,
+        paidAt,
+      },
+    });
+
+    await tx.invoiceEvent.create({
+      data: {
+        invoiceId: invoice.id,
+        type: INVOICE_EVENT.PAYMENT_RECORDED,
+        payload: {
+          amount: invoice.total,
+          method: PAYMENT_METHOD.MANUAL,
+          paymentId: payment.id,
+        },
+      },
     });
 
     await tx.invoiceEvent.create({
@@ -76,7 +103,10 @@ export async function markInvoicePaid(
       },
     });
 
-    return updated;
+    return tx.invoice.findUniqueOrThrow({
+      where: { id },
+      include: INVOICE_PAID_INCLUDE,
+    });
   });
 }
 
