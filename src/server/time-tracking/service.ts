@@ -3,7 +3,7 @@ import type { UserId } from "@app/shared/types/ids";
 import { prisma } from "@app/server/db";
 
 import { decrypt, encrypt } from "./encryption";
-import { getProvider, type TimeEntriesQuery } from "./providers";
+import { getProvider, type ProviderCallContext, type TimeEntriesQuery } from "./providers";
 
 export class ConnectionNotFoundError extends Error {
   constructor(public readonly providerId: string) {
@@ -110,23 +110,33 @@ async function getDecryptedToken(userId: UserId, providerId: string): Promise<st
   return decrypt(connection.encryptedToken);
 }
 
-export async function getWorkspaces(userId: UserId, providerId: string) {
+export async function getWorkspaces(userId: UserId, providerId: string, ctx?: ProviderCallContext) {
   const provider = getProvider(providerId);
   const token = await getDecryptedToken(userId, providerId);
 
-  return provider.getWorkspaces(token);
+  return provider.getWorkspaces(token, ctx);
 }
 
-export async function getProjects(userId: UserId, providerId: string, workspaceId: string) {
+export async function getProjects(
+  userId: UserId,
+  providerId: string,
+  workspaceId: string,
+  ctx?: ProviderCallContext
+) {
   const provider = getProvider(providerId);
   const token = await getDecryptedToken(userId, providerId);
 
-  return provider.getProjects(token, workspaceId);
+  return provider.getProjects(token, workspaceId, ctx);
 }
 
-export async function getTimeEntries(userId: UserId, providerId: string, query: TimeEntriesQuery) {
+export async function getTimeEntries(
+  userId: UserId,
+  providerId: string,
+  query: TimeEntriesQuery,
+  ctx?: ProviderCallContext
+) {
   const provider = getProvider(providerId);
   const token = await getDecryptedToken(userId, providerId);
 
-  return provider.getTimeEntries(token, query);
+  return provider.getTimeEntries(token, query, ctx);
 }

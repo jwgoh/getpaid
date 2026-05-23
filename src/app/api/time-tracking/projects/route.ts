@@ -3,8 +3,12 @@ import { NextResponse } from "next/server";
 import { asUserId } from "@app/shared/types/ids";
 
 import { errorResponse, withAuth } from "@app/server/api/route-helpers";
+import { createRequestBudget } from "@app/server/api/timeout";
 import { getProjects } from "@app/server/time-tracking";
 import { timeTrackingErrorHandlers } from "@app/server/time-tracking/api-errors";
+import { TIME_TRACKING_REQUEST_BUDGET_MS } from "@app/server/time-tracking/budget";
+
+export const maxDuration = 10;
 
 export const GET = withAuth(async (user, request) => {
   const { searchParams } = new URL(request.url);
@@ -15,7 +19,17 @@ export const GET = withAuth(async (user, request) => {
     return errorResponse("VALIDATION_ERROR", "Provider and workspaceId are required", 400);
   }
 
-  const projects = await getProjects(asUserId(user.id), provider, workspaceId);
+  const budget = createRequestBudget(TIME_TRACKING_REQUEST_BUDGET_MS);
 
-  return NextResponse.json(projects);
+  try {
+    const projects = await getProjects(asUserId(user.id), provider, workspaceId, {
+      signal: budget.signal,
+    });
+
+    return NextResponse.json(projects);
+  } catch (error) {
+    return budget.rethrowIfExceeded(error);
+  } finally {
+    budget.cancel();
+  }
 }, timeTrackingErrorHandlers);

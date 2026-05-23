@@ -109,10 +109,20 @@ function buildAuthHeader(token: string): string {
   return `Basic ${Buffer.from(`${token}:api_token`).toString("base64")}`;
 }
 
+function buildFetchSignal(signal: AbortSignal | null | undefined): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(EXTERNAL_HTTP_TIMEOUTS_MS.TOGGL);
+
+  if (!signal) {
+    return timeoutSignal;
+  }
+
+  return AbortSignal.any([signal, timeoutSignal]);
+}
+
 async function performTogglFetch<T>(url: string, token: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...options,
-    signal: options?.signal ?? AbortSignal.timeout(EXTERNAL_HTTP_TIMEOUTS_MS.TOGGL),
+    signal: buildFetchSignal(options?.signal),
     headers: {
       Authorization: buildAuthHeader(token),
       "Content-Type": "application/json",
@@ -137,22 +147,32 @@ async function togglFetch<T>(url: string, token: string, options?: RequestInit):
   });
 }
 
-export async function fetchMe(token: string): Promise<TogglUser> {
-  return togglFetch<TogglUser>(`${TIME_TRACKING.TOGGL_API_BASE_URL}/me`, token);
+export async function fetchMe(token: string, signal?: AbortSignal): Promise<TogglUser> {
+  return togglFetch<TogglUser>(`${TIME_TRACKING.TOGGL_API_BASE_URL}/me`, token, { signal });
 }
 
-export async function fetchWorkspaces(token: string): Promise<TogglWorkspace[]> {
-  return togglFetch<TogglWorkspace[]>(`${TIME_TRACKING.TOGGL_API_BASE_URL}/workspaces`, token);
+export async function fetchWorkspaces(
+  token: string,
+  signal?: AbortSignal
+): Promise<TogglWorkspace[]> {
+  return togglFetch<TogglWorkspace[]>(`${TIME_TRACKING.TOGGL_API_BASE_URL}/workspaces`, token, {
+    signal,
+  });
 }
 
-export async function fetchProjects(token: string, workspaceId: string): Promise<TogglProject[]> {
+export async function fetchProjects(
+  token: string,
+  workspaceId: string,
+  signal?: AbortSignal
+): Promise<TogglProject[]> {
   const results: TogglProject[] = [];
   let page = 1;
 
   while (true) {
     const batch = await togglFetch<TogglProject[]>(
       `${TIME_TRACKING.TOGGL_API_BASE_URL}/workspaces/${workspaceId}/projects?active=both&per_page=${PROJECTS_PER_PAGE}&page=${page}`,
-      token
+      token,
+      { signal }
     );
 
     results.push(...batch);
@@ -167,27 +187,35 @@ export async function fetchProjects(token: string, workspaceId: string): Promise
   return results;
 }
 
-export async function fetchClients(token: string, workspaceId: string): Promise<TogglClient[]> {
+export async function fetchClients(
+  token: string,
+  workspaceId: string,
+  signal?: AbortSignal
+): Promise<TogglClient[]> {
   return togglFetch<TogglClient[]>(
     `${TIME_TRACKING.TOGGL_API_BASE_URL}/workspaces/${workspaceId}/clients`,
-    token
+    token,
+    { signal }
   );
 }
 
 export async function fetchTasks(
   token: string,
   workspaceId: string,
-  projectId: number
+  projectId: number,
+  signal?: AbortSignal
 ): Promise<TogglTask[]> {
   return togglFetch<TogglTask[]>(
     `${TIME_TRACKING.TOGGL_API_BASE_URL}/workspaces/${workspaceId}/projects/${projectId}/tasks`,
-    token
+    token,
+    { signal }
   );
 }
 
 export async function fetchSummaryReport(
   token: string,
-  params: SummaryReportParams
+  params: SummaryReportParams,
+  signal?: AbortSignal
 ): Promise<TogglSummaryResponse> {
   const body: Record<string, unknown> = {
     start_date: params.startDate,
@@ -212,6 +240,6 @@ export async function fetchSummaryReport(
   return togglFetch<TogglSummaryResponse>(
     `${TIME_TRACKING.TOGGL_REPORTS_BASE_URL}/workspace/${params.workspaceId}/summary/time_entries`,
     token,
-    { method: "POST", body: JSON.stringify(body) }
+    { method: "POST", body: JSON.stringify(body), signal }
   );
 }

@@ -1,4 +1,5 @@
 import { errorResponse } from "@app/server/api/route-helpers";
+import { gatewayTimeoutResponse, isRequestBudgetExceeded } from "@app/server/api/timeout";
 import {
   ConnectionNotFoundError,
   TogglApiError,
@@ -55,6 +56,10 @@ function respondTogglError(error: TogglApiError) {
 }
 
 export const timeTrackingErrorHandlers: ErrorHandler[] = [
+  {
+    check: (error) => isRequestBudgetExceeded(error),
+    respond: () => gatewayTimeoutResponse(),
+  },
   {
     check: (error) => error instanceof UnknownProviderError,
     respond: (error) => errorResponse("BAD_REQUEST", error.message, STATUS_BAD_REQUEST),

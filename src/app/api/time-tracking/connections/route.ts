@@ -12,6 +12,8 @@ import {
 } from "@app/server/time-tracking";
 import { timeTrackingErrorHandlers } from "@app/server/time-tracking/api-errors";
 
+export const maxDuration = 10;
+
 const connectSchema = z.object({
   provider: z.string().min(1),
   token: z.string().min(1),

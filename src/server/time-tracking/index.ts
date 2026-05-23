@@ -2,6 +2,7 @@ export type {
   BreakdownOption,
   NormalizedProject,
   NormalizedWorkspace,
+  ProviderCallContext,
   ProviderCapabilities,
   TimeEntriesResult,
   TimeEntryGroup,

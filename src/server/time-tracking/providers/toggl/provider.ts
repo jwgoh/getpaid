@@ -5,6 +5,7 @@ import type {
   NormalizedClient,
   NormalizedProject,
   NormalizedWorkspace,
+  ProviderCallContext,
   ProviderCapabilities,
   RoundingDirection,
   TimeEntriesQuery,
@@ -50,16 +51,17 @@ type NameMap = Map<string, string>;
 async function buildGroupNameMap(
   token: string,
   workspaceId: string,
-  grouping: string
+  grouping: string,
+  signal?: AbortSignal
 ): Promise<NameMap> {
   const map: NameMap = new Map();
 
   if (grouping === "projects") {
-    const projects = await fetchProjects(token, workspaceId);
+    const projects = await fetchProjects(token, workspaceId, signal);
 
     projects.forEach((p) => map.set(String(p.id), p.name));
   } else if (grouping === "clients") {
-    const clients = await fetchClients(token, workspaceId);
+    const clients = await fetchClients(token, workspaceId, signal);
 
     clients.forEach((c) => map.set(String(c.id), c.name));
   }
@@ -71,7 +73,8 @@ async function buildSubGroupNameMap(
   token: string,
   workspaceId: string,
   subGrouping: string,
-  groups: TogglSummaryGroup[]
+  groups: TogglSummaryGroup[],
+  signal?: AbortSignal
 ): Promise<NameMap> {
   const map: NameMap = new Map();
 
@@ -80,16 +83,16 @@ async function buildSubGroupNameMap(
     const taskResults = await runWithConcurrency(
       projectIds,
       TIME_TRACKING.TASKS_FETCH_CONCURRENCY,
-      (pid) => fetchTasks(token, workspaceId, pid).catch(() => [])
+      (pid) => fetchTasks(token, workspaceId, pid, signal).catch(() => [])
     );
 
     taskResults.flat().forEach((t) => map.set(String(t.id), t.name));
   } else if (subGrouping === "projects") {
-    const projects = await fetchProjects(token, workspaceId);
+    const projects = await fetchProjects(token, workspaceId, signal);
 
     projects.forEach((p) => map.set(String(p.id), p.name));
   } else if (subGrouping === "clients") {
-    const clients = await fetchClients(token, workspaceId);
+    const clients = await fetchClients(token, workspaceId, signal);
 
     clients.forEach((c) => map.set(String(c.id), c.name));
   }
@@ -178,8 +181,8 @@ export const togglProvider: TimeTrackingProvider = {
     }
   },
 
-  async getWorkspaces(token: string): Promise<NormalizedWorkspace[]> {
-    const workspaces = await fetchWorkspaces(token);
+  async getWorkspaces(token: string, ctx?: ProviderCallContext): Promise<NormalizedWorkspace[]> {
+    const workspaces = await fetchWorkspaces(token, ctx?.signal);
 
     return workspaces.map((ws) => ({
       id: String(ws.id),
@@ -193,10 +196,14 @@ export const togglProvider: TimeTrackingProvider = {
     }));
   },
 
-  async getProjects(token: string, workspaceId: string): Promise<NormalizedProject[]> {
+  async getProjects(
+    token: string,
+    workspaceId: string,
+    ctx?: ProviderCallContext
+  ): Promise<NormalizedProject[]> {
     const [projects, clients] = await Promise.all([
-      fetchProjects(token, workspaceId),
-      fetchClients(token, workspaceId),
+      fetchProjects(token, workspaceId, ctx?.signal),
+      fetchClients(token, workspaceId, ctx?.signal),
     ]);
 
     const clientMap = new Map(clients.map((c) => [c.id, c.name]));
@@ -214,8 +221,12 @@ export const togglProvider: TimeTrackingProvider = {
     }));
   },
 
-  async getClients(token: string, workspaceId: string): Promise<NormalizedClient[]> {
-    const clients = await fetchClients(token, workspaceId);
+  async getClients(
+    token: string,
+    workspaceId: string,
+    ctx?: ProviderCallContext
+  ): Promise<NormalizedClient[]> {
+    const clients = await fetchClients(token, workspaceId, ctx?.signal);
 
     return clients
       .filter((c) => !c.archived)
@@ -225,21 +236,30 @@ export const togglProvider: TimeTrackingProvider = {
       }));
   },
 
-  async getTimeEntries(token: string, query: TimeEntriesQuery): Promise<TimeEntriesResult> {
-    const response = await fetchSummaryReport(token, {
-      workspaceId: query.workspaceId,
-      startDate: query.startDate,
-      endDate: query.endDate,
-      projectIds: query.projectIds,
-      grouping: query.grouping,
-      subGrouping: query.subGrouping,
-      roundingMinutes: query.roundingMinutes,
-      billableOnly: query.billableOnly,
-    });
+  async getTimeEntries(
+    token: string,
+    query: TimeEntriesQuery,
+    ctx?: ProviderCallContext
+  ): Promise<TimeEntriesResult> {
+    const signal = ctx?.signal;
+    const response = await fetchSummaryReport(
+      token,
+      {
+        workspaceId: query.workspaceId,
+        startDate: query.startDate,
+        endDate: query.endDate,
+        projectIds: query.projectIds,
+        grouping: query.grouping,
+        subGrouping: query.subGrouping,
+        roundingMinutes: query.roundingMinutes,
+        billableOnly: query.billableOnly,
+      },
+      signal
+    );
 
     const [groupNames, subGroupNames] = await Promise.all([
-      buildGroupNameMap(token, query.workspaceId, query.grouping),
-      buildSubGroupNameMap(token, query.workspaceId, query.subGrouping, response.groups),
+      buildGroupNameMap(token, query.workspaceId, query.grouping, signal),
+      buildSubGroupNameMap(token, query.workspaceId, query.subGrouping, response.groups, signal),
     ]);
 
     let totalSeconds = 0;

@@ -30,6 +30,7 @@ export type {
   NormalizedClient,
   NormalizedProject,
   NormalizedWorkspace,
+  ProviderCallContext,
   ProviderCapabilities,
   RoundingDirection,
   TimeEntriesQuery,
