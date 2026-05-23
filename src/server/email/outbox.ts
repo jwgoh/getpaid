@@ -253,67 +253,98 @@ function warnIfLargeDelete(arm: "SENT" | "FAILED", deleted: number): void {
   }
 }
 
-export interface OutboxRetentionOverrides {
+export interface OutboxSentRetentionOverrides {
   sentDays?: number;
+}
+
+export interface OutboxFailedRetentionOverrides {
   failedDays?: number;
 }
 
-export async function pruneSentOutbox(
+export async function pruneOutboxSent(
   client: PrismaClient,
   now: Date,
-  retention: OutboxRetentionOverrides = {}
-): Promise<{ deletedSent: number; deletedFailed: number }> {
+  retention: OutboxSentRetentionOverrides = {}
+): Promise<{ deleted: number }> {
   const sentDays = retention.sentDays ?? EMAIL_OUTBOX.RETENTION_SENT_DAYS;
-  const failedDays = retention.failedDays ?? EMAIL_OUTBOX.RETENTION_FAILED_DAYS;
 
-  if (sentDays <= 0 || failedDays <= 0) {
-    throw new RetentionMisconfiguredError("Outbox retention");
+  if (sentDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox SENT retention");
   }
 
   const cutoffSent = new Date(now.getTime() - TIME.DAY * sentDays);
-  const cutoffFailed = new Date(now.getTime() - TIME.DAY * failedDays);
 
-  const sent = await client.emailOutbox.deleteMany({
+  const result = await client.emailOutbox.deleteMany({
     where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
   });
 
-  warnIfLargeDelete("SENT", sent.count);
+  warnIfLargeDelete("SENT", result.count);
 
-  const failed = await client.emailOutbox.deleteMany({
-    where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
-  });
-
-  warnIfLargeDelete("FAILED", failed.count);
-
-  return { deletedSent: sent.count, deletedFailed: failed.count };
+  return { deleted: result.count };
 }
 
-export async function countSentOutbox(
+export async function pruneOutboxFailed(
   client: PrismaClient,
   now: Date,
-  retention: OutboxRetentionOverrides = {}
-): Promise<{ sent: number; failed: number }> {
-  const sentDays = retention.sentDays ?? EMAIL_OUTBOX.RETENTION_SENT_DAYS;
+  retention: OutboxFailedRetentionOverrides = {}
+): Promise<{ deleted: number }> {
   const failedDays = retention.failedDays ?? EMAIL_OUTBOX.RETENTION_FAILED_DAYS;
 
-  if (sentDays <= 0 || failedDays <= 0) {
-    throw new RetentionMisconfiguredError("Outbox retention");
+  if (failedDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox FAILED retention");
   }
 
-  const cutoffSent = new Date(now.getTime() - TIME.DAY * sentDays);
   const cutoffFailed = new Date(now.getTime() - TIME.DAY * failedDays);
 
-  const sent = await client.emailOutbox.count({
-    where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
-  });
-
-  warnIfLargeDelete("SENT", sent);
-
-  const failed = await client.emailOutbox.count({
+  const result = await client.emailOutbox.deleteMany({
     where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
   });
 
-  warnIfLargeDelete("FAILED", failed);
+  warnIfLargeDelete("FAILED", result.count);
 
-  return { sent, failed };
+  return { deleted: result.count };
+}
+
+export async function countOutboxSent(
+  client: PrismaClient,
+  now: Date,
+  retention: OutboxSentRetentionOverrides = {}
+): Promise<{ count: number }> {
+  const sentDays = retention.sentDays ?? EMAIL_OUTBOX.RETENTION_SENT_DAYS;
+
+  if (sentDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox SENT retention");
+  }
+
+  const cutoffSent = new Date(now.getTime() - TIME.DAY * sentDays);
+
+  const count = await client.emailOutbox.count({
+    where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
+  });
+
+  warnIfLargeDelete("SENT", count);
+
+  return { count };
+}
+
+export async function countOutboxFailed(
+  client: PrismaClient,
+  now: Date,
+  retention: OutboxFailedRetentionOverrides = {}
+): Promise<{ count: number }> {
+  const failedDays = retention.failedDays ?? EMAIL_OUTBOX.RETENTION_FAILED_DAYS;
+
+  if (failedDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox FAILED retention");
+  }
+
+  const cutoffFailed = new Date(now.getTime() - TIME.DAY * failedDays);
+
+  const count = await client.emailOutbox.count({
+    where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
+  });
+
+  warnIfLargeDelete("FAILED", count);
+
+  return { count };
 }

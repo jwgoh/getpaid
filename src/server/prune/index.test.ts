@@ -4,8 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pruneExpiredIdempotencyKeys = vi.fn();
 const countExpiredIdempotencyKeys = vi.fn();
-const pruneSentOutbox = vi.fn();
-const countSentOutbox = vi.fn();
+const pruneOutboxSent = vi.fn();
+const pruneOutboxFailed = vi.fn();
+const countOutboxSent = vi.fn();
+const countOutboxFailed = vi.fn();
 const pruneConvertedWaitlistEntries = vi.fn();
 const countConvertedWaitlistEntries = vi.fn();
 
@@ -15,8 +17,10 @@ vi.mock("@app/server/api/idempotency", () => ({
 }));
 
 vi.mock("@app/server/email/outbox", () => ({
-  pruneSentOutbox,
-  countSentOutbox,
+  pruneOutboxSent,
+  pruneOutboxFailed,
+  countOutboxSent,
+  countOutboxFailed,
 }));
 
 vi.mock("@app/server/waitlist", () => ({
@@ -39,8 +43,10 @@ async function loadOrchestrator() {
 beforeEach(() => {
   pruneExpiredIdempotencyKeys.mockReset();
   countExpiredIdempotencyKeys.mockReset();
-  pruneSentOutbox.mockReset();
-  countSentOutbox.mockReset();
+  pruneOutboxSent.mockReset();
+  pruneOutboxFailed.mockReset();
+  countOutboxSent.mockReset();
+  countOutboxFailed.mockReset();
   pruneConvertedWaitlistEntries.mockReset();
   countConvertedWaitlistEntries.mockReset();
 });
@@ -51,11 +57,12 @@ afterEach(() => {
 });
 
 describe("pruneExpired — live mode", () => {
-  it("aggregates real counts from all three sub-prunes", async () => {
+  it("aggregates real counts from all sub-prunes", async () => {
     const { pruneExpired } = await loadOrchestrator();
 
     pruneExpiredIdempotencyKeys.mockResolvedValue({ deleted: 11 });
-    pruneSentOutbox.mockResolvedValue({ deletedSent: 22, deletedFailed: 3 });
+    pruneOutboxSent.mockResolvedValue({ deleted: 22 });
+    pruneOutboxFailed.mockResolvedValue({ deleted: 3 });
     pruneConvertedWaitlistEntries.mockResolvedValue({ deleted: 5 });
 
     const report = await pruneExpired(fakeClient, { now: FIXED_NOW });
@@ -95,43 +102,51 @@ describe("pruneExpired — dry-run mode", () => {
     const { pruneExpired } = await loadOrchestrator();
 
     countExpiredIdempotencyKeys.mockResolvedValue({ count: 7 });
-    countSentOutbox.mockResolvedValue({ sent: 9, failed: 1 });
+    countOutboxSent.mockResolvedValue({ count: 9 });
+    countOutboxFailed.mockResolvedValue({ count: 1 });
     countConvertedWaitlistEntries.mockResolvedValue({ candidates: 4 });
 
     const report = await pruneExpired(fakeClient, { dryRun: true, now: FIXED_NOW });
 
     expect(report.mode).toBe("dry-run");
     expect(countExpiredIdempotencyKeys).toHaveBeenCalledTimes(1);
-    expect(countSentOutbox).toHaveBeenCalledTimes(1);
+    expect(countOutboxSent).toHaveBeenCalledTimes(1);
+    expect(countOutboxFailed).toHaveBeenCalledTimes(1);
     expect(countConvertedWaitlistEntries).toHaveBeenCalledTimes(1);
     expect(pruneExpiredIdempotencyKeys).not.toHaveBeenCalled();
-    expect(pruneSentOutbox).not.toHaveBeenCalled();
+    expect(pruneOutboxSent).not.toHaveBeenCalled();
+    expect(pruneOutboxFailed).not.toHaveBeenCalled();
     expect(pruneConvertedWaitlistEntries).not.toHaveBeenCalled();
   });
 });
 
-describe("pruneExpired — per-table failure isolation", () => {
-  it("a throw from one sub-prune does not cancel siblings", async () => {
+describe("pruneExpired — per-arm failure isolation", () => {
+  it("a throw from outbox-FAILED arm does not poison the outbox-SENT arm", async () => {
     const { pruneExpired } = await loadOrchestrator();
 
     pruneExpiredIdempotencyKeys.mockResolvedValue({ deleted: 3 });
-    pruneSentOutbox.mockRejectedValue(new Error("boom"));
+    pruneOutboxSent.mockResolvedValue({ deleted: 17 });
+    pruneOutboxFailed.mockRejectedValue(new Error("boom"));
     pruneConvertedWaitlistEntries.mockResolvedValue({ deleted: 2 });
 
     const report = await pruneExpired(fakeClient, { now: FIXED_NOW });
 
     expect(report.hasError).toBe(true);
     expect(report.idempotencyKeys.ok).toBe(true);
-    expect(report.waitlistEntries.ok).toBe(true);
-    expect(report.emailOutboxSent.ok).toBe(false);
+    expect(report.emailOutboxSent.ok).toBe(true);
     expect(report.emailOutboxFailed.ok).toBe(false);
+    expect(report.waitlistEntries.ok).toBe(true);
 
-    if (!report.emailOutboxSent.ok) {
-      expect(report.emailOutboxSent.error).toBe("boom");
+    if (report.emailOutboxSent.ok) {
+      expect(report.emailOutboxSent.deleted).toBe(17);
+    } else {
+      throw new Error("expected emailOutboxSent.ok === true");
     }
 
     if (!report.emailOutboxFailed.ok) {
       expect(report.emailOutboxFailed.error).toBe("boom");
+    } else {
+      throw new Error("expected emailOutboxFailed.ok === false");
     }
 
     expect(pruneConvertedWaitlistEntries).toHaveBeenCalledTimes(1);
@@ -139,7 +154,7 @@ describe("pruneExpired — per-table failure isolation", () => {
 });
 
 describe("pruneExpired — sequential execution", () => {
-  it("runs sub-prunes in order: idempotency -> outbox -> waitlist", async () => {
+  it("runs sub-prunes in order: idempotency -> outboxSent -> outboxFailed -> waitlist", async () => {
     const { pruneExpired } = await loadOrchestrator();
 
     const callOrder: string[] = [];
@@ -149,10 +164,15 @@ describe("pruneExpired — sequential execution", () => {
 
       return { deleted: 0 };
     });
-    pruneSentOutbox.mockImplementation(async () => {
-      callOrder.push("outbox");
+    pruneOutboxSent.mockImplementation(async () => {
+      callOrder.push("outboxSent");
 
-      return { deletedSent: 0, deletedFailed: 0 };
+      return { deleted: 0 };
+    });
+    pruneOutboxFailed.mockImplementation(async () => {
+      callOrder.push("outboxFailed");
+
+      return { deleted: 0 };
     });
     pruneConvertedWaitlistEntries.mockImplementation(async () => {
       callOrder.push("waitlist");
@@ -162,7 +182,7 @@ describe("pruneExpired — sequential execution", () => {
 
     await pruneExpired(fakeClient, { now: FIXED_NOW });
 
-    expect(callOrder).toEqual(["idempotency", "outbox", "waitlist"]);
+    expect(callOrder).toEqual(["idempotency", "outboxSent", "outboxFailed", "waitlist"]);
   });
 });
 
@@ -171,7 +191,8 @@ describe("pruneExpired — now option", () => {
     const { pruneExpired } = await loadOrchestrator();
 
     pruneExpiredIdempotencyKeys.mockResolvedValue({ deleted: 0 });
-    pruneSentOutbox.mockResolvedValue({ deletedSent: 0, deletedFailed: 0 });
+    pruneOutboxSent.mockResolvedValue({ deleted: 0 });
+    pruneOutboxFailed.mockResolvedValue({ deleted: 0 });
     pruneConvertedWaitlistEntries.mockResolvedValue({ deleted: 0 });
 
     const customNow = new Date("2026-01-01T00:00:00Z");
@@ -179,7 +200,8 @@ describe("pruneExpired — now option", () => {
     await pruneExpired(fakeClient, { now: customNow });
 
     expect(pruneExpiredIdempotencyKeys).toHaveBeenCalledWith(fakeClient, customNow);
-    expect(pruneSentOutbox).toHaveBeenCalledWith(fakeClient, customNow);
+    expect(pruneOutboxSent).toHaveBeenCalledWith(fakeClient, customNow);
+    expect(pruneOutboxFailed).toHaveBeenCalledWith(fakeClient, customNow);
     expect(pruneConvertedWaitlistEntries).toHaveBeenCalledWith(fakeClient, customNow);
   });
 });
@@ -193,7 +215,8 @@ describe("pruneExpired — DB-clock now", () => {
     const client = { $queryRaw: queryRaw } as unknown as PrismaClient;
 
     pruneExpiredIdempotencyKeys.mockResolvedValue({ deleted: 0 });
-    pruneSentOutbox.mockResolvedValue({ deletedSent: 0, deletedFailed: 0 });
+    pruneOutboxSent.mockResolvedValue({ deleted: 0 });
+    pruneOutboxFailed.mockResolvedValue({ deleted: 0 });
     pruneConvertedWaitlistEntries.mockResolvedValue({ deleted: 0 });
 
     const report = await pruneExpired(client);
@@ -201,7 +224,8 @@ describe("pruneExpired — DB-clock now", () => {
     expect(queryRaw).toHaveBeenCalledTimes(1);
     expect(report.now).toBe(dbNow.toISOString());
     expect(pruneExpiredIdempotencyKeys).toHaveBeenCalledWith(client, dbNow);
-    expect(pruneSentOutbox).toHaveBeenCalledWith(client, dbNow);
+    expect(pruneOutboxSent).toHaveBeenCalledWith(client, dbNow);
+    expect(pruneOutboxFailed).toHaveBeenCalledWith(client, dbNow);
     expect(pruneConvertedWaitlistEntries).toHaveBeenCalledWith(client, dbNow);
   });
 
@@ -212,7 +236,8 @@ describe("pruneExpired — DB-clock now", () => {
     const client = { $queryRaw: queryRaw } as unknown as PrismaClient;
 
     pruneExpiredIdempotencyKeys.mockResolvedValue({ deleted: 0 });
-    pruneSentOutbox.mockResolvedValue({ deletedSent: 0, deletedFailed: 0 });
+    pruneOutboxSent.mockResolvedValue({ deleted: 0 });
+    pruneOutboxFailed.mockResolvedValue({ deleted: 0 });
     pruneConvertedWaitlistEntries.mockResolvedValue({ deleted: 0 });
 
     await pruneExpired(client, { now: FIXED_NOW });

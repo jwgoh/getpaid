@@ -39,172 +39,248 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("pruneSentOutbox", () => {
-  it("returns 0/0 when no SENT or FAILED rows", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
+describe("pruneOutboxSent", () => {
+  it("returns deleted = 0 when no SENT rows", async () => {
+    const { pruneOutboxSent, prisma } = await loadModule();
 
     emailOutbox.deleteMany.mockResolvedValue({ count: 0 });
 
-    const result = await pruneSentOutbox(prisma, FIXED_NOW);
+    const result = await pruneOutboxSent(prisma, FIXED_NOW);
 
-    expect(result).toEqual({ deletedSent: 0, deletedFailed: 0 });
-    expect(emailOutbox.deleteMany).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ deleted: 0 });
+    expect(emailOutbox.deleteMany).toHaveBeenCalledTimes(1);
   });
 
   it("deletes SENT rows older than RETENTION_SENT_DAYS (30d)", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
+    const { pruneOutboxSent, prisma } = await loadModule();
 
-    emailOutbox.deleteMany.mockResolvedValueOnce({ count: 5 }).mockResolvedValueOnce({ count: 0 });
+    emailOutbox.deleteMany.mockResolvedValue({ count: 5 });
 
-    const result = await pruneSentOutbox(prisma, FIXED_NOW);
+    const result = await pruneOutboxSent(prisma, FIXED_NOW);
 
-    expect(result.deletedSent).toBe(5);
-    expect(emailOutbox.deleteMany).toHaveBeenNthCalledWith(1, {
+    expect(result.deleted).toBe(5);
+    expect(emailOutbox.deleteMany).toHaveBeenCalledWith({
       where: { status: "SENT", createdAt: { lt: CUTOFF_SENT } },
     });
   });
 
-  it("deletes FAILED rows older than RETENTION_FAILED_DAYS (90d)", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
-
-    emailOutbox.deleteMany.mockResolvedValueOnce({ count: 0 }).mockResolvedValueOnce({ count: 2 });
-
-    const result = await pruneSentOutbox(prisma, FIXED_NOW);
-
-    expect(result.deletedFailed).toBe(2);
-    expect(emailOutbox.deleteMany).toHaveBeenNthCalledWith(2, {
-      where: { status: "FAILED", createdAt: { lt: CUTOFF_FAILED } },
-    });
-  });
-
-  it("uses EMAIL_OUTBOX_STATUS constants — SENT then FAILED", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
+  it("does not delete PENDING or FAILED rows", async () => {
+    const { pruneOutboxSent, prisma } = await loadModule();
 
     emailOutbox.deleteMany.mockResolvedValue({ count: 0 });
 
-    await pruneSentOutbox(prisma, FIXED_NOW);
+    await pruneOutboxSent(prisma, FIXED_NOW);
 
-    const firstCall = emailOutbox.deleteMany.mock.calls[0]?.[0] as {
-      where: { status: string };
-    };
-    const secondCall = emailOutbox.deleteMany.mock.calls[1]?.[0] as {
+    const call = emailOutbox.deleteMany.mock.calls[0]?.[0] as {
       where: { status: string };
     };
 
-    expect(firstCall.where.status).toBe("SENT");
-    expect(secondCall.where.status).toBe("FAILED");
+    expect(call.where.status).toBe("SENT");
   });
 
-  it("does not delete PENDING rows", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
-
-    emailOutbox.deleteMany.mockResolvedValue({ count: 0 });
-
-    await pruneSentOutbox(prisma, FIXED_NOW);
-
-    for (const call of emailOutbox.deleteMany.mock.calls) {
-      const arg = call[0] as { where: { status: string } };
-
-      expect(arg.where.status).not.toBe("PENDING");
-    }
-  });
-
-  it("emits large-delete warning per arm when count > 50_000", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
+  it("emits large-delete warning when SENT count > 50_000", async () => {
+    const { pruneOutboxSent, prisma } = await loadModule();
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-    emailOutbox.deleteMany
-      .mockResolvedValueOnce({ count: LARGE_DELETE_COUNT })
-      .mockResolvedValueOnce({ count: LARGE_DELETE_COUNT + 1 });
+    emailOutbox.deleteMany.mockResolvedValue({ count: LARGE_DELETE_COUNT });
 
-    await pruneSentOutbox(prisma, FIXED_NOW);
+    await pruneOutboxSent(prisma, FIXED_NOW);
 
-    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
 
-    const payloads = warnSpy.mock.calls.map(
-      (c) => JSON.parse(String(c[0])) as { arm: string; deleted: number }
-    );
+    const payload = JSON.parse(String(warnSpy.mock.calls[0]?.[0])) as {
+      event: string;
+      arm: string;
+      deleted: number;
+    };
 
-    expect(payloads[0]?.arm).toBe("SENT");
-    expect(payloads[0]?.deleted).toBe(LARGE_DELETE_COUNT);
-    expect(payloads[1]?.arm).toBe("FAILED");
-    expect(payloads[1]?.deleted).toBe(LARGE_DELETE_COUNT + 1);
+    expect(payload.event).toBe("prune.warning.large_delete");
+    expect(payload.arm).toBe("SENT");
+    expect(payload.deleted).toBe(LARGE_DELETE_COUNT);
 
     warnSpy.mockRestore();
   });
 
   it("throws RetentionMisconfiguredError when sentDays override is 0", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
+    const { pruneOutboxSent, prisma } = await loadModule();
     const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
 
-    await expect(pruneSentOutbox(prisma, FIXED_NOW, { sentDays: 0 })).rejects.toBeInstanceOf(
-      RetentionMisconfiguredError
-    );
-    expect(emailOutbox.deleteMany).not.toHaveBeenCalled();
-  });
-
-  it("throws RetentionMisconfiguredError when failedDays override is 0", async () => {
-    const { pruneSentOutbox, prisma } = await loadModule();
-    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
-
-    await expect(pruneSentOutbox(prisma, FIXED_NOW, { failedDays: 0 })).rejects.toBeInstanceOf(
+    await expect(pruneOutboxSent(prisma, FIXED_NOW, { sentDays: 0 })).rejects.toBeInstanceOf(
       RetentionMisconfiguredError
     );
     expect(emailOutbox.deleteMany).not.toHaveBeenCalled();
   });
 });
 
-describe("countSentOutbox", () => {
-  it("returns 0/0 when no rows", async () => {
-    const { countSentOutbox, prisma } = await loadModule();
+describe("pruneOutboxFailed", () => {
+  it("returns deleted = 0 when no FAILED rows", async () => {
+    const { pruneOutboxFailed, prisma } = await loadModule();
 
-    emailOutbox.count.mockResolvedValue(0);
+    emailOutbox.deleteMany.mockResolvedValue({ count: 0 });
 
-    const result = await countSentOutbox(prisma, FIXED_NOW);
+    const result = await pruneOutboxFailed(prisma, FIXED_NOW);
 
-    expect(result).toEqual({ sent: 0, failed: 0 });
-    expect(emailOutbox.count).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ deleted: 0 });
+    expect(emailOutbox.deleteMany).toHaveBeenCalledTimes(1);
   });
 
-  it("counts SENT and FAILED rows with same cutoffs as the prune", async () => {
-    const { countSentOutbox, prisma } = await loadModule();
+  it("deletes FAILED rows older than RETENTION_FAILED_DAYS (90d)", async () => {
+    const { pruneOutboxFailed, prisma } = await loadModule();
 
-    emailOutbox.count.mockResolvedValueOnce(11).mockResolvedValueOnce(3);
+    emailOutbox.deleteMany.mockResolvedValue({ count: 2 });
 
-    const result = await countSentOutbox(prisma, FIXED_NOW);
+    const result = await pruneOutboxFailed(prisma, FIXED_NOW);
 
-    expect(result).toEqual({ sent: 11, failed: 3 });
-    expect(emailOutbox.count).toHaveBeenNthCalledWith(1, {
-      where: { status: "SENT", createdAt: { lt: CUTOFF_SENT } },
-    });
-    expect(emailOutbox.count).toHaveBeenNthCalledWith(2, {
+    expect(result.deleted).toBe(2);
+    expect(emailOutbox.deleteMany).toHaveBeenCalledWith({
       where: { status: "FAILED", createdAt: { lt: CUTOFF_FAILED } },
     });
   });
 
-  it("uses identical WHERE predicates as pruneSentOutbox", async () => {
-    const { pruneSentOutbox, countSentOutbox, prisma } = await loadModule();
+  it("does not delete PENDING or SENT rows", async () => {
+    const { pruneOutboxFailed, prisma } = await loadModule();
+
+    emailOutbox.deleteMany.mockResolvedValue({ count: 0 });
+
+    await pruneOutboxFailed(prisma, FIXED_NOW);
+
+    const call = emailOutbox.deleteMany.mock.calls[0]?.[0] as {
+      where: { status: string };
+    };
+
+    expect(call.where.status).toBe("FAILED");
+  });
+
+  it("emits large-delete warning when FAILED count > 50_000", async () => {
+    const { pruneOutboxFailed, prisma } = await loadModule();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    emailOutbox.deleteMany.mockResolvedValue({ count: LARGE_DELETE_COUNT + 1 });
+
+    await pruneOutboxFailed(prisma, FIXED_NOW);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    const payload = JSON.parse(String(warnSpy.mock.calls[0]?.[0])) as {
+      event: string;
+      arm: string;
+      deleted: number;
+    };
+
+    expect(payload.event).toBe("prune.warning.large_delete");
+    expect(payload.arm).toBe("FAILED");
+    expect(payload.deleted).toBe(LARGE_DELETE_COUNT + 1);
+
+    warnSpy.mockRestore();
+  });
+
+  it("throws RetentionMisconfiguredError when failedDays override is 0", async () => {
+    const { pruneOutboxFailed, prisma } = await loadModule();
+    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
+
+    await expect(pruneOutboxFailed(prisma, FIXED_NOW, { failedDays: 0 })).rejects.toBeInstanceOf(
+      RetentionMisconfiguredError
+    );
+    expect(emailOutbox.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("countOutboxSent", () => {
+  it("returns count = 0 when no rows", async () => {
+    const { countOutboxSent, prisma } = await loadModule();
+
+    emailOutbox.count.mockResolvedValue(0);
+
+    const result = await countOutboxSent(prisma, FIXED_NOW);
+
+    expect(result).toEqual({ count: 0 });
+    expect(emailOutbox.count).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts SENT rows with same cutoff as the prune", async () => {
+    const { countOutboxSent, prisma } = await loadModule();
+
+    emailOutbox.count.mockResolvedValue(11);
+
+    const result = await countOutboxSent(prisma, FIXED_NOW);
+
+    expect(result).toEqual({ count: 11 });
+    expect(emailOutbox.count).toHaveBeenCalledWith({
+      where: { status: "SENT", createdAt: { lt: CUTOFF_SENT } },
+    });
+  });
+
+  it("uses identical WHERE predicate as pruneOutboxSent", async () => {
+    const { pruneOutboxSent, countOutboxSent, prisma } = await loadModule();
 
     emailOutbox.deleteMany.mockResolvedValue({ count: 0 });
     emailOutbox.count.mockResolvedValue(0);
 
-    await pruneSentOutbox(prisma, FIXED_NOW);
-    await countSentOutbox(prisma, FIXED_NOW);
+    await pruneOutboxSent(prisma, FIXED_NOW);
+    await countOutboxSent(prisma, FIXED_NOW);
 
-    const sentPruneWhere = emailOutbox.deleteMany.mock.calls[0]?.[0];
-    const failedPruneWhere = emailOutbox.deleteMany.mock.calls[1]?.[0];
-    const sentCountWhere = emailOutbox.count.mock.calls[0]?.[0];
-    const failedCountWhere = emailOutbox.count.mock.calls[1]?.[0];
+    const pruneCall = emailOutbox.deleteMany.mock.calls[0]?.[0];
+    const countCall = emailOutbox.count.mock.calls[0]?.[0];
 
-    expect(sentCountWhere).toEqual(sentPruneWhere);
-    expect(failedCountWhere).toEqual(failedPruneWhere);
+    expect(countCall).toEqual(pruneCall);
   });
 
   it("throws RetentionMisconfiguredError when sentDays override is 0", async () => {
-    const { countSentOutbox, prisma } = await loadModule();
+    const { countOutboxSent, prisma } = await loadModule();
     const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
 
-    await expect(countSentOutbox(prisma, FIXED_NOW, { sentDays: 0 })).rejects.toBeInstanceOf(
+    await expect(countOutboxSent(prisma, FIXED_NOW, { sentDays: 0 })).rejects.toBeInstanceOf(
+      RetentionMisconfiguredError
+    );
+    expect(emailOutbox.count).not.toHaveBeenCalled();
+  });
+});
+
+describe("countOutboxFailed", () => {
+  it("returns count = 0 when no rows", async () => {
+    const { countOutboxFailed, prisma } = await loadModule();
+
+    emailOutbox.count.mockResolvedValue(0);
+
+    const result = await countOutboxFailed(prisma, FIXED_NOW);
+
+    expect(result).toEqual({ count: 0 });
+    expect(emailOutbox.count).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts FAILED rows with same cutoff as the prune", async () => {
+    const { countOutboxFailed, prisma } = await loadModule();
+
+    emailOutbox.count.mockResolvedValue(3);
+
+    const result = await countOutboxFailed(prisma, FIXED_NOW);
+
+    expect(result).toEqual({ count: 3 });
+    expect(emailOutbox.count).toHaveBeenCalledWith({
+      where: { status: "FAILED", createdAt: { lt: CUTOFF_FAILED } },
+    });
+  });
+
+  it("uses identical WHERE predicate as pruneOutboxFailed", async () => {
+    const { pruneOutboxFailed, countOutboxFailed, prisma } = await loadModule();
+
+    emailOutbox.deleteMany.mockResolvedValue({ count: 0 });
+    emailOutbox.count.mockResolvedValue(0);
+
+    await pruneOutboxFailed(prisma, FIXED_NOW);
+    await countOutboxFailed(prisma, FIXED_NOW);
+
+    const pruneCall = emailOutbox.deleteMany.mock.calls[0]?.[0];
+    const countCall = emailOutbox.count.mock.calls[0]?.[0];
+
+    expect(countCall).toEqual(pruneCall);
+  });
+
+  it("throws RetentionMisconfiguredError when failedDays override is 0", async () => {
+    const { countOutboxFailed, prisma } = await loadModule();
+    const { RetentionMisconfiguredError } = await import("@app/server/prune/errors");
+
+    await expect(countOutboxFailed(prisma, FIXED_NOW, { failedDays: 0 })).rejects.toBeInstanceOf(
       RetentionMisconfiguredError
     );
     expect(emailOutbox.count).not.toHaveBeenCalled();

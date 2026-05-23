@@ -4,7 +4,12 @@ import {
   countExpiredIdempotencyKeys,
   pruneExpiredIdempotencyKeys,
 } from "@app/server/api/idempotency";
-import { countSentOutbox, pruneSentOutbox } from "@app/server/email/outbox";
+import {
+  countOutboxFailed,
+  countOutboxSent,
+  pruneOutboxFailed,
+  pruneOutboxSent,
+} from "@app/server/email/outbox";
 import { countConvertedWaitlistEntries, pruneConvertedWaitlistEntries } from "@app/server/waitlist";
 
 export { RetentionMisconfiguredError } from "./errors";
@@ -58,39 +63,47 @@ async function runIdempotencyKeys(
   }
 }
 
-async function runOutbox(
+async function runOutboxSent(
   client: PrismaClient,
   now: Date,
   isDryRun: boolean
-): Promise<{ sent: PruneTableResult; failed: PruneTableResult }> {
+): Promise<PruneTableResult> {
   const start = performance.now();
 
   try {
     if (isDryRun) {
-      const { sent, failed } = await countSentOutbox(client, now);
-      const durationMs = elapsedMs(start);
+      const { count } = await countOutboxSent(client, now);
 
-      return {
-        sent: { ok: true, deleted: sent, durationMs },
-        failed: { ok: true, deleted: failed, durationMs },
-      };
+      return { ok: true, deleted: count, durationMs: elapsedMs(start) };
     }
 
-    const { deletedSent, deletedFailed } = await pruneSentOutbox(client, now);
-    const durationMs = elapsedMs(start);
+    const { deleted } = await pruneOutboxSent(client, now);
 
-    return {
-      sent: { ok: true, deleted: deletedSent, durationMs },
-      failed: { ok: true, deleted: deletedFailed, durationMs },
-    };
+    return { ok: true, deleted, durationMs: elapsedMs(start) };
   } catch (error) {
-    const durationMs = elapsedMs(start);
-    const message = toErrorMessage(error);
+    return { ok: false, error: toErrorMessage(error), durationMs: elapsedMs(start) };
+  }
+}
 
-    return {
-      sent: { ok: false, error: message, durationMs },
-      failed: { ok: false, error: message, durationMs },
-    };
+async function runOutboxFailed(
+  client: PrismaClient,
+  now: Date,
+  isDryRun: boolean
+): Promise<PruneTableResult> {
+  const start = performance.now();
+
+  try {
+    if (isDryRun) {
+      const { count } = await countOutboxFailed(client, now);
+
+      return { ok: true, deleted: count, durationMs: elapsedMs(start) };
+    }
+
+    const { deleted } = await pruneOutboxFailed(client, now);
+
+    return { ok: true, deleted, durationMs: elapsedMs(start) };
+  } catch (error) {
+    return { ok: false, error: toErrorMessage(error), durationMs: elapsedMs(start) };
   }
 }
 
@@ -134,18 +147,19 @@ export async function pruneExpired(
   const isDryRun = options?.dryRun === true;
 
   const idempotencyKeys = await runIdempotencyKeys(client, now, isDryRun);
-  const outbox = await runOutbox(client, now, isDryRun);
+  const emailOutboxSent = await runOutboxSent(client, now, isDryRun);
+  const emailOutboxFailed = await runOutboxFailed(client, now, isDryRun);
   const waitlistEntries = await runWaitlist(client, now, isDryRun);
 
   const hasError =
-    !idempotencyKeys.ok || !outbox.sent.ok || !outbox.failed.ok || !waitlistEntries.ok;
+    !idempotencyKeys.ok || !emailOutboxSent.ok || !emailOutboxFailed.ok || !waitlistEntries.ok;
 
   return {
     mode: isDryRun ? "dry-run" : "live",
     now: now.toISOString(),
     idempotencyKeys,
-    emailOutboxSent: outbox.sent,
-    emailOutboxFailed: outbox.failed,
+    emailOutboxSent,
+    emailOutboxFailed,
     waitlistEntries,
     hasError,
   };
