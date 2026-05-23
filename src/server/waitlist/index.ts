@@ -1,6 +1,8 @@
-import type { WaitlistEntry } from "@prisma/client";
+import type { PrismaClient, WaitlistEntry } from "@prisma/client";
 
+import { TIME } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
+import { WAITLIST } from "@app/shared/config/waitlist";
 import type { WaitlistCheckStatus } from "@app/shared/schemas";
 import { WAITLIST_STATUS } from "@app/shared/schemas";
 
@@ -173,4 +175,72 @@ export async function deleteWaitlistEntry(id: string): Promise<WaitlistEntry | n
   }
 
   return prisma.waitlistEntry.delete({ where: { id } });
+}
+
+export async function pruneConvertedWaitlistEntries(
+  client: PrismaClient,
+  now: Date
+): Promise<{ deleted: number }> {
+  const cutoff = new Date(now.getTime() - TIME.DAY * WAITLIST.ORPHAN_RETENTION_DAYS);
+
+  const candidates = await client.waitlistEntry.findMany({
+    where: { createdAt: { lt: cutoff } },
+    select: { email: true },
+  });
+
+  if (candidates.length === 0) {
+    return { deleted: 0 };
+  }
+
+  const candidateEmails = candidates.map((c) => c.email);
+
+  const matchedUsers = await client.user.findMany({
+    where: { email: { in: candidateEmails } },
+    select: { email: true },
+  });
+
+  if (matchedUsers.length === 0) {
+    return { deleted: 0 };
+  }
+
+  const orphanEmails = matchedUsers.map((u) => u.email);
+
+  const result = await client.waitlistEntry.deleteMany({
+    where: { email: { in: orphanEmails }, createdAt: { lt: cutoff } },
+  });
+
+  if (result.count > WAITLIST.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_delete",
+        table: "WaitlistEntry",
+        deleted: result.count,
+      })
+    );
+  }
+
+  return { deleted: result.count };
+}
+
+export async function countConvertedWaitlistEntries(
+  client: PrismaClient,
+  now: Date
+): Promise<{ candidates: number }> {
+  const cutoff = new Date(now.getTime() - TIME.DAY * WAITLIST.ORPHAN_RETENTION_DAYS);
+
+  const candidates = await client.waitlistEntry.count({
+    where: { createdAt: { lt: cutoff } },
+  });
+
+  if (candidates > WAITLIST.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_delete",
+        table: "WaitlistEntry",
+        deleted: candidates,
+      })
+    );
+  }
+
+  return { candidates };
 }
