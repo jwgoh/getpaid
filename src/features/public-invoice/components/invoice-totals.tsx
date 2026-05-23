@@ -1,7 +1,8 @@
 "use client";
 
-import { Box, Divider, Stack, Typography } from "@mui/material";
+import { Box, Divider, Stack, Typography, useTheme } from "@mui/material";
 
+import { ensureReadableForeground } from "@app/shared/lib/contrast";
 import { formatCurrency } from "@app/shared/lib/format";
 
 interface InvoiceTotalsProps {
@@ -12,6 +13,13 @@ interface InvoiceTotalsProps {
 }
 
 export function InvoiceTotals({ subtotal, total, currency, primaryColor }: InvoiceTotalsProps) {
+  const theme = useTheme();
+  const readablePrimary = ensureReadableForeground(
+    primaryColor,
+    theme.palette.background.paper,
+    theme.palette.text.primary
+  );
+
   return (
     <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
       <Box sx={{ minWidth: 280 }}>
@@ -24,7 +32,7 @@ export function InvoiceTotals({ subtotal, total, currency, primaryColor }: Invoi
           <Typography variant="h6" fontWeight={600}>
             Total Due
           </Typography>
-          <Typography variant="h5" fontWeight={700} sx={{ color: primaryColor }}>
+          <Typography variant="h5" fontWeight={700} sx={{ color: readablePrimary }}>
             {formatCurrency(total, currency)}
           </Typography>
         </Stack>
