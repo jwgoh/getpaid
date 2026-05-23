@@ -30,8 +30,18 @@ export const EMAIL_OUTBOX = {
   BASE_BACKOFF_MS: 5 * TIME.MINUTE,
   BATCH_SIZE: 25,
   DISPATCH_CONCURRENCY: 5,
+  MAX_BACKOFF_MS: 60 * TIME.MINUTE,
+  JITTER_MIN_RATIO: 0.5,
+  JITTER_RANGE_RATIO: 0.5,
 } as const;
 
-export function computeBackoffMs(attempts: number, baseMs: number): number {
-  return baseMs * 2 ** attempts;
+export function computeBackoffMs(
+  attempts: number,
+  baseMs: number,
+  random: () => number = Math.random
+): number {
+  const exponential = Math.min(baseMs * 2 ** attempts, EMAIL_OUTBOX.MAX_BACKOFF_MS);
+  const jitterRatio = EMAIL_OUTBOX.JITTER_MIN_RATIO + random() * EMAIL_OUTBOX.JITTER_RANGE_RATIO;
+
+  return Math.floor(exponential * jitterRatio);
 }

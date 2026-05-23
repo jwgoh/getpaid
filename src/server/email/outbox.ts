@@ -12,6 +12,12 @@ import { runWithConcurrency } from "@app/shared/lib/concurrency";
 import { prisma } from "@app/server/db";
 
 import { type ResendEmailPayload, sendEmail } from "./index";
+import {
+  classifyResendError,
+  extractResendError,
+  type OutboxFailureKind,
+  type ResendErrorShape,
+} from "./outbox-classify";
 
 export type EmailOutboxClient = Prisma.TransactionClient | typeof prisma;
 
@@ -82,7 +88,12 @@ function extractMessageId(result: unknown): string | null {
   return typeof id === "string" ? id : null;
 }
 
-function extractSendError(result: unknown): string | null {
+interface SendErrorInfo {
+  message: string;
+  shape: ResendErrorShape | null;
+}
+
+function extractSendError(result: unknown): SendErrorInfo | null {
   if (typeof result !== "object" || result === null) {
     return null;
   }
@@ -93,9 +104,10 @@ function extractSendError(result: unknown): string | null {
     return null;
   }
 
-  const message = (error as { message?: unknown }).message;
+  const shape = extractResendError(error);
+  const message = shape?.message ?? JSON.stringify(error);
 
-  return typeof message === "string" ? message : JSON.stringify(error);
+  return { message, shape };
 }
 
 async function markOutboxSent(rowId: string, messageId: string | null): Promise<EmailOutbox> {
@@ -115,19 +127,22 @@ async function markOutboxSent(rowId: string, messageId: string | null): Promise<
 async function markOutboxFailure(
   rowId: string,
   attempts: number,
-  errorMessage: string
+  errorMessage: string,
+  kind: OutboxFailureKind
 ): Promise<EmailOutbox> {
   const nextAttempts = attempts + 1;
   const isExhausted = nextAttempts >= EMAIL_OUTBOX.MAX_ATTEMPTS;
+  const isPermanent = kind === "permanent";
+  const isFinal = isPermanent || isExhausted;
   const now = new Date();
-  const nextAttemptAt = isExhausted
+  const nextAttemptAt = isFinal
     ? null
     : new Date(now.getTime() + computeBackoffMs(nextAttempts, EMAIL_OUTBOX.BASE_BACKOFF_MS));
 
   return prisma.emailOutbox.update({
     where: { id: rowId },
     data: {
-      status: isExhausted ? EMAIL_OUTBOX_STATUS.FAILED : EMAIL_OUTBOX_STATUS.PENDING,
+      status: isFinal ? EMAIL_OUTBOX_STATUS.FAILED : EMAIL_OUTBOX_STATUS.PENDING,
       attempts: nextAttempts,
       lastError: errorMessage,
       lastAttemptedAt: now,
@@ -144,7 +159,7 @@ export async function dispatchOutbox(rowId: string): Promise<EmailOutbox | null>
   }
 
   if (!isResendPayload(row.payload)) {
-    return markOutboxFailure(row.id, row.attempts, "Outbox payload is malformed");
+    return markOutboxFailure(row.id, row.attempts, "Outbox payload is malformed", "permanent");
   }
 
   const idempotencyKey = row.idempotencyKey;
@@ -154,14 +169,18 @@ export async function dispatchOutbox(rowId: string): Promise<EmailOutbox | null>
     const sendError = extractSendError(result);
 
     if (sendError) {
-      return markOutboxFailure(row.id, row.attempts, sendError);
+      const kind = classifyResendError(sendError.shape);
+
+      return markOutboxFailure(row.id, row.attempts, sendError.message, kind);
     }
 
     return markOutboxSent(row.id, extractMessageId(result));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const shape = extractResendError(error);
+    const kind = classifyResendError(shape);
 
-    return markOutboxFailure(row.id, row.attempts, message);
+    return markOutboxFailure(row.id, row.attempts, message, kind);
   }
 }
 
