@@ -1,7 +1,5 @@
 export type ThemeMode = "light" | "dark";
 
-export const DEFAULT_THEME_MODE: ThemeMode = "light";
-
 export function parseThemeMode(raw: string | null | undefined): ThemeMode | null {
   if (raw === "light" || raw === "dark") {
     return raw;
@@ -35,8 +33,4 @@ export function readThemeModeFromCookieString(
   }
 
   return null;
-}
-
-export function buildColorSchemeScript(cookieName: string): string {
-  return `(function(){try{var m=document.cookie.match(new RegExp('(?:^|; )${cookieName}=([^;]*)'));var c=m?m[1]:null;var mode=c==='light'||c==='dark'?c:(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.style.colorScheme=mode;}catch(e){}})();`;
 }

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildColorSchemeScript,
-  parseThemeMode,
-  readThemeModeFromCookieString,
-} from "./theme-mode";
+import { parseThemeMode, readThemeModeFromCookieString } from "./theme-mode";
 
 const COOKIE_NAME = "getpaid-theme";
 
@@ -110,26 +106,5 @@ describe("readThemeModeFromCookieString — malformed percent-encoding (REV-001 
   it("returns null and does not throw for an invalid percent-escape", () => {
     expect(() => readThemeModeFromCookieString("getpaid-theme=%zz", COOKIE_NAME)).not.toThrow();
     expect(readThemeModeFromCookieString("getpaid-theme=%zz", COOKIE_NAME)).toBeNull();
-  });
-});
-
-describe("buildColorSchemeScript", () => {
-  it("returns a non-empty string", () => {
-    expect(buildColorSchemeScript(COOKIE_NAME).length).toBeGreaterThan(0);
-  });
-
-  it("includes the passed cookie name", () => {
-    expect(buildColorSchemeScript(COOKIE_NAME)).toContain(COOKIE_NAME);
-  });
-
-  it("references colorScheme", () => {
-    expect(buildColorSchemeScript(COOKIE_NAME)).toContain("colorScheme");
-  });
-
-  it("wraps the body in a try/catch", () => {
-    const script = buildColorSchemeScript(COOKIE_NAME);
-
-    expect(script).toContain("try{");
-    expect(script).toContain("catch");
   });
 });
