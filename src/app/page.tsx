@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { LandingPage } from "@app/features/landing/components/landing-page";
+import { LandingPage } from "@app/features/landing/components";
 
 import { auth } from "@app/server/auth";
 

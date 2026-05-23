@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recordPaymentApiSchema } from "@app/shared/schemas";
+import { asInvoiceId, asPaymentId, asUserId } from "@app/shared/types/ids";
 
 import { withIdempotency } from "@app/server/api/idempotency";
 import {
@@ -18,7 +19,7 @@ import {
 
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
-  const payments = await getPayments(id, user.id);
+  const payments = await getPayments(asInvoiceId(id), asUserId(user.id));
 
   if (payments === null) {
     return notFoundResponse("Invoice");
@@ -38,7 +39,7 @@ export const POST = withAuth(
       }
 
       try {
-        const invoice = await recordPayment(id, user.id, data);
+        const invoice = await recordPayment(asInvoiceId(id), asUserId(user.id), data);
 
         if (!invoice) {
           return errorResponse(
@@ -74,7 +75,11 @@ export const DELETE = withAuth(async (user, request, context) => {
     return errorResponse("VALIDATION_ERROR", "Payment ID is required", 400);
   }
 
-  const invoice = await deletePayment(invoiceId, paymentId, user.id);
+  const invoice = await deletePayment(
+    asInvoiceId(invoiceId),
+    asPaymentId(paymentId),
+    asUserId(user.id)
+  );
 
   if (!invoice) {
     return notFoundResponse("Payment not found or cannot be deleted");

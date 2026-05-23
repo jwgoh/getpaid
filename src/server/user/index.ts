@@ -1,6 +1,8 @@
+import type { UserId } from "@app/shared/types/ids";
+
 import { prisma } from "@app/server/db";
 
-export async function getUserProfile(userId: string) {
+export async function getUserProfile(userId: UserId) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true },

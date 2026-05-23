@@ -5,7 +5,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useUnsavedChanges } from "@app/shared/hooks";
+import { useDragReorder, useUnsavedChanges } from "@app/shared/hooks";
 import { InvoiceFormInput, invoiceFormSchema } from "@app/shared/schemas";
 import type { Client } from "@app/shared/schemas/api";
 
@@ -17,7 +17,6 @@ import type {
   TemplateData,
 } from "../types";
 import { useClientDialog } from "./use-client-dialog";
-import { useDragReorder } from "./use-drag-reorder";
 import { useInitialRate } from "./use-initial-rate";
 import { useInvoiceDraft } from "./use-invoice-draft";
 import { useInvoiceSubmit } from "./use-invoice-submit";

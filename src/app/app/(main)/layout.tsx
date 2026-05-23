@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+import { asUserId } from "@app/shared/types/ids";
+
 import { auth } from "@app/server/auth";
 import { getSenderProfile } from "@app/server/sender-profile";
 
@@ -10,7 +12,7 @@ export default async function MainAppLayout({ children }: { children: React.Reac
     redirect("/auth/sign-in");
   }
 
-  const senderProfile = await getSenderProfile(session.user.id);
+  const senderProfile = await getSenderProfile(asUserId(session.user.id));
 
   if (!senderProfile) {
     redirect("/app/onboarding");

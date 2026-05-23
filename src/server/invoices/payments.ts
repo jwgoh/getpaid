@@ -5,6 +5,7 @@ import {
   INVOICE_STATUS,
   type InvoiceStatusValue,
 } from "@app/shared/config/invoice-status";
+import type { InvoiceId, PaymentId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -58,7 +59,7 @@ export interface RecordPaymentInput {
   paidAt?: Date;
 }
 
-export async function recordPayment(id: string, userId: string, data: RecordPaymentInput) {
+export async function recordPayment(id: InvoiceId, userId: UserId, data: RecordPaymentInput) {
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
     select: { id: true, status: true },
@@ -136,7 +137,7 @@ export async function recordPayment(id: string, userId: string, data: RecordPaym
   }
 }
 
-export async function getPayments(invoiceId: string, userId: string) {
+export async function getPayments(invoiceId: InvoiceId, userId: UserId) {
   const invoice = await prisma.invoice.findFirst({
     where: { id: invoiceId, userId },
   });
@@ -151,7 +152,7 @@ export async function getPayments(invoiceId: string, userId: string) {
   });
 }
 
-export async function deletePayment(invoiceId: string, paymentId: string, userId: string) {
+export async function deletePayment(invoiceId: InvoiceId, paymentId: PaymentId, userId: UserId) {
   const payment = await prisma.payment.findFirst({
     where: { id: paymentId, invoice: { id: invoiceId, userId } },
     include: {

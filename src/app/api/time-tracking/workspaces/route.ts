@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { asUserId } from "@app/shared/types/ids";
+
 import { errorResponse, withAuth } from "@app/server/api/route-helpers";
 import { getWorkspaces } from "@app/server/time-tracking";
 
@@ -11,7 +13,7 @@ export const GET = withAuth(async (user, request) => {
     return errorResponse("VALIDATION_ERROR", "Provider is required", 400);
   }
 
-  const workspaces = await getWorkspaces(user.id, provider);
+  const workspaces = await getWorkspaces(asUserId(user.id), provider);
 
   return NextResponse.json(workspaces);
 });

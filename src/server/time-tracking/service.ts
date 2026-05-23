@@ -1,9 +1,11 @@
+import type { UserId } from "@app/shared/types/ids";
+
 import { prisma } from "@app/server/db";
 
 import { decrypt, encrypt } from "./encryption";
 import { getProvider, type TimeEntriesQuery } from "./providers";
 
-export async function connectProvider(userId: string, providerId: string, token: string) {
+export async function connectProvider(userId: UserId, providerId: string, token: string) {
   const provider = getProvider(providerId);
   const result = await provider.validateToken(token);
 
@@ -47,7 +49,7 @@ export async function connectProvider(userId: string, providerId: string, token:
   };
 }
 
-export async function disconnectProvider(userId: string, connectionId: string) {
+export async function disconnectProvider(userId: UserId, connectionId: string) {
   const connection = await prisma.timeTrackingConnection.findFirst({
     where: { id: connectionId, userId },
   });
@@ -61,7 +63,7 @@ export async function disconnectProvider(userId: string, connectionId: string) {
   return { success: true };
 }
 
-export async function getConnections(userId: string) {
+export async function getConnections(userId: UserId) {
   const connections = await prisma.timeTrackingConnection.findMany({
     where: { userId },
     select: {
@@ -77,7 +79,7 @@ export async function getConnections(userId: string) {
   return connections;
 }
 
-async function getDecryptedToken(userId: string, providerId: string): Promise<string> {
+async function getDecryptedToken(userId: UserId, providerId: string): Promise<string> {
   const connection = await prisma.timeTrackingConnection.findUnique({
     where: { userId_provider: { userId, provider: providerId } },
   });
@@ -94,21 +96,21 @@ async function getDecryptedToken(userId: string, providerId: string): Promise<st
   return decrypt(connection.encryptedToken);
 }
 
-export async function getWorkspaces(userId: string, providerId: string) {
+export async function getWorkspaces(userId: UserId, providerId: string) {
   const provider = getProvider(providerId);
   const token = await getDecryptedToken(userId, providerId);
 
   return provider.getWorkspaces(token);
 }
 
-export async function getProjects(userId: string, providerId: string, workspaceId: string) {
+export async function getProjects(userId: UserId, providerId: string, workspaceId: string) {
   const provider = getProvider(providerId);
   const token = await getDecryptedToken(userId, providerId);
 
   return provider.getProjects(token, workspaceId);
 }
 
-export async function getTimeEntries(userId: string, providerId: string, query: TimeEntriesQuery) {
+export async function getTimeEntries(userId: UserId, providerId: string, query: TimeEntriesQuery) {
   const provider = getProvider(providerId);
   const token = await getDecryptedToken(userId, providerId);
 

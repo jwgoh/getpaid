@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { asPublicId } from "@app/shared/types/ids";
+import { asPublicId, asUserId } from "@app/shared/types/ids";
 
 import { applyRateLimit, RATE_LIMITS } from "@app/server/api/rate-limit";
 import { getUser } from "@app/server/auth/require-user";
@@ -22,7 +22,8 @@ export async function POST(
   try {
     const { publicId } = await params;
     const user = await getUser();
-    const result = await tryMarkViewed(asPublicId(publicId), user?.id ?? null);
+    const viewerUserId = user?.id ? asUserId(user.id) : null;
+    const result = await tryMarkViewed(asPublicId(publicId), viewerUserId);
 
     if (!result.found) {
       return NextResponse.json(

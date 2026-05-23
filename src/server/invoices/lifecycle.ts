@@ -8,7 +8,7 @@ import {
 } from "@prisma/client";
 
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
-import type { InvoiceId, PublicId, UserId } from "@app/shared/types/ids";
+import { asInvoiceId, type InvoiceId, type PublicId, type UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -35,7 +35,7 @@ export async function markInvoiceViewed(publicId: PublicId): Promise<Invoice | n
       const invoice = await tx.invoice.findUnique({ where: { publicId } });
 
       if (invoice) {
-        await logInvoiceEvent(invoice.id, INVOICE_EVENT.VIEWED, {}, tx);
+        await logInvoiceEvent(asInvoiceId(invoice.id), INVOICE_EVENT.VIEWED, {}, tx);
       }
     });
   }
@@ -83,7 +83,7 @@ export async function markInvoicePaid(
 type InvoiceClient = Prisma.TransactionClient | typeof prisma;
 
 export async function updateInvoiceStatus(
-  id: string,
+  id: InvoiceId,
   status: InvoiceStatus,
   additionalData: Record<string, unknown> = {},
   client: InvoiceClient = prisma
@@ -98,7 +98,7 @@ export async function updateInvoiceStatus(
 }
 
 export async function logInvoiceEvent(
-  invoiceId: string,
+  invoiceId: InvoiceId,
   type: InvoiceEventType,
   payload: Prisma.InputJsonValue = {},
   client: InvoiceClient = prisma
