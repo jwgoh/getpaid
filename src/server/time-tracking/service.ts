@@ -5,12 +5,26 @@ import { prisma } from "@app/server/db";
 import { decrypt, encrypt } from "./encryption";
 import { getProvider, type TimeEntriesQuery } from "./providers";
 
+export class ConnectionNotFoundError extends Error {
+  constructor(public readonly providerId: string) {
+    super(`No ${providerId} connection found`);
+    this.name = "ConnectionNotFoundError";
+  }
+}
+
+export class InvalidProviderTokenError extends Error {
+  constructor(public readonly providerId: string) {
+    super(`Invalid API token for ${providerId}`);
+    this.name = "InvalidProviderTokenError";
+  }
+}
+
 export async function connectProvider(userId: UserId, providerId: string, token: string) {
   const provider = getProvider(providerId);
   const result = await provider.validateToken(token);
 
   if (!result.valid || !result.user) {
-    throw new Error("Invalid API token");
+    throw new InvalidProviderTokenError(providerId);
   }
 
   const connection = await prisma.timeTrackingConnection.upsert({
@@ -85,7 +99,7 @@ async function getDecryptedToken(userId: UserId, providerId: string): Promise<st
   });
 
   if (!connection) {
-    throw new Error(`No ${providerId} connection found`);
+    throw new ConnectionNotFoundError(providerId);
   }
 
   await prisma.timeTrackingConnection.update({

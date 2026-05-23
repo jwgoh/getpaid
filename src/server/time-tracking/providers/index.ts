@@ -3,7 +3,7 @@ import { togglProvider } from "./toggl";
 
 registerProvider(togglProvider);
 
-export { getAllProviders, getProvider, registerProvider } from "./registry";
+export { getAllProviders, getProvider, registerProvider, UnknownProviderError } from "./registry";
 export type {
   BreakdownOption,
   NormalizedClient,
