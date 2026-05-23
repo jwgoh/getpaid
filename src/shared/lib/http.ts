@@ -3,7 +3,7 @@ export const EXTERNAL_HTTP_TIMEOUTS_MS = {
   RESEND: 10_000,
 } as const;
 
-export class HttpTimeoutError extends Error {
+class HttpTimeoutError extends Error {
   constructor(label: string, timeoutMs: number) {
     super(`External HTTP call to ${label} timed out after ${timeoutMs}ms`);
     this.name = "HttpTimeoutError";

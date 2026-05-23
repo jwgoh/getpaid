@@ -63,7 +63,7 @@ export function useInvoicesFiltering(
   };
 }
 
-export function compareByColumn(a: InvoiceListItem, b: InvoiceListItem, column: string): number {
+function compareByColumn(a: InvoiceListItem, b: InvoiceListItem, column: string): number {
   switch (column) {
     case "publicId":
       return a.publicId.localeCompare(b.publicId);
