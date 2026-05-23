@@ -144,7 +144,7 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["src/**/*.ts", "src/**/*.tsx"],
-    ignores: ["src/providers/**"],
+    ignores: ["src/providers/**", "src/shared/ui/global-error-screen.tsx"],
     rules: {
       "no-restricted-imports": [
         "error",

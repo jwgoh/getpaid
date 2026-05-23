@@ -4,7 +4,7 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 
 import { ErrorScreen } from "@app/shared/ui/error-screen";
 
-import { lightTheme } from "@app/providers";
+import { lightTheme } from "@app/providers/theme";
 
 interface GlobalErrorScreenProps {
   onReset: () => void;
