@@ -1,8 +1,12 @@
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { COOKIE_KEYS } from "@app/shared/config/config";
 
-import { COLOR_SCHEME_INIT_SCRIPT } from "./color-scheme-init-script";
+import {
+  COLOR_SCHEME_INIT_SCRIPT,
+  COLOR_SCHEME_INIT_SCRIPT_SHA256,
+} from "./color-scheme-init-script";
 
 interface MockedDom {
   attr: () => string | null;
@@ -57,6 +61,14 @@ describe("COLOR_SCHEME_INIT_SCRIPT", () => {
   it("wraps its body in try/catch so a runtime error never blocks paint", () => {
     expect(COLOR_SCHEME_INIT_SCRIPT).toContain("try{");
     expect(COLOR_SCHEME_INIT_SCRIPT).toContain("catch");
+  });
+});
+
+describe("COLOR_SCHEME_INIT_SCRIPT_SHA256", () => {
+  it("matches the actual sha256 of COLOR_SCHEME_INIT_SCRIPT (CSP whitelist sync)", () => {
+    const actual = createHash("sha256").update(COLOR_SCHEME_INIT_SCRIPT).digest("base64");
+
+    expect(COLOR_SCHEME_INIT_SCRIPT_SHA256).toBe(`sha256-${actual}`);
   });
 });
 
