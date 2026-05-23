@@ -40,20 +40,22 @@ export const invoicesApi = {
       invoiceSchema
     ),
 
-  send: (id: string) =>
+  send: (id: string, idempotencyKey: string) =>
     fetchApi<Invoice>(
       `/api/invoices/${id}/send`,
       {
         method: "POST",
+        headers: idempotencyHeader(idempotencyKey),
       },
       invoiceSchema
     ),
 
-  markPaid: (id: string) =>
+  markPaid: (id: string, idempotencyKey: string) =>
     fetchApi<Invoice>(
       `/api/invoices/${id}/mark-paid`,
       {
         method: "POST",
+        headers: idempotencyHeader(idempotencyKey),
       },
       invoiceSchema
     ),
@@ -67,11 +69,12 @@ export const invoicesApi = {
       successAckSchema
     ),
 
-  duplicate: (id: string) =>
+  duplicate: (id: string, idempotencyKey: string) =>
     fetchApi<Invoice>(
       `/api/invoices/${id}/duplicate`,
       {
         method: "POST",
+        headers: idempotencyHeader(idempotencyKey),
       },
       invoiceSchema
     ),

@@ -2,16 +2,22 @@ import { NextResponse } from "next/server";
 
 import { asInvoiceId, asUserId } from "@app/shared/types/ids";
 
+import { withIdempotency } from "@app/server/api/idempotency";
 import { notFoundResponse, withAuth } from "@app/server/api/route-helpers";
 import { duplicateInvoice } from "@app/server/invoices";
 
-export const POST = withAuth(async (user, _request, context) => {
-  const { id } = await context.params;
-  const invoice = await duplicateInvoice(asInvoiceId(id), asUserId(user.id));
+export const POST = withAuth(
+  withIdempotency(
+    async (user, _request, context) => {
+      const { id } = await context.params;
+      const invoice = await duplicateInvoice(asInvoiceId(id), asUserId(user.id));
 
-  if (!invoice) {
-    return notFoundResponse("Invoice");
-  }
+      if (!invoice) {
+        return notFoundResponse("Invoice");
+      }
 
-  return NextResponse.json(invoice);
-});
+      return NextResponse.json(invoice);
+    },
+    { endpoint: "POST /api/invoices/:id/duplicate" }
+  )
+);

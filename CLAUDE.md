@@ -317,6 +317,9 @@ Server enforcement (today):
 
 - `POST /api/invoices` (create invoice)
 - `POST /api/invoices/:id/payments` (record payment)
+- `POST /api/invoices/:id/send` (send invoice email + outbox row)
+- `POST /api/invoices/:id/mark-paid` (mark invoice paid)
+- `POST /api/invoices/:id/duplicate` (clone invoice)
 
 Behavior:
 
