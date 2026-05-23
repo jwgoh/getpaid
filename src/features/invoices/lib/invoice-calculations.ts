@@ -1,4 +1,5 @@
-import { BRANDING, INVOICE, TIME } from "@app/shared/config/config";
+import { BRANDING, CURRENCY, INVOICE, TIME } from "@app/shared/config/config";
+import { calculateSubtotal } from "@app/shared/lib/calculations";
 import type { InvoiceFormInput, InvoiceItemGroupInput } from "@app/shared/schemas";
 
 export function getDefaultDueDate(): string {
@@ -27,15 +28,11 @@ export function getFormDefaults(
 }
 
 export function computeSubtotal(items: InvoiceFormInput["items"], groups: InvoiceItemGroupInput[]) {
-  const itemsTotal = items.reduce(
-    (sum, item) => sum + (item.quantity || 0) * (item.unitPrice || 0),
-    0
-  );
-  const groupsTotal = groups.reduce(
-    (sum, group) =>
-      sum + group.items.reduce((gs, item) => gs + (item.quantity || 0) * (item.unitPrice || 0), 0),
-    0
-  );
+  const allItems = [...items, ...groups.flatMap((group) => group.items)];
+  const itemsInCents = allItems.map((item) => ({
+    quantity: item.quantity || 0,
+    unitPrice: Math.round((item.unitPrice || 0) * CURRENCY.CENTS_MULTIPLIER),
+  }));
 
-  return itemsTotal + groupsTotal;
+  return calculateSubtotal(itemsInCents) / CURRENCY.CENTS_MULTIPLIER;
 }
