@@ -2,6 +2,7 @@ import type { PrismaClient, WaitlistEntry } from "@prisma/client";
 
 import { TIME } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
+import { PRUNE } from "@app/shared/config/prune";
 import { WAITLIST } from "@app/shared/config/waitlist";
 import type { WaitlistCheckStatus } from "@app/shared/schemas";
 import { WAITLIST_STATUS } from "@app/shared/schemas";
@@ -209,7 +210,7 @@ export async function pruneConvertedWaitlistEntries(
     where: { email: { in: orphanEmails }, createdAt: { lt: cutoff } },
   });
 
-  if (result.count > WAITLIST.LARGE_DELETE_THRESHOLD) {
+  if (result.count > PRUNE.LARGE_DELETE_THRESHOLD) {
     console.warn(
       JSON.stringify({
         event: "prune.warning.large_delete",
@@ -232,7 +233,7 @@ export async function countConvertedWaitlistEntries(
     where: { createdAt: { lt: cutoff } },
   });
 
-  if (candidates > WAITLIST.LARGE_DELETE_THRESHOLD) {
+  if (candidates > PRUNE.LARGE_DELETE_THRESHOLD) {
     console.warn(
       JSON.stringify({
         event: "prune.warning.large_delete",

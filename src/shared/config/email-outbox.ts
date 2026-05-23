@@ -35,7 +35,6 @@ export const EMAIL_OUTBOX = {
   JITTER_RANGE_RATIO: 0.5,
   RETENTION_SENT_DAYS: 30,
   RETENTION_FAILED_DAYS: 90,
-  LARGE_DELETE_THRESHOLD: 50_000,
 } as const;
 
 export function computeBackoffMs(

@@ -1,4 +1,3 @@
 export const WAITLIST = {
   ORPHAN_RETENTION_DAYS: 90,
-  LARGE_DELETE_THRESHOLD: 50_000,
 } as const;

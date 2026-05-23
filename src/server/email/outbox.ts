@@ -8,6 +8,7 @@ import {
   type EmailOutboxKindValue,
   type EmailOutboxRelatedTypeValue,
 } from "@app/shared/config/email-outbox";
+import { PRUNE } from "@app/shared/config/prune";
 import { runWithConcurrency } from "@app/shared/lib/concurrency";
 
 import { prisma } from "@app/server/db";
@@ -239,7 +240,7 @@ export async function processOutbox(now: Date = new Date()): Promise<ProcessOutb
 }
 
 function warnIfLargeDelete(arm: "SENT" | "FAILED", deleted: number): void {
-  if (deleted > EMAIL_OUTBOX.LARGE_DELETE_THRESHOLD) {
+  if (deleted > PRUNE.LARGE_DELETE_THRESHOLD) {
     console.warn(
       JSON.stringify({
         event: "prune.warning.large_delete",

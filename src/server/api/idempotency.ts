@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
 
+import { PRUNE } from "@app/shared/config/prune";
+
 import { errorResponse } from "@app/server/api/route-helpers";
 import { prisma } from "@app/server/db";
-
-const LARGE_DELETE_THRESHOLD = 50_000;
 
 const IDEMPOTENCY_HEADER = "Idempotency-Key";
 const KEY_MIN_LENGTH = 8;
@@ -276,7 +276,7 @@ export async function pruneExpiredIdempotencyKeys(
     where: { expiresAt: { lte: now } },
   });
 
-  if (result.count > LARGE_DELETE_THRESHOLD) {
+  if (result.count > PRUNE.LARGE_DELETE_THRESHOLD) {
     console.warn(
       JSON.stringify({
         event: "prune.warning.large_delete",
@@ -297,7 +297,7 @@ export async function countExpiredIdempotencyKeys(
     where: { expiresAt: { lte: now } },
   });
 
-  if (count > LARGE_DELETE_THRESHOLD) {
+  if (count > PRUNE.LARGE_DELETE_THRESHOLD) {
     console.warn(
       JSON.stringify({
         event: "prune.warning.large_delete",
