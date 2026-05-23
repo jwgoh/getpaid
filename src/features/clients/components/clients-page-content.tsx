@@ -26,7 +26,7 @@ export function ClientsPageContent() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => state.setCreateDialogOpen(true)}
-          sx={RESPONSIVE_SX.DESKTOP_ONLY}
+          sx={RESPONSIVE_SX.DESKTOP_MD_ONLY}
         >
           Add Client
         </Button>

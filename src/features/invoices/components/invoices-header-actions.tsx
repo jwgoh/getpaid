@@ -24,7 +24,7 @@ export function InvoicesHeaderActions({
           variant="outlined"
           startIcon={<DownloadIcon />}
           onClick={onExport}
-          sx={RESPONSIVE_SX.DESKTOP_ONLY}
+          sx={RESPONSIVE_SX.DESKTOP_MD_ONLY}
         >
           Export CSV
         </Button>
@@ -33,7 +33,7 @@ export function InvoicesHeaderActions({
         variant="contained"
         startIcon={<AddIcon />}
         onClick={onNew}
-        sx={RESPONSIVE_SX.DESKTOP_ONLY}
+        sx={RESPONSIVE_SX.DESKTOP_MD_ONLY}
       >
         New Invoice
       </Button>

@@ -52,7 +52,7 @@ export function TemplatesPageContent() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={navigateToNewTemplate}
-          sx={RESPONSIVE_SX.DESKTOP_ONLY}
+          sx={RESPONSIVE_SX.DESKTOP_MD_ONLY}
         >
           New Template
         </Button>
