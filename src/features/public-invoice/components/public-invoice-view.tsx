@@ -70,7 +70,7 @@ interface Props {
 
 const PUBLIC_VISIBLE_STATUSES: Set<string> = new Set([INVOICE_STATUS.PAID, INVOICE_STATUS.OVERDUE]);
 
-export default function PublicInvoiceView({ publicId, invoice, branding, justPaid }: Props) {
+export function PublicInvoiceView({ publicId, invoice, branding, justPaid }: Props) {
   const isViewTrackedRef = React.useRef(false);
 
   React.useEffect(() => {

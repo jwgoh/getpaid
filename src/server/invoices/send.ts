@@ -4,7 +4,7 @@ import { customAlphabet } from "nanoid";
 import { INVOICE } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
-import type { InvoiceId, UserId } from "@app/shared/types/ids";
+import { asInvoiceId, type InvoiceId, type UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 import {
@@ -18,14 +18,13 @@ import {
   mapInvoiceItem,
   mapInvoiceItemGroups,
 } from "@app/server/email/invoice-email-dto";
+import { buildOutboxIdempotencyKey, createEmailOutbox } from "@app/server/email/outbox";
 import {
-  buildOutboxIdempotencyKey,
-  createEmailOutbox,
-  dispatchOutbox,
-} from "@app/server/email/outbox";
-import { logInvoiceEvent, updateInvoiceStatus } from "@app/server/invoices";
+  type InvoiceWithRelations,
+  logInvoiceEvent,
+  updateInvoiceStatus,
+} from "@app/server/invoices";
 import { ITEM_GROUPS_INCLUDE } from "@app/server/invoices/item-groups";
-import type { InvoiceWithRelations } from "@app/server/invoices/mutations";
 
 const generateReference = customAlphabet(
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
@@ -128,28 +127,24 @@ interface CommitSendInvoiceInput {
 
 async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string> {
   const { invoice, userId, paymentReference, sentAt, payload } = input;
+  const invoiceId = asInvoiceId(invoice.id);
 
   return prisma.$transaction(async (tx) => {
-    await updateInvoiceStatus(invoice.id, INVOICE_STATUS.SENT, { sentAt, paymentReference }, tx);
+    await updateInvoiceStatus(invoiceId, INVOICE_STATUS.SENT, { sentAt, paymentReference }, tx);
 
-    await logInvoiceEvent(
-      invoice.id,
-      INVOICE_EVENT.SENT,
-      { clientEmail: invoice.client.email },
-      tx
-    );
+    await logInvoiceEvent(invoiceId, INVOICE_EVENT.SENT, { clientEmail: invoice.client.email }, tx);
 
-    const placeholderKey = `pending-${invoice.id}-${sentAt.getTime()}`;
+    const placeholderKey = `pending-${invoiceId}-${sentAt.getTime()}`;
     const row = await createEmailOutbox(tx, {
       userId,
       kind: EMAIL_OUTBOX_KIND.INVOICE,
       relatedType: EMAIL_OUTBOX_RELATED_TYPE.INVOICE,
-      relatedId: invoice.id,
+      relatedId: invoiceId,
       payload,
       idempotencyKey: placeholderKey,
     });
 
-    const stableKey = buildOutboxIdempotencyKey(EMAIL_OUTBOX_KIND.INVOICE, invoice.id, row.id);
+    const stableKey = buildOutboxIdempotencyKey(EMAIL_OUTBOX_KIND.INVOICE, invoiceId, row.id);
 
     await tx.emailOutbox.update({
       where: { id: row.id },
@@ -160,10 +155,15 @@ async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string>
   });
 }
 
+export interface SendInvoiceResult {
+  invoice: InvoiceWithRelations | null;
+  outboxId: string;
+}
+
 export async function sendInvoice(
   invoiceId: InvoiceId,
   userId: UserId
-): Promise<InvoiceWithRelations | null> {
+): Promise<SendInvoiceResult> {
   const invoice = await loadInvoiceForSend(invoiceId, userId);
   const ctx = buildSendContext(invoice);
   const sentAt = new Date();
@@ -178,9 +178,7 @@ export async function sendInvoice(
     payload,
   });
 
-  await dispatchOutbox(outboxId);
-
-  return prisma.invoice.findUnique({
+  const updated = await prisma.invoice.findUnique({
     where: { id: invoice.id },
     include: {
       client: true,
@@ -188,4 +186,6 @@ export async function sendInvoice(
       itemGroups: ITEM_GROUPS_INCLUDE,
     },
   });
+
+  return { invoice: updated, outboxId };
 }

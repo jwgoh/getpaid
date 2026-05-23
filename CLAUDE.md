@@ -51,9 +51,10 @@ src/
    - UI components NEVER import Prisma
    - Only `src/server/` can access Prisma
 
-4. **No magic strings or numbers**
+4. **No magic strings or numbers in server / shared/lib / shared/api code**
    - All constants in `shared/config/` or feature `constants/`
    - Use enums or const objects for repeated values
+   - MUI `sx`/Grid layout literals and theme tokens are exempt (positional design values, not magic)
 
 5. **No code comments except JSDoc**
    - Code should be self-documenting
@@ -96,7 +97,7 @@ export const POST = withAuth(async (user, request) => {
   if (error) return error;
 
   const invoice = await createInvoice(user.id, data);
-  return NextResponse.json({ data: invoice });
+  return NextResponse.json(invoice, { status: 201 });
 });
 ```
 
@@ -106,7 +107,7 @@ export const POST = withAuth(async (user, request) => {
 import { withAdmin } from "@app/server/api/route-helpers";
 
 export const POST = withAdmin(async (user, request, context) => {
-  return NextResponse.json({ data: { ok: true } });
+  return NextResponse.json({ ok: true });
 });
 ```
 
@@ -256,10 +257,12 @@ Any -> PARTIALLY_PAID (partial payment recorded)
 API responses follow this format:
 
 ```typescript
-// Success
-{ data: {...} }
+// Success — routes return the resource (or list) directly; action acks return { success: true }
+{ id, name, ... }      // entity
+[ { ... }, { ... } ]   // list
+{ success: true }      // mutation ack with no resource
 
-// Error
+// Error — always enveloped via errorResponse()
 {
   error: {
     code: "ERROR_CODE",
@@ -267,6 +270,21 @@ API responses follow this format:
   }
 }
 ```
+
+Response shapes for every endpoint live in Zod schemas under `src/shared/schemas/api.ts` (resource schemas plus the action acks `successAckSchema` / `messageAckSchema`). The TypeScript types each feature consumes are `z.infer<typeof schema>` — that schema is the single source of truth for the wire shape.
+
+Client-side feature API methods pass the matching schema to `fetchApi` as the third argument so a wire-shape drift fails loudly at the client boundary instead of silently producing a mistyped object:
+
+```typescript
+import { fetchApi } from "@app/shared/api/base";
+import { invoiceSchema, type Invoice } from "@app/shared/schemas/api";
+
+export const invoicesApi = {
+  get: (id: string) => fetchApi<Invoice>(`/api/invoices/${id}`, undefined, invoiceSchema),
+};
+```
+
+If the response doesn't match the schema, `fetchApi` logs a structured `api.response.shape_mismatch` line via `console.error` and throws `ApiResponseShapeError` — surfaced to React Query as a query/mutation error, not swallowed.
 
 Common error codes:
 

@@ -34,7 +34,7 @@ import { AuthLayout } from "@app/shared/layout/auth-layout";
 import { SignUpInput, signUpSchema } from "@app/shared/schemas";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
-import { WaitlistForm } from "@app/features/waitlist/components/waitlist-form";
+import { WaitlistForm } from "@app/features/waitlist/components";
 
 const SIGN_UP_FEATURES = [
   "Create professional invoices in minutes",

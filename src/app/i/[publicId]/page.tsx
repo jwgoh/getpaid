@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { asPublicId } from "@app/shared/types/ids";
 
-import PublicInvoiceView from "@app/features/public-invoice/components/public-invoice-view";
+import { PublicInvoiceView } from "@app/features/public-invoice/components";
 
 import {
   getInvoiceByPublicId,

@@ -24,17 +24,15 @@ function transformForSubmit(data: InvoiceFormInput) {
     sortOrder: i,
   }));
 
-  const itemGroups = data.itemGroups?.length
-    ? data.itemGroups.map((group, gi) => ({
-        ...group,
-        sortOrder: gi,
-        items: group.items.map((item, ii) => ({
-          ...item,
-          unitPrice: Math.round(item.unitPrice * CURRENCY.CENTS_MULTIPLIER),
-          sortOrder: ii,
-        })),
-      }))
-    : undefined;
+  const itemGroups = (data.itemGroups ?? []).map((group, gi) => ({
+    ...group,
+    sortOrder: gi,
+    items: group.items.map((item, ii) => ({
+      ...item,
+      unitPrice: Math.round(item.unitPrice * CURRENCY.CENTS_MULTIPLIER),
+      sortOrder: ii,
+    })),
+  }));
 
   return { items, itemGroups };
 }

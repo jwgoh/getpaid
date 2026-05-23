@@ -136,6 +136,7 @@ export function useTemplateForm({
     fields,
     append,
     remove,
+    move,
     sensors,
     handleDragEnd,
     currency,

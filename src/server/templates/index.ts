@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { BRANDING, INVOICE } from "@app/shared/config/config";
 import type { DiscountInput } from "@app/shared/lib/calculations";
 import type { LineItemGroupInput, LineItemInput } from "@app/shared/schemas";
+import type { UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 import { buildItemRowBase, createItemGroupsGeneric } from "@app/server/invoices/item-groups";
@@ -43,7 +44,7 @@ export type TemplateWithRelations = Prisma.InvoiceTemplateGetPayload<{
   include: typeof ITEMS_INCLUDE;
 }>;
 
-export async function getTemplates(userId: string): Promise<TemplateWithRelations[]> {
+export async function getTemplates(userId: UserId): Promise<TemplateWithRelations[]> {
   return prisma.invoiceTemplate.findMany({
     where: { userId },
     include: ITEMS_INCLUDE,
@@ -53,7 +54,7 @@ export async function getTemplates(userId: string): Promise<TemplateWithRelation
 
 export async function getTemplate(
   id: string,
-  userId: string
+  userId: UserId
 ): Promise<TemplateWithRelations | null> {
   return prisma.invoiceTemplate.findFirst({
     where: { id, userId },
@@ -80,7 +81,7 @@ async function deleteTemplateItems(templateId: string) {
 }
 
 export async function createTemplate(
-  userId: string,
+  userId: UserId,
   data: CreateTemplateInput
 ): Promise<TemplateWithRelations> {
   const template = await prisma.invoiceTemplate.create({
@@ -150,7 +151,7 @@ function buildItemsCreate(items: NonNullable<UpdateTemplateInput["items"]>) {
 
 export async function updateTemplate(
   id: string,
-  userId: string,
+  userId: UserId,
   data: UpdateTemplateInput
 ): Promise<TemplateWithRelations | null> {
   const template = await prisma.invoiceTemplate.findFirst({
@@ -190,7 +191,7 @@ export async function updateTemplate(
 
 export async function deleteTemplate(
   id: string,
-  userId: string
+  userId: UserId
 ): Promise<{ success: true } | null> {
   const template = await prisma.invoiceTemplate.findFirst({
     where: { id, userId },

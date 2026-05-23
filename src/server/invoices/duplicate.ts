@@ -7,9 +7,9 @@ import { parseInvoiceTags } from "@app/shared/schemas/invoice";
 import type { InvoiceId, UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
+import type { InvoiceWithRelations } from "@app/server/invoices";
 
 import { createItemGroups, ITEM_GROUPS_INCLUDE } from "./item-groups";
-import type { InvoiceWithRelations } from "./mutations";
 
 export async function duplicateInvoice(
   id: InvoiceId,

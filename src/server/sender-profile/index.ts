@@ -1,4 +1,5 @@
 import { SenderProfileInput } from "@app/shared/schemas";
+import type { UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -24,13 +25,13 @@ function buildUpdateData(data: SenderProfileInput) {
   return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
 }
 
-export async function getSenderProfile(userId: string) {
+export async function getSenderProfile(userId: UserId) {
   return prisma.senderProfile.findUnique({
     where: { userId },
   });
 }
 
-export async function createSenderProfile(userId: string, data: SenderProfileInput) {
+export async function createSenderProfile(userId: UserId, data: SenderProfileInput) {
   return prisma.senderProfile.create({
     data: {
       userId,
@@ -39,14 +40,14 @@ export async function createSenderProfile(userId: string, data: SenderProfileInp
   });
 }
 
-export async function updateSenderProfile(userId: string, data: SenderProfileInput) {
+export async function updateSenderProfile(userId: UserId, data: SenderProfileInput) {
   return prisma.senderProfile.update({
     where: { userId },
     data: buildUpdateData(data),
   });
 }
 
-export async function upsertSenderProfile(userId: string, data: SenderProfileInput) {
+export async function upsertSenderProfile(userId: UserId, data: SenderProfileInput) {
   return prisma.senderProfile.upsert({
     where: { userId },
     create: { userId, ...buildCreateData(data) },

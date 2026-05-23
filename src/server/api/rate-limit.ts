@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { env } from "@app/shared/config/env";
+
 import { errorResponse } from "@app/server/api/route-helpers";
 
 interface RateLimitOptions {
   bucket: string;
   limit: number;
   windowMs: number;
+  identifier?: string;
   keyResolver?: (request: Request) => string | Promise<string>;
 }
 
@@ -39,15 +42,26 @@ function sweepIfDue(now: number): void {
   }
 }
 
-function resolveClientIp(request: Request): string {
+const UNKNOWN_CLIENT_IP = "unknown";
+
+export function resolveClientIp(request: Request, trustedProxyHops: number): string {
+  if (trustedProxyHops <= 0) {
+    return UNKNOWN_CLIENT_IP;
+  }
+
   const forwarded = request.headers.get("x-forwarded-for");
 
   if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
+    const entries = forwarded
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
 
-    if (first) {
-      return first;
+    if (entries.length < trustedProxyHops) {
+      return UNKNOWN_CLIENT_IP;
     }
+
+    return entries[entries.length - trustedProxyHops] ?? UNKNOWN_CLIENT_IP;
   }
 
   const realIp = request.headers.get("x-real-ip");
@@ -56,7 +70,7 @@ function resolveClientIp(request: Request): string {
     return realIp;
   }
 
-  return "unknown";
+  return UNKNOWN_CLIENT_IP;
 }
 
 interface ConsumeResult {
@@ -115,9 +129,11 @@ export async function applyRateLimit(
   request: Request,
   options: RateLimitOptions
 ): Promise<{ response: NextResponse | null; result: ConsumeResult }> {
-  const identifier = options.keyResolver
-    ? await options.keyResolver(request)
-    : resolveClientIp(request);
+  const identifier =
+    options.identifier ??
+    (options.keyResolver
+      ? await options.keyResolver(request)
+      : resolveClientIp(request, env.TRUSTED_PROXY_HOPS));
   const key = `${options.bucket}:${identifier}`;
   const result = consume(key, options.limit, options.windowMs);
 

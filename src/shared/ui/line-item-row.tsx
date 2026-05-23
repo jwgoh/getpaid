@@ -2,9 +2,12 @@
 
 import type { UseFormRegisterReturn } from "react-hook-form";
 
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
+  Box,
   Grid,
   IconButton,
   Stack,
@@ -35,6 +38,10 @@ interface LineItemRowProps {
   onRemove: () => void;
   canRemove: boolean;
   onDuplicate?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   dragHandle?: React.ReactNode;
   sx?: SxProps<Theme>;
 }
@@ -51,6 +58,10 @@ export function LineItemRow({
   onRemove,
   canRemove,
   onDuplicate,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
   dragHandle,
   sx,
 }: LineItemRowProps) {
@@ -121,6 +132,28 @@ export function LineItemRow({
           spacing={0.5}
           sx={{ justifyContent: { xs: "flex-end", md: "start" } }}
         >
+          {onMoveUp && (
+            <Box sx={{ display: { xs: "inline-flex", md: "none" } }}>
+              <Tooltip title="Move up">
+                <span>
+                  <IconButton onClick={onMoveUp} disabled={!canMoveUp} size="small">
+                    <ArrowUpwardIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          )}
+          {onMoveDown && (
+            <Box sx={{ display: { xs: "inline-flex", md: "none" } }}>
+              <Tooltip title="Move down">
+                <span>
+                  <IconButton onClick={onMoveDown} disabled={!canMoveDown} size="small">
+                    <ArrowDownwardIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          )}
           {onDuplicate && (
             <Tooltip title="Duplicate item">
               <IconButton onClick={onDuplicate} size="small">

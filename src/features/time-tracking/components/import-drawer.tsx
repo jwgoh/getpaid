@@ -5,7 +5,7 @@ import * as React from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import { Alert, Box, Button, Drawer, IconButton, Stack, Typography } from "@mui/material";
 
-import { TIME_TRACKING } from "@app/shared/config/config";
+import { CURRENCY, DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
 
 import type {
   ImportedGroup,
@@ -110,13 +110,14 @@ export function ImportDrawer({
             customRateCents
           );
           const hours = item.seconds / TIME_TRACKING.SECONDS_PER_HOUR;
-          const roundedHours = Math.round(hours * 100) / 100;
+          const roundedHours =
+            Math.round(hours * DECIMAL_ROUNDING_FACTOR) / DECIMAL_ROUNDING_FACTOR;
 
           return {
             title: item.title,
             description: "",
             quantity: roundedHours,
-            unitPrice: rateCents / 100,
+            unitPrice: rateCents / CURRENCY.CENTS_MULTIPLIER,
           };
         });
 

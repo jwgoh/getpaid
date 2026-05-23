@@ -1,12 +1,11 @@
 "use client";
 
-import { alpha, Box, Checkbox, Chip, TableCell, Typography, useTheme } from "@mui/material";
+import { Checkbox, Chip, TableCell, Typography } from "@mui/material";
 
-import { UI } from "@app/shared/config/config";
 import { formatCurrency, formatDateCompact } from "@app/shared/lib/format";
 import { DataTableActions, DataTableRow } from "@app/shared/ui/data-table";
 
-import { getStatusColor, STATUS_CONFIG } from "../../constants/invoice";
+import { STATUS_CONFIG } from "../../constants/invoice";
 import type { InvoiceData } from "../invoice-row";
 
 interface InvoiceTableRowProps {
@@ -32,9 +31,7 @@ export function InvoiceTableRow({
   onMenuOpen,
   onPrefetch,
 }: InvoiceTableRowProps) {
-  const theme = useTheme();
   const status = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.DRAFT;
-  const statusColor = getStatusColor(theme, invoice.status);
 
   return (
     <DataTableRow
@@ -83,31 +80,7 @@ export function InvoiceTableRow({
         </Typography>
       </TableCell>
       <TableCell>
-        <Chip
-          label={status.label}
-          size="small"
-          icon={
-            <Box
-              component="span"
-              sx={{
-                width: UI.STATUS_DOT_SIZE,
-                height: UI.STATUS_DOT_SIZE,
-                borderRadius: "50%",
-                bgcolor: statusColor,
-                display: "inline-block",
-                ml: 0.5,
-              }}
-            />
-          }
-          sx={{
-            fontWeight: 500,
-            bgcolor: alpha(statusColor, UI.ALPHA_MUTED),
-            color: statusColor,
-            "& .MuiChip-icon": {
-              color: statusColor,
-            },
-          }}
-        />
+        <Chip label={status.label} size="small" color={status.color} sx={{ fontWeight: 500 }} />
       </TableCell>
       <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
         <Typography variant="body2" color="text.secondary">

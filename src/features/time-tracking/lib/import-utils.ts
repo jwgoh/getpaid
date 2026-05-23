@@ -1,4 +1,4 @@
-import { TIME_TRACKING } from "@app/shared/config/config";
+import { CURRENCY, TIME_TRACKING } from "@app/shared/config/config";
 import type { InvoiceItemGroupInput } from "@app/shared/schemas";
 
 import type { ImportedGroup } from "../api";
@@ -15,7 +15,7 @@ export function formatAmount(cents: number | null): string {
     return "";
   }
 
-  return `$${(cents / 100).toFixed(2)}`;
+  return `$${(cents / CURRENCY.CENTS_MULTIPLIER).toFixed(2)}`;
 }
 
 export function buildDateRange(): { startDate: string; endDate: string } {

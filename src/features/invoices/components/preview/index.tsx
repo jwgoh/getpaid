@@ -18,6 +18,7 @@ import {
   useTheme,
 } from "@mui/material";
 
+import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import type { Invoice } from "@app/shared/schemas/api";
 
 import { PreviewDates } from "./preview-dates";
@@ -54,9 +55,10 @@ export function InvoicePreviewDialog({
   invoice,
 }: InvoicePreviewDialogProps) {
   const theme = useTheme();
+  const isMobile = useIsMobileDialog();
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
       <DialogTitle
         component={Stack}
         direction="row"

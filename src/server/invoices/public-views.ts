@@ -1,5 +1,5 @@
 import { BRANDING } from "@app/shared/config/config";
-import type { PublicId } from "@app/shared/types/ids";
+import type { PublicId, UserId } from "@app/shared/types/ids";
 
 import { markInvoiceViewed } from "./lifecycle";
 import { getInvoiceByPublicId } from "./queries";
@@ -126,7 +126,7 @@ export interface TryMarkViewedResult {
 
 export async function tryMarkViewed(
   publicId: PublicId,
-  viewerUserId: string | null
+  viewerUserId: UserId | null
 ): Promise<TryMarkViewedResult> {
   const invoice = await getInvoiceByPublicId(publicId);
 

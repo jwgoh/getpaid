@@ -1,5 +1,6 @@
 import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import type { AnalyticsData, CurrencyMetrics, MonthlyRevenue } from "@app/shared/schemas/api";
+import type { UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -81,7 +82,7 @@ function calculateMetricsForInvoices(
   return { totalRevenue, revenueThisMonth, revenueLastMonth, outstandingBalance, overdueAmount };
 }
 
-export async function getAnalytics(userId: string): Promise<AnalyticsData> {
+export async function getAnalytics(userId: UserId): Promise<AnalyticsData> {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - THIRTY_DAYS_MS);
   const sixtyDaysAgo = new Date(now.getTime() - SIXTY_DAYS_MS);

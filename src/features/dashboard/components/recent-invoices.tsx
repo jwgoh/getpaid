@@ -4,7 +4,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { alpha, Box, Button, Chip, Stack, Typography, useTheme } from "@mui/material";
 
 import { UI } from "@app/shared/config/config";
-import { getStatusColor, STATUS_CONFIG } from "@app/shared/config/invoice-status";
+import { STATUS_CONFIG } from "@app/shared/config/invoice-status";
 import { formatCurrency, formatDateShort } from "@app/shared/lib/format";
 import { EmptyState } from "@app/shared/ui/empty-state";
 import { EmptyInvoicesIllustration } from "@app/shared/ui/illustrations/empty-invoices";
@@ -48,7 +48,7 @@ export function RecentInvoicesContent({
   return (
     <Box>
       {invoices.map((invoice) => {
-        const statusLabel = STATUS_CONFIG[invoice.status]?.label || invoice.status;
+        const status = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.DRAFT;
 
         return (
           <Stack
@@ -87,13 +87,9 @@ export function RecentInvoicesContent({
               </Typography>
               <Chip
                 size="small"
-                label={statusLabel}
-                sx={{
-                  bgcolor: alpha(getStatusColor(theme, invoice.status), UI.ALPHA_MUTED),
-                  color: getStatusColor(theme, invoice.status),
-                  fontWeight: 600,
-                  fontSize: "caption.fontSize",
-                }}
+                label={status.label}
+                color={status.color}
+                sx={{ fontWeight: 600, fontSize: "caption.fontSize" }}
               />
             </Stack>
           </Stack>

@@ -16,6 +16,8 @@ export const WAITLIST_STATUS = {
 
 export type WaitlistCheckStatus = (typeof WAITLIST_STATUS)[keyof typeof WAITLIST_STATUS];
 
-export interface WaitlistCheckResponse {
-  status: WaitlistCheckStatus;
-}
+export const waitlistCheckResponseSchema = z.object({
+  status: z.enum([WAITLIST_STATUS.APPROVED, WAITLIST_STATUS.PENDING, WAITLIST_STATUS.NOT_FOUND]),
+});
+
+export type WaitlistCheckResponse = z.infer<typeof waitlistCheckResponseSchema>;

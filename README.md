@@ -70,6 +70,27 @@ openssl rand -base64 32  # use this for NEXTAUTH_SECRET
 
 ### Database
 
+Provision a Postgres 16 instance first. The lowest-friction path is the `db` service bundled in this repo's `docker-compose.yml` (`postgres:16-alpine`, exposed on host port `5433`):
+
+```bash
+# Generate the password docker compose requires (it hard-fails without one)
+# `-hex 16` (not `-base64 32`) so the value is URL-safe in the DATABASE_URL below;
+# base64 can include `/`, `+`, `=` which break the Postgres connection string.
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" >> .env
+
+docker compose up -d db
+```
+
+Then set `DATABASE_URL` in `.env` to point at the bundled service (note port `5433`, not the default `5432`):
+
+```
+DATABASE_URL="postgresql://getpaid:<POSTGRES_PASSWORD>@localhost:5433/getpaid?schema=public"
+```
+
+Substitute `<POSTGRES_PASSWORD>` with the value just written to `.env`. Prefer a natively installed Postgres 16 (Homebrew, apt, Postgres.app, …)? Skip `docker compose up -d db` and point `DATABASE_URL` at your local instance instead.
+
+Apply migrations and (optionally) seed demo data:
+
 ```bash
 pnpm db:migrate    # create + apply a new migration during development
 pnpm db:seed       # optional: load demo data
@@ -93,13 +114,13 @@ Open [http://localhost:3000](http://localhost:3000).
 | ----------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`                | Yes                              | PostgreSQL connection string                                                                                                                                           |
 | `NEXTAUTH_SECRET`             | Yes                              | Auth session secret, min 32 chars (`openssl rand -base64 32`)                                                                                                          |
-| `NEXTAUTH_URL`                | Recommended (Yes behind a proxy) | Canonical public origin for NextAuth callbacks (e.g. `https://getpaid.dev`). Inferred from request headers when `AUTH_TRUST_HOST=true`; set explicitly for production.  |
+| `NEXTAUTH_URL`                | Recommended (Yes behind a proxy) | Canonical public origin for NextAuth callbacks (e.g. `https://getpaid.dev`). Inferred from request headers when `AUTH_TRUST_HOST=true`; set explicitly for production. |
 | `POSTGRES_PASSWORD`           | Yes (Docker)                     | Postgres password for the bundled `db` service (`openssl rand -base64 32`)                                                                                             |
-| `APP_URL`                     | No                               | App base URL (default: `http://localhost:3000`)                                                                                                                       |
+| `APP_URL`                     | No                               | App base URL (default: `http://localhost:3000`)                                                                                                                        |
 | `RESEND_API_KEY`              | No                               | [Resend](https://resend.com) API key for sending emails                                                                                                                |
-| `EMAIL_FROM`                  | No                               | Sender email address (default: `invoices@example.com`)                                                                                                                |
+| `EMAIL_FROM`                  | No                               | Sender email address (default: `invoices@example.com`)                                                                                                                 |
 | `ADMIN_EMAIL`                 | Yes (`pro` edition)              | Email of the user who can access waitlist-admin routes                                                                                                                 |
-| `ENCRYPTION_KEY`              | Yes (time tracking)              | AES-GCM key for Toggl OAuth tokens, min 32 chars (`openssl rand -base64 32`)                                                                                            |
+| `ENCRYPTION_KEY`              | Yes (time tracking)              | AES-GCM key for Toggl OAuth tokens, min 32 chars (`openssl rand -base64 32`)                                                                                           |
 | `NEXT_PUBLIC_GETPAID_EDITION` | No                               | Edition toggle: `community` (default, open registration) or `pro` (invite-only + waitlist)                                                                             |
 | `AUTH_TRUST_HOST`             | No                               | Set to `"true"` when behind a reverse proxy (Docker, Vercel preview) so NextAuth trusts forwarded headers                                                              |
 

@@ -31,6 +31,7 @@ interface TemplateFormItemsProps {
   onAppend: () => void;
   onRemove: (index: number) => void;
   onDuplicate: (index: number) => void;
+  onMove: (from: number, to: number) => void;
   groupFields: FieldArrayWithId<TemplateFormData, "itemGroups", "id">[];
   onRemoveGroup: (index: number) => void;
   onAddGroup: () => void;
@@ -47,6 +48,7 @@ export function TemplateFormItems({
   onAppend,
   onRemove,
   onDuplicate,
+  onMove,
   groupFields,
   onRemoveGroup,
   onAddGroup,
@@ -98,6 +100,10 @@ export function TemplateFormItems({
                   onRemove={() => onRemove(index)}
                   canRemove={fields.length > 1 || groupFields.length > 0}
                   onDuplicate={() => onDuplicate(index)}
+                  onMoveUp={() => onMove(index, index - 1)}
+                  onMoveDown={() => onMove(index, index + 1)}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < fields.length - 1}
                   dragHandle={dragHandle}
                   sx={{
                     mb: 2,

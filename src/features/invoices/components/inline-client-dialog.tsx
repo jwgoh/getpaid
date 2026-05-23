@@ -16,6 +16,7 @@ import {
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { CreateClientInput, createClientSchema } from "@app/shared/schemas";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
@@ -34,6 +35,7 @@ export function InlineClientDialog({
   isPending,
   error,
 }: InlineClientDialogProps) {
+  const isMobile = useIsMobileDialog();
   const {
     register,
     handleSubmit,
@@ -54,7 +56,7 @@ export function InlineClientDialog({
   }, [open, reset]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ fontWeight: 600 }}>Add New Client</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
         <DialogContent>

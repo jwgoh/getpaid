@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { Alert, Box, Button } from "@mui/material";
 
+import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { AppLayout } from "@app/shared/layout/app-layout";
 import { Breadcrumbs } from "@app/shared/ui/breadcrumbs";
 import { CardSkeleton } from "@app/shared/ui/skeletons";
@@ -41,7 +42,7 @@ export default function EditInvoicePage() {
     );
   }
 
-  if (invoice.status !== "DRAFT") {
+  if (invoice.status !== INVOICE_STATUS.DRAFT) {
     return (
       <AppLayout>
         <Alert severity="warning" sx={{ borderRadius: 2 }}>

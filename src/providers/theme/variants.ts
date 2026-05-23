@@ -29,7 +29,7 @@ export const lightTheme = createTheme({
     },
     text: {
       primary: "#111827",
-      secondary: "#6b7280",
+      secondary: "#5b6270",
     },
     divider: "rgba(107,114,128,0.15)",
   },
@@ -67,7 +67,7 @@ export const lightTheme = createTheme({
         head: {
           fontWeight: 600,
           fontSize: "0.8125rem",
-          color: "#6b7280",
+          color: "#5b6270",
         },
       },
     },

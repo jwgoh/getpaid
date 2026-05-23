@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 
+import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 interface MarkPaidDialogProps {
@@ -20,8 +21,10 @@ interface MarkPaidDialogProps {
 }
 
 export function MarkPaidDialog({ open, onClose, onConfirm, isLoading }: MarkPaidDialogProps) {
+  const isMobile = useIsMobileDialog();
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ fontWeight: 600 }}>Mark as Paid</DialogTitle>
       <DialogContent>
         <DialogContentText>

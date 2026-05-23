@@ -32,6 +32,7 @@ interface InvoiceFormLineItemsProps {
   onAppend: () => void;
   onRemove: (index: number) => void;
   onDuplicate: (index: number) => void;
+  onMove: (from: number, to: number) => void;
   groupFields: FieldArrayWithId<InvoiceFormInput, "itemGroups", "id">[];
   onRemoveGroup: (index: number) => void;
   onAddGroup: () => void;
@@ -49,6 +50,7 @@ export function InvoiceFormLineItems({
   onAppend,
   onRemove,
   onDuplicate,
+  onMove,
   groupFields,
   onRemoveGroup,
   onAddGroup,
@@ -96,6 +98,10 @@ export function InvoiceFormLineItems({
                   onRemove={() => onRemove(index)}
                   canRemove={fields.length > 1 || groupFields.length > 0}
                   onDuplicate={() => onDuplicate(index)}
+                  onMoveUp={() => onMove(index, index - 1)}
+                  onMoveDown={() => onMove(index, index + 1)}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < fields.length - 1}
                   dragHandle={dragHandle}
                   sx={{
                     mb: 2,

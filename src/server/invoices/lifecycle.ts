@@ -1,14 +1,8 @@
-import {
-  Invoice,
-  InvoiceEvent,
-  InvoiceEventType,
-  InvoiceStatus,
-  PaymentMethod,
-  Prisma,
-} from "@prisma/client";
+import { Invoice, InvoiceEvent, InvoiceEventType, InvoiceStatus, Prisma } from "@prisma/client";
 
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
-import type { InvoiceId, PublicId, UserId } from "@app/shared/types/ids";
+import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
+import { asInvoiceId, type InvoiceId, type PublicId, type UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
@@ -35,7 +29,7 @@ export async function markInvoiceViewed(publicId: PublicId): Promise<Invoice | n
       const invoice = await tx.invoice.findUnique({ where: { publicId } });
 
       if (invoice) {
-        await logInvoiceEvent(invoice.id, INVOICE_EVENT.VIEWED, {}, tx);
+        await logInvoiceEvent(asInvoiceId(invoice.id), INVOICE_EVENT.VIEWED, {}, tx);
       }
     });
   }
@@ -45,8 +39,7 @@ export async function markInvoiceViewed(publicId: PublicId): Promise<Invoice | n
 
 export async function markInvoicePaid(
   id: InvoiceId,
-  userId: UserId,
-  method: PaymentMethod = "MANUAL"
+  userId: UserId
 ): Promise<InvoicePaidEntity | null> {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
@@ -57,15 +50,41 @@ export async function markInvoicePaid(
       return null;
     }
 
-    const updated = await tx.invoice.update({
-      where: { id },
+    const paidAt = new Date();
+
+    const claim = await tx.invoice.updateMany({
+      where: { id, paidAt: null, paidAmount: 0 },
       data: {
         status: INVOICE_STATUS.PAID,
-        paidAt: new Date(),
-        paymentMethod: method,
+        paidAt,
+        paymentMethod: PAYMENT_METHOD.MANUAL,
         paidAmount: invoice.total,
       },
-      include: INVOICE_PAID_INCLUDE,
+    });
+
+    if (claim.count !== 1) {
+      return null;
+    }
+
+    const payment = await tx.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        amount: invoice.total,
+        method: PAYMENT_METHOD.MANUAL,
+        paidAt,
+      },
+    });
+
+    await tx.invoiceEvent.create({
+      data: {
+        invoiceId: invoice.id,
+        type: INVOICE_EVENT.PAYMENT_RECORDED,
+        payload: {
+          amount: invoice.total,
+          method: PAYMENT_METHOD.MANUAL,
+          paymentId: payment.id,
+        },
+      },
     });
 
     await tx.invoiceEvent.create({
@@ -76,14 +95,17 @@ export async function markInvoicePaid(
       },
     });
 
-    return updated;
+    return tx.invoice.findUniqueOrThrow({
+      where: { id },
+      include: INVOICE_PAID_INCLUDE,
+    });
   });
 }
 
 type InvoiceClient = Prisma.TransactionClient | typeof prisma;
 
 export async function updateInvoiceStatus(
-  id: string,
+  id: InvoiceId,
   status: InvoiceStatus,
   additionalData: Record<string, unknown> = {},
   client: InvoiceClient = prisma
@@ -98,7 +120,7 @@ export async function updateInvoiceStatus(
 }
 
 export async function logInvoiceEvent(
-  invoiceId: string,
+  invoiceId: InvoiceId,
   type: InvoiceEventType,
   payload: Prisma.InputJsonValue = {},
   client: InvoiceClient = prisma

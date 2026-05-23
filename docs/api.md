@@ -47,7 +47,7 @@ Request and response shapes are defined as Zod schemas. Cite them by name; the d
 | `createTemplateSchema`, `updateTemplateSchema`                                                                                                                      | `src/shared/schemas/template.ts`       |
 | `createSenderProfileSchema` (`senderProfileSchema`)                                                                                                                 | `src/shared/schemas/sender-profile.ts` |
 | `waitlistSchema`                                                                                                                                                    | `src/shared/schemas/waitlist.ts`       |
-| Response shapes (`invoiceSchema`, `invoiceListItemSchema`, `clientSchema`, `paymentSchema`, `senderProfileResponseSchema`, `publicInvoiceSchema`, `apiErrorSchema`) | `src/shared/schemas/api.ts`            |
+| Response shapes (`invoiceSchema`, `invoiceListItemSchema`, `clientSchema`, `paymentSchema`, `senderProfileResponseSchema`, `publicInvoiceSchema`, `analyticsDataSchema`, `successAckSchema`, `messageAckSchema`) | `src/shared/schemas/api.ts`            |
 
 ---
 

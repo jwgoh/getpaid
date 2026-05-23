@@ -1,60 +1,101 @@
 import { fetchApi } from "@app/shared/api/base";
 import { idempotencyHeader } from "@app/shared/api/idempotency-key";
 import type { CreateInvoiceInput, UpdateInvoiceInput } from "@app/shared/schemas";
-import type { Invoice, InvoiceListItem, Payment } from "@app/shared/schemas/api";
+import {
+  type Invoice,
+  type InvoiceListItem,
+  invoiceListSchema,
+  invoiceSchema,
+  type Payment,
+  paymentListSchema,
+  successAckSchema,
+} from "@app/shared/schemas/api";
 import type { RecordPaymentInput } from "@app/shared/schemas/payment";
 
 export type { Payment, RecordPaymentInput };
 
 export const invoicesApi = {
-  list: () => fetchApi<InvoiceListItem[]>("/api/invoices"),
+  list: () => fetchApi<InvoiceListItem[]>("/api/invoices", undefined, invoiceListSchema),
 
-  get: (id: string) => fetchApi<Invoice>(`/api/invoices/${id}`),
+  get: (id: string) => fetchApi<Invoice>(`/api/invoices/${id}`, undefined, invoiceSchema),
 
   create: (data: CreateInvoiceInput, idempotencyKey: string) =>
-    fetchApi<Invoice>("/api/invoices", {
-      method: "POST",
-      body: JSON.stringify(data),
-      headers: idempotencyHeader(idempotencyKey),
-    }),
+    fetchApi<Invoice>(
+      "/api/invoices",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: idempotencyHeader(idempotencyKey),
+      },
+      invoiceSchema
+    ),
 
   update: (id: string, data: UpdateInvoiceInput) =>
-    fetchApi<Invoice>(`/api/invoices/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }),
+    fetchApi<Invoice>(
+      `/api/invoices/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
+      invoiceSchema
+    ),
 
   send: (id: string) =>
-    fetchApi<Invoice>(`/api/invoices/${id}/send`, {
-      method: "POST",
-    }),
+    fetchApi<Invoice>(
+      `/api/invoices/${id}/send`,
+      {
+        method: "POST",
+      },
+      invoiceSchema
+    ),
 
   markPaid: (id: string) =>
-    fetchApi<Invoice>(`/api/invoices/${id}/mark-paid`, {
-      method: "POST",
-    }),
+    fetchApi<Invoice>(
+      `/api/invoices/${id}/mark-paid`,
+      {
+        method: "POST",
+      },
+      invoiceSchema
+    ),
 
   delete: (id: string) =>
-    fetchApi<{ success: boolean }>(`/api/invoices/${id}`, {
-      method: "DELETE",
-    }),
+    fetchApi<{ success: boolean }>(
+      `/api/invoices/${id}`,
+      {
+        method: "DELETE",
+      },
+      successAckSchema
+    ),
 
   duplicate: (id: string) =>
-    fetchApi<Invoice>(`/api/invoices/${id}/duplicate`, {
-      method: "POST",
-    }),
+    fetchApi<Invoice>(
+      `/api/invoices/${id}/duplicate`,
+      {
+        method: "POST",
+      },
+      invoiceSchema
+    ),
 
-  getPayments: (invoiceId: string) => fetchApi<Payment[]>(`/api/invoices/${invoiceId}/payments`),
+  getPayments: (invoiceId: string) =>
+    fetchApi<Payment[]>(`/api/invoices/${invoiceId}/payments`, undefined, paymentListSchema),
 
   recordPayment: (invoiceId: string, data: RecordPaymentInput, idempotencyKey: string) =>
-    fetchApi<Invoice>(`/api/invoices/${invoiceId}/payments`, {
-      method: "POST",
-      body: JSON.stringify(data),
-      headers: idempotencyHeader(idempotencyKey),
-    }),
+    fetchApi<Invoice>(
+      `/api/invoices/${invoiceId}/payments`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: idempotencyHeader(idempotencyKey),
+      },
+      invoiceSchema
+    ),
 
   deletePayment: (invoiceId: string, paymentId: string) =>
-    fetchApi<Invoice>(`/api/invoices/${invoiceId}/payments?paymentId=${paymentId}`, {
-      method: "DELETE",
-    }),
+    fetchApi<Invoice>(
+      `/api/invoices/${invoiceId}/payments?paymentId=${paymentId}`,
+      {
+        method: "DELETE",
+      },
+      invoiceSchema
+    ),
 };

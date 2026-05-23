@@ -19,7 +19,14 @@ Always before applying a migration. Skip only for code-only PRs with no `prisma/
 pg_dump $PROD_DATABASE_URL > backups/getpaid-$(date +%s).sql
 ```
 
-Store backups outside the repo (e.g. an S3 bucket the operator owns). Do not commit `backups/`.
+Store backups outside the repo (e.g. an S3 bucket the operator owns). Do not commit `backups/`. Encrypt the dump at rest — see [`docs/backup.md`](../backup.md) for the SSE-KMS / `age` / `gpg` patterns. An unencrypted `pg_dump` carries every bcrypt hash and every invoice's PII.
+
+**Non-skippable for any migration whose SQL contains `DROP`.** Before applying a migration whose `migration.sql` includes `DROP TABLE`, `DROP COLUMN`, `DROP TYPE`, `DROP CONSTRAINT`, or `DROP INDEX`, take a fresh `pg_dump` in this step regardless of any other context — destructive SQL has no Prisma down-migration and the only recovery path is the backup. Quick sanity grep before Step 2:
+
+```bash
+grep -ilE '^\s*drop\b' prisma/migrations/<new-migration-dir>/migration.sql && \
+  echo "DESTRUCTIVE migration detected — pg_dump above is mandatory, do NOT skip."
+```
 
 ### Step 2 — apply pending migrations to prod
 

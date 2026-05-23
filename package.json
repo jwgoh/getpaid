@@ -8,11 +8,11 @@
     "build": "prisma generate && next build",
     "build:analyze": "ANALYZE=true pnpm build",
     "start": "next start",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format": "prettier --write \"{src,prisma,scripts}/**/*.{ts,tsx,js,jsx,json,css,md}\" \"*.{ts,mjs,json,md}\"",
+    "format:check": "prettier --check \"{src,prisma,scripts}/**/*.{ts,tsx,js,jsx,json,css,md}\" \"*.{ts,mjs,json,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate": "prisma migrate dev",
@@ -36,8 +36,8 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "@mui/x-date-pickers": "^8.27.0",
-    "@prisma/adapter-pg": "^7.0.0",
-    "@prisma/client": "^7.0.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-virtual": "^3.13.18",
     "bcryptjs": "^3.0.3",
@@ -59,7 +59,7 @@
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@next/bundle-analyzer": "^16.2.6",
-    "@types/node": "^20",
+    "@types/node": "^22.19.19",
     "@types/pg": "^8.15.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -71,7 +71,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "lefthook": "^2.1.0",
     "prettier": "^3.8.1",
-    "prisma": "^7.0.0",
+    "prisma": "^7.8.0",
     "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.7"
@@ -81,6 +81,14 @@
       "allowedVersions": {
         "@prisma/client": "7"
       }
+    },
+    "overrides": {
+      "minimatch@<3.1.4": "^3.1.4",
+      "postcss@<8.5.10": "^8.5.10",
+      "uuid@<11.1.1": "^11.1.1",
+      "nodemailer@<8.0.5": "^8.0.5",
+      "mailparser@<3.9.3": "^3.9.3",
+      "@hono/node-server@<1.19.13": "^1.19.13"
     }
   },
   "packageManager": "pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264"

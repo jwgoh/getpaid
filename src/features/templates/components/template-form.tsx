@@ -35,6 +35,7 @@ export function TemplateForm({
     fields,
     append,
     remove,
+    move,
     sensors,
     handleDragEnd,
     currency,
@@ -82,6 +83,7 @@ export function TemplateForm({
           onAppend={handleAppend}
           onRemove={remove}
           onDuplicate={duplicateItem}
+          onMove={move}
           groupFields={groupFields}
           onRemoveGroup={removeGroup}
           onAddGroup={addGroup}

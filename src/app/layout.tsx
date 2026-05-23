@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { COOKIE_KEYS } from "@app/shared/config/config";
 import { SEO } from "@app/shared/config/seo";
@@ -55,14 +55,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
   const initialMode =
     parseThemeMode(cookieStore.get(COOKIE_KEYS.THEME_MODE)?.value) ?? DEFAULT_THEME_MODE;
+  const nonce = headerStore.get("x-nonce") ?? undefined;
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT }} />
       </head>
       <body className={outfit.variable}>
         <Providers initialMode={initialMode}>{children}</Providers>

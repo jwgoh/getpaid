@@ -1,7 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import boundaries from "eslint-plugin-boundaries";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import boundaries from "eslint-plugin-boundaries";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 
 const eslintConfig = defineConfig([
@@ -121,8 +121,17 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["prisma/**/*.ts", "scripts/**/*.ts"],
+    rules: {
+      "no-console": "off",
+      "max-lines": "off",
+      "max-lines-per-function": "off",
+      complexity: "off",
+    },
+  },
+  {
     files: ["src/**/*.ts", "src/**/*.tsx"],
-    ignores: ["src/shared/config/env.ts"],
+    ignores: ["src/shared/config/env.ts", "src/proxy.ts"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -135,7 +144,7 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["src/**/*.ts", "src/**/*.tsx"],
-    ignores: ["src/providers/**"],
+    ignores: ["src/providers/**", "src/shared/ui/global-error-screen.tsx"],
     rules: {
       "no-restricted-imports": [
         "error",

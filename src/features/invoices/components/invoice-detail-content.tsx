@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Alert, Box, Button } from "@mui/material";
 
-import { STATUS_CONFIG } from "@app/shared/config/invoice-status";
+import { INVOICE_STATUS, STATUS_CONFIG } from "@app/shared/config/invoice-status";
 import { AppLayout } from "@app/shared/layout/app-layout";
 import type { Invoice } from "@app/shared/schemas/api";
 import { ConfirmDialog } from "@app/shared/ui/confirm-dialog";
@@ -95,10 +95,10 @@ export function InvoiceDetailContent() {
     );
   }
 
-  const isDraft = invoice.status === "DRAFT";
-  const isPaid = invoice.status === "PAID";
-  const isPartiallyPaid = invoice.status === "PARTIALLY_PAID";
-  const isOverdue = invoice.status === "OVERDUE";
+  const isDraft = invoice.status === INVOICE_STATUS.DRAFT;
+  const isPaid = invoice.status === INVOICE_STATUS.PAID;
+  const isPartiallyPaid = invoice.status === INVOICE_STATUS.PARTIALLY_PAID;
+  const isOverdue = invoice.status === INVOICE_STATUS.OVERDUE;
   const status = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.DRAFT;
   const remainingBalance = invoice.total - (invoice.paidAmount || 0);
 

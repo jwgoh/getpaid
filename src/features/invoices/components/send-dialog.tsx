@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 
+import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 interface SendDialogProps {
@@ -21,8 +22,10 @@ interface SendDialogProps {
 }
 
 export function SendDialog({ open, onClose, onConfirm, isLoading, clientEmail }: SendDialogProps) {
+  const isMobile = useIsMobileDialog();
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ fontWeight: 600 }}>Send Invoice</DialogTitle>
       <DialogContent>
         <DialogContentText>

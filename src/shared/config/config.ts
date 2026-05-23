@@ -16,6 +16,8 @@ export const CURRENCY = {
   CENTS_MULTIPLIER: 100,
 } as const;
 
+export const DECIMAL_ROUNDING_FACTOR = 100;
+
 export const PERCENT = {
   DIVISOR: 100,
 } as const;
