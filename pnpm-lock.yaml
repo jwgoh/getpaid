@@ -79,9 +79,6 @@ importers:
       next-auth:
         specifier: 5.0.0-beta.30
         version: 5.0.0-beta.30(next@16.2.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(nodemailer@8.0.5)(react@19.2.3)
-      pg:
-        specifier: ^8.16.0
-        version: 8.18.0
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -113,9 +110,6 @@ importers:
       '@types/node':
         specifier: ^22.19.19
         version: 22.19.19
-      '@types/pg':
-        specifier: ^8.15.0
-        version: 8.16.0
       '@types/react':
         specifier: ^19
         version: 19.2.11
