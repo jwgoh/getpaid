@@ -29,6 +29,7 @@ export const EMAIL_OUTBOX = {
   MAX_ATTEMPTS: 5,
   BASE_BACKOFF_MS: 5 * TIME.MINUTE,
   BATCH_SIZE: 25,
+  DISPATCH_CONCURRENCY: 5,
 } as const;
 
 export function computeBackoffMs(attempts: number, baseMs: number): number {

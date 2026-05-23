@@ -7,6 +7,7 @@ import {
   type EmailOutboxKindValue,
   type EmailOutboxRelatedTypeValue,
 } from "@app/shared/config/email-outbox";
+import { runWithConcurrency } from "@app/shared/lib/concurrency";
 
 import { prisma } from "@app/server/db";
 
@@ -97,8 +98,8 @@ function extractSendError(result: unknown): string | null {
   return typeof message === "string" ? message : JSON.stringify(error);
 }
 
-async function markOutboxSent(rowId: string, messageId: string | null): Promise<void> {
-  await prisma.emailOutbox.update({
+async function markOutboxSent(rowId: string, messageId: string | null): Promise<EmailOutbox> {
+  return prisma.emailOutbox.update({
     where: { id: rowId },
     data: {
       status: EMAIL_OUTBOX_STATUS.SENT,
@@ -115,7 +116,7 @@ async function markOutboxFailure(
   rowId: string,
   attempts: number,
   errorMessage: string
-): Promise<void> {
+): Promise<EmailOutbox> {
   const nextAttempts = attempts + 1;
   const isExhausted = nextAttempts >= EMAIL_OUTBOX.MAX_ATTEMPTS;
   const now = new Date();
@@ -123,7 +124,7 @@ async function markOutboxFailure(
     ? null
     : new Date(now.getTime() + computeBackoffMs(nextAttempts, EMAIL_OUTBOX.BASE_BACKOFF_MS));
 
-  await prisma.emailOutbox.update({
+  return prisma.emailOutbox.update({
     where: { id: rowId },
     data: {
       status: isExhausted ? EMAIL_OUTBOX_STATUS.FAILED : EMAIL_OUTBOX_STATUS.PENDING,
@@ -143,9 +144,7 @@ export async function dispatchOutbox(rowId: string): Promise<EmailOutbox | null>
   }
 
   if (!isResendPayload(row.payload)) {
-    await markOutboxFailure(row.id, row.attempts, "Outbox payload is malformed");
-
-    return prisma.emailOutbox.findUnique({ where: { id: rowId } });
+    return markOutboxFailure(row.id, row.attempts, "Outbox payload is malformed");
   }
 
   const idempotencyKey = row.idempotencyKey;
@@ -155,17 +154,15 @@ export async function dispatchOutbox(rowId: string): Promise<EmailOutbox | null>
     const sendError = extractSendError(result);
 
     if (sendError) {
-      await markOutboxFailure(row.id, row.attempts, sendError);
-    } else {
-      await markOutboxSent(row.id, extractMessageId(result));
+      return markOutboxFailure(row.id, row.attempts, sendError);
     }
+
+    return markOutboxSent(row.id, extractMessageId(result));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    await markOutboxFailure(row.id, row.attempts, message);
+    return markOutboxFailure(row.id, row.attempts, message);
   }
-
-  return prisma.emailOutbox.findUnique({ where: { id: rowId } });
 }
 
 export interface ProcessOutboxResult {
@@ -193,9 +190,18 @@ export async function processOutbox(now: Date = new Date()): Promise<ProcessOutb
     pending: 0,
   };
 
-  for (const candidate of candidates) {
-    const updated = await dispatchOutbox(candidate.id);
+  const outcomes = await runWithConcurrency(
+    candidates,
+    EMAIL_OUTBOX.DISPATCH_CONCURRENCY,
+    (candidate) =>
+      dispatchOutbox(candidate.id).catch((error) => {
+        console.error("Outbox dispatch error:", { rowId: candidate.id, error });
 
+        return null;
+      })
+  );
+
+  for (const updated of outcomes) {
     if (!updated) {
       continue;
     }
