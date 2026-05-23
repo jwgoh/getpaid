@@ -189,4 +189,27 @@ describe("countConvertedWaitlistEntries", () => {
     ).rejects.toBeInstanceOf(RetentionMisconfiguredError);
     expect(waitlistEntry.count).not.toHaveBeenCalled();
   });
+
+  it("emits large-backlog warning with wouldDelete when candidates > 50_000", async () => {
+    const { countConvertedWaitlistEntries, prisma } = await loadModule();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    waitlistEntry.count.mockResolvedValue(LARGE_DELETE_COUNT);
+
+    await countConvertedWaitlistEntries(prisma, FIXED_NOW);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    const payload = JSON.parse(String(warnSpy.mock.calls[0]?.[0])) as {
+      event: string;
+      table: string;
+      wouldDelete: number;
+    };
+
+    expect(payload.event).toBe("prune.warning.large_backlog");
+    expect(payload.table).toBe("WaitlistEntry");
+    expect(payload.wouldDelete).toBe(LARGE_DELETE_COUNT);
+
+    warnSpy.mockRestore();
+  });
 });

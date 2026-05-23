@@ -300,9 +300,9 @@ export async function countExpiredIdempotencyKeys(
   if (count > PRUNE.LARGE_DELETE_THRESHOLD) {
     console.warn(
       JSON.stringify({
-        event: "prune.warning.large_delete",
+        event: "prune.warning.large_backlog",
         table: "IdempotencyKey",
-        deleted: count,
+        wouldDelete: count,
       })
     );
   }

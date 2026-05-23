@@ -125,4 +125,27 @@ describe("countExpiredIdempotencyKeys", () => {
 
     expect(countCall).toEqual(pruneCall);
   });
+
+  it("emits large-backlog warning with wouldDelete when count > 50_000", async () => {
+    const { countExpiredIdempotencyKeys, prisma } = await loadModule();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    idempotencyKey.count.mockResolvedValue(LARGE_DELETE_COUNT);
+
+    await countExpiredIdempotencyKeys(prisma, FIXED_NOW);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    const payload = JSON.parse(String(warnSpy.mock.calls[0]?.[0])) as {
+      event: string;
+      table: string;
+      wouldDelete: number;
+    };
+
+    expect(payload.event).toBe("prune.warning.large_backlog");
+    expect(payload.table).toBe("IdempotencyKey");
+    expect(payload.wouldDelete).toBe(LARGE_DELETE_COUNT);
+
+    warnSpy.mockRestore();
+  });
 });

@@ -253,6 +253,19 @@ function warnIfLargeDelete(arm: "SENT" | "FAILED", deleted: number): void {
   }
 }
 
+function warnIfLargeBacklog(arm: "SENT" | "FAILED", wouldDelete: number): void {
+  if (wouldDelete > PRUNE.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_backlog",
+        table: "EmailOutbox",
+        arm,
+        wouldDelete,
+      })
+    );
+  }
+}
+
 export interface OutboxSentRetentionOverrides {
   sentDays?: number;
 }
@@ -322,7 +335,7 @@ export async function countOutboxSent(
     where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
   });
 
-  warnIfLargeDelete("SENT", count);
+  warnIfLargeBacklog("SENT", count);
 
   return { count };
 }
@@ -344,7 +357,7 @@ export async function countOutboxFailed(
     where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
   });
 
-  warnIfLargeDelete("FAILED", count);
+  warnIfLargeBacklog("FAILED", count);
 
   return { count };
 }

@@ -234,6 +234,29 @@ describe("countOutboxSent", () => {
     );
     expect(emailOutbox.count).not.toHaveBeenCalled();
   });
+
+  it("emits large-backlog warning with wouldDelete when SENT count > 50_000", async () => {
+    const { countOutboxSent, prisma } = await loadModule();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    emailOutbox.count.mockResolvedValue(LARGE_DELETE_COUNT);
+
+    await countOutboxSent(prisma, FIXED_NOW);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    const payload = JSON.parse(String(warnSpy.mock.calls[0]?.[0])) as {
+      event: string;
+      arm: string;
+      wouldDelete: number;
+    };
+
+    expect(payload.event).toBe("prune.warning.large_backlog");
+    expect(payload.arm).toBe("SENT");
+    expect(payload.wouldDelete).toBe(LARGE_DELETE_COUNT);
+
+    warnSpy.mockRestore();
+  });
 });
 
 describe("countOutboxFailed", () => {
@@ -284,5 +307,28 @@ describe("countOutboxFailed", () => {
       RetentionMisconfiguredError
     );
     expect(emailOutbox.count).not.toHaveBeenCalled();
+  });
+
+  it("emits large-backlog warning with wouldDelete when FAILED count > 50_000", async () => {
+    const { countOutboxFailed, prisma } = await loadModule();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    emailOutbox.count.mockResolvedValue(LARGE_DELETE_COUNT + 1);
+
+    await countOutboxFailed(prisma, FIXED_NOW);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    const payload = JSON.parse(String(warnSpy.mock.calls[0]?.[0])) as {
+      event: string;
+      arm: string;
+      wouldDelete: number;
+    };
+
+    expect(payload.event).toBe("prune.warning.large_backlog");
+    expect(payload.arm).toBe("FAILED");
+    expect(payload.wouldDelete).toBe(LARGE_DELETE_COUNT + 1);
+
+    warnSpy.mockRestore();
   });
 });
