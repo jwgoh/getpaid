@@ -376,6 +376,12 @@ Key rules:
 
 When adding a new email-send: build a `ResendEmailPayload` via a `buildXxxEmailPayload` helper in `@app/server/email`, then write the state change + `createEmailOutbox` in one transaction, then `dispatchOutbox` outside.
 
+## Background maintenance
+
+`pnpm prune:expired` (`scripts/prune-expired.ts`) deletes rows whose lifecycle has ended but for which no code path performs the cleanup: expired `IdempotencyKey` rows (predicate `expiresAt <= now`, matching `withIdempotency`'s read-side staleness check), `EmailOutbox` rows older than `EMAIL_OUTBOX.RETENTION_SENT_DAYS = 30` (status `SENT`) or `EMAIL_OUTBOX.RETENTION_FAILED_DAYS = 90` (status `FAILED`), and orphan `WaitlistEntry` rows whose email already matches a `User` row, older than `WAITLIST.ORPHAN_RETENTION_DAYS = 90`. Constants live in `src/shared/config/{email-outbox,waitlist,prune}.ts`; retention is intentionally hardcoded (no env override) so a typo cannot wipe a table from a shell.
+
+Today the prune is operator-invoked (manual `pnpm prune:expired`); REL-001 will wire it onto a daily cron next to `outbox:run`. Pass `--dry-run` to count without deleting — the predicates are identical to the live path, so the count is the exact preview (the waitlist arm short-circuits the `User`-join and returns an upper bound). The orchestrator uses Postgres `NOW()` so the operator's machine clock is irrelevant. Exit code is `0` only when every table succeeds, `1` when any sub-prune throws (the failure is recorded per-table in the JSON summary; other tables still run). Each table emits a `prune.<table>.complete` JSON line plus a final `prune.run.summary`; deletes larger than `PRUNE.LARGE_DELETE_THRESHOLD = 50_000` also emit a `prune.warning.large_delete` line so backlog growth is visible in cron logs. See `docs/runbooks/cron.md` for the operator runbook (always dry-run first on prod).
+
 ## Code Quality Checklist
 
 Before committing, verify:

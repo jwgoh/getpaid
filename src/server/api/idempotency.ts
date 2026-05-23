@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
+
+import { PRUNE } from "@app/shared/config/prune";
 
 import { errorResponse } from "@app/server/api/route-helpers";
 import { prisma } from "@app/server/db";
@@ -264,4 +266,46 @@ export function withIdempotency(handler: AuthHandler, options: IdempotencyOption
 
     return completeClaim(claimKey, handler, user, clone, context);
   };
+}
+
+export async function pruneExpiredIdempotencyKeys(
+  client: PrismaClient,
+  now: Date
+): Promise<{ deleted: number }> {
+  const result = await client.idempotencyKey.deleteMany({
+    where: { expiresAt: { lte: now } },
+  });
+
+  if (result.count > PRUNE.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_delete",
+        table: "IdempotencyKey",
+        deleted: result.count,
+      })
+    );
+  }
+
+  return { deleted: result.count };
+}
+
+export async function countExpiredIdempotencyKeys(
+  client: PrismaClient,
+  now: Date
+): Promise<{ count: number }> {
+  const count = await client.idempotencyKey.count({
+    where: { expiresAt: { lte: now } },
+  });
+
+  if (count > PRUNE.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_backlog",
+        table: "IdempotencyKey",
+        wouldDelete: count,
+      })
+    );
+  }
+
+  return { count };
 }

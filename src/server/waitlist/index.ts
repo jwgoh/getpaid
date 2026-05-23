@@ -1,6 +1,9 @@
-import type { WaitlistEntry } from "@prisma/client";
+import type { PrismaClient, WaitlistEntry } from "@prisma/client";
 
+import { TIME } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
+import { PRUNE } from "@app/shared/config/prune";
+import { WAITLIST } from "@app/shared/config/waitlist";
 import type { WaitlistCheckStatus } from "@app/shared/schemas";
 import { WAITLIST_STATUS } from "@app/shared/schemas";
 
@@ -11,6 +14,7 @@ import {
   buildWaitlistNotificationPayload,
 } from "@app/server/email";
 import { buildOutboxIdempotencyKey, createEmailOutbox } from "@app/server/email/outbox";
+import { RetentionMisconfiguredError } from "@app/server/prune/errors";
 
 export class WaitlistEntryNotFoundError extends Error {
   constructor() {
@@ -173,4 +177,90 @@ export async function deleteWaitlistEntry(id: string): Promise<WaitlistEntry | n
   }
 
   return prisma.waitlistEntry.delete({ where: { id } });
+}
+
+export interface WaitlistRetentionOverrides {
+  orphanDays?: number;
+}
+
+export async function pruneConvertedWaitlistEntries(
+  client: PrismaClient,
+  now: Date,
+  retention: WaitlistRetentionOverrides = {}
+): Promise<{ deleted: number }> {
+  const orphanDays = retention.orphanDays ?? WAITLIST.ORPHAN_RETENTION_DAYS;
+
+  if (orphanDays <= 0) {
+    throw new RetentionMisconfiguredError("Waitlist orphan retention");
+  }
+
+  const cutoff = new Date(now.getTime() - TIME.DAY * orphanDays);
+
+  const candidates = await client.waitlistEntry.findMany({
+    where: { createdAt: { lt: cutoff } },
+    select: { email: true },
+  });
+
+  if (candidates.length === 0) {
+    return { deleted: 0 };
+  }
+
+  const candidateEmails = candidates.map((c) => c.email);
+
+  const matchedUsers = await client.user.findMany({
+    where: { email: { in: candidateEmails } },
+    select: { email: true },
+  });
+
+  if (matchedUsers.length === 0) {
+    return { deleted: 0 };
+  }
+
+  const orphanEmails = matchedUsers.map((u) => u.email);
+
+  const result = await client.waitlistEntry.deleteMany({
+    where: { email: { in: orphanEmails }, createdAt: { lt: cutoff } },
+  });
+
+  if (result.count > PRUNE.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_delete",
+        table: "WaitlistEntry",
+        deleted: result.count,
+      })
+    );
+  }
+
+  return { deleted: result.count };
+}
+
+export async function countConvertedWaitlistEntries(
+  client: PrismaClient,
+  now: Date,
+  retention: WaitlistRetentionOverrides = {}
+): Promise<{ candidates: number }> {
+  const orphanDays = retention.orphanDays ?? WAITLIST.ORPHAN_RETENTION_DAYS;
+
+  if (orphanDays <= 0) {
+    throw new RetentionMisconfiguredError("Waitlist orphan retention");
+  }
+
+  const cutoff = new Date(now.getTime() - TIME.DAY * orphanDays);
+
+  const candidates = await client.waitlistEntry.count({
+    where: { createdAt: { lt: cutoff } },
+  });
+
+  if (candidates > PRUNE.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_backlog",
+        table: "WaitlistEntry",
+        wouldDelete: candidates,
+      })
+    );
+  }
+
+  return { candidates };
 }

@@ -1,5 +1,6 @@
-import { EmailOutbox, Prisma } from "@prisma/client";
+import { EmailOutbox, Prisma, type PrismaClient } from "@prisma/client";
 
+import { TIME } from "@app/shared/config/config";
 import {
   computeBackoffMs,
   EMAIL_OUTBOX,
@@ -7,9 +8,11 @@ import {
   type EmailOutboxKindValue,
   type EmailOutboxRelatedTypeValue,
 } from "@app/shared/config/email-outbox";
+import { PRUNE } from "@app/shared/config/prune";
 import { runWithConcurrency } from "@app/shared/lib/concurrency";
 
 import { prisma } from "@app/server/db";
+import { RetentionMisconfiguredError } from "@app/server/prune/errors";
 
 import { type ResendEmailPayload, sendEmail } from "./index";
 import {
@@ -235,4 +238,126 @@ export async function processOutbox(now: Date = new Date()): Promise<ProcessOutb
   }
 
   return result;
+}
+
+function warnIfLargeDelete(arm: "SENT" | "FAILED", deleted: number): void {
+  if (deleted > PRUNE.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_delete",
+        table: "EmailOutbox",
+        arm,
+        deleted,
+      })
+    );
+  }
+}
+
+function warnIfLargeBacklog(arm: "SENT" | "FAILED", wouldDelete: number): void {
+  if (wouldDelete > PRUNE.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_backlog",
+        table: "EmailOutbox",
+        arm,
+        wouldDelete,
+      })
+    );
+  }
+}
+
+export interface OutboxSentRetentionOverrides {
+  sentDays?: number;
+}
+
+export interface OutboxFailedRetentionOverrides {
+  failedDays?: number;
+}
+
+export async function pruneOutboxSent(
+  client: PrismaClient,
+  now: Date,
+  retention: OutboxSentRetentionOverrides = {}
+): Promise<{ deleted: number }> {
+  const sentDays = retention.sentDays ?? EMAIL_OUTBOX.RETENTION_SENT_DAYS;
+
+  if (sentDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox SENT retention");
+  }
+
+  const cutoffSent = new Date(now.getTime() - TIME.DAY * sentDays);
+
+  const result = await client.emailOutbox.deleteMany({
+    where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
+  });
+
+  warnIfLargeDelete("SENT", result.count);
+
+  return { deleted: result.count };
+}
+
+export async function pruneOutboxFailed(
+  client: PrismaClient,
+  now: Date,
+  retention: OutboxFailedRetentionOverrides = {}
+): Promise<{ deleted: number }> {
+  const failedDays = retention.failedDays ?? EMAIL_OUTBOX.RETENTION_FAILED_DAYS;
+
+  if (failedDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox FAILED retention");
+  }
+
+  const cutoffFailed = new Date(now.getTime() - TIME.DAY * failedDays);
+
+  const result = await client.emailOutbox.deleteMany({
+    where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
+  });
+
+  warnIfLargeDelete("FAILED", result.count);
+
+  return { deleted: result.count };
+}
+
+export async function countOutboxSent(
+  client: PrismaClient,
+  now: Date,
+  retention: OutboxSentRetentionOverrides = {}
+): Promise<{ count: number }> {
+  const sentDays = retention.sentDays ?? EMAIL_OUTBOX.RETENTION_SENT_DAYS;
+
+  if (sentDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox SENT retention");
+  }
+
+  const cutoffSent = new Date(now.getTime() - TIME.DAY * sentDays);
+
+  const count = await client.emailOutbox.count({
+    where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
+  });
+
+  warnIfLargeBacklog("SENT", count);
+
+  return { count };
+}
+
+export async function countOutboxFailed(
+  client: PrismaClient,
+  now: Date,
+  retention: OutboxFailedRetentionOverrides = {}
+): Promise<{ count: number }> {
+  const failedDays = retention.failedDays ?? EMAIL_OUTBOX.RETENTION_FAILED_DAYS;
+
+  if (failedDays <= 0) {
+    throw new RetentionMisconfiguredError("Outbox FAILED retention");
+  }
+
+  const cutoffFailed = new Date(now.getTime() - TIME.DAY * failedDays);
+
+  const count = await client.emailOutbox.count({
+    where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
+  });
+
+  warnIfLargeBacklog("FAILED", count);
+
+  return { count };
 }

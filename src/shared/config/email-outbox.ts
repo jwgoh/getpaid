@@ -33,6 +33,8 @@ export const EMAIL_OUTBOX = {
   MAX_BACKOFF_MS: 60 * TIME.MINUTE,
   JITTER_MIN_RATIO: 0.5,
   JITTER_RANGE_RATIO: 0.5,
+  RETENTION_SENT_DAYS: 30,
+  RETENTION_FAILED_DAYS: 90,
 } as const;
 
 export function computeBackoffMs(
