@@ -164,7 +164,7 @@ describe("countConvertedWaitlistEntries", () => {
     expect(result).toEqual({ candidates: 7 });
   });
 
-  it("uses the same createdAt cutoff as the prune candidate-find", async () => {
+  it("uses identical WHERE predicate as the prune candidate-find (deep-equal)", async () => {
     const { pruneConvertedWaitlistEntries, countConvertedWaitlistEntries, prisma } =
       await loadModule();
 
@@ -174,16 +174,10 @@ describe("countConvertedWaitlistEntries", () => {
     await pruneConvertedWaitlistEntries(prisma, FIXED_NOW);
     await countConvertedWaitlistEntries(prisma, FIXED_NOW);
 
-    const pruneFindManyWhere = waitlistEntry.findMany.mock.calls[0]?.[0] as {
-      where: { createdAt: { lt: Date } };
-    };
-    const countWhere = waitlistEntry.count.mock.calls[0]?.[0] as {
-      where: { createdAt: { lt: Date } };
-    };
+    const pruneFindManyArg = waitlistEntry.findMany.mock.calls[0]?.[0] as { where: unknown };
+    const countArg = waitlistEntry.count.mock.calls[0]?.[0] as { where: unknown };
 
-    expect(countWhere.where.createdAt.lt.getTime()).toBe(
-      pruneFindManyWhere.where.createdAt.lt.getTime()
-    );
+    expect(countArg.where).toEqual(pruneFindManyArg.where);
   });
 
   it("throws RetentionMisconfiguredError when orphanDays override is 0", async () => {
