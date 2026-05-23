@@ -1,5 +1,6 @@
-import { EmailOutbox, Prisma } from "@prisma/client";
+import { EmailOutbox, Prisma, type PrismaClient } from "@prisma/client";
 
+import { TIME } from "@app/shared/config/config";
 import {
   computeBackoffMs,
   EMAIL_OUTBOX,
@@ -235,4 +236,61 @@ export async function processOutbox(now: Date = new Date()): Promise<ProcessOutb
   }
 
   return result;
+}
+
+function warnIfLargeDelete(arm: "SENT" | "FAILED", deleted: number): void {
+  if (deleted > EMAIL_OUTBOX.LARGE_DELETE_THRESHOLD) {
+    console.warn(
+      JSON.stringify({
+        event: "prune.warning.large_delete",
+        table: "EmailOutbox",
+        arm,
+        deleted,
+      })
+    );
+  }
+}
+
+export async function pruneSentOutbox(
+  client: PrismaClient,
+  now: Date
+): Promise<{ deletedSent: number; deletedFailed: number }> {
+  const cutoffSent = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_SENT_DAYS);
+  const cutoffFailed = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_FAILED_DAYS);
+
+  const sent = await client.emailOutbox.deleteMany({
+    where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
+  });
+
+  warnIfLargeDelete("SENT", sent.count);
+
+  const failed = await client.emailOutbox.deleteMany({
+    where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
+  });
+
+  warnIfLargeDelete("FAILED", failed.count);
+
+  return { deletedSent: sent.count, deletedFailed: failed.count };
+}
+
+export async function countSentOutbox(
+  client: PrismaClient,
+  now: Date
+): Promise<{ sent: number; failed: number }> {
+  const cutoffSent = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_SENT_DAYS);
+  const cutoffFailed = new Date(now.getTime() - TIME.DAY * EMAIL_OUTBOX.RETENTION_FAILED_DAYS);
+
+  const sent = await client.emailOutbox.count({
+    where: { status: EMAIL_OUTBOX_STATUS.SENT, createdAt: { lt: cutoffSent } },
+  });
+
+  warnIfLargeDelete("SENT", sent);
+
+  const failed = await client.emailOutbox.count({
+    where: { status: EMAIL_OUTBOX_STATUS.FAILED, createdAt: { lt: cutoffFailed } },
+  });
+
+  warnIfLargeDelete("FAILED", failed);
+
+  return { sent, failed };
 }
