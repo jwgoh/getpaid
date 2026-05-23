@@ -1,8 +1,43 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { COOKIE_KEYS } from "@app/shared/config/config";
 
 import { COLOR_SCHEME_INIT_SCRIPT } from "./color-scheme-init-script";
+
+interface MockedDom {
+  attr: () => string | null;
+  colorScheme: () => string;
+}
+
+function withMockedDom(cookie: string, prefersDark: boolean): MockedDom {
+  const attrs: Record<string, string> = {};
+  const style: { colorScheme: string } = { colorScheme: "" };
+
+  vi.stubGlobal("document", {
+    cookie,
+    documentElement: {
+      setAttribute: (name: string, value: string): void => {
+        attrs[name] = value;
+      },
+      style,
+    },
+  });
+
+  vi.stubGlobal("window", {
+    matchMedia: (query: string): { matches: boolean } => ({
+      matches: query.includes("dark") && prefersDark,
+    }),
+  });
+
+  return {
+    attr: () => attrs["data-mui-color-scheme"] ?? null,
+    colorScheme: () => style.colorScheme,
+  };
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("COLOR_SCHEME_INIT_SCRIPT", () => {
   it("is a non-empty string", () => {
@@ -22,5 +57,32 @@ describe("COLOR_SCHEME_INIT_SCRIPT", () => {
   it("wraps its body in try/catch so a runtime error never blocks paint", () => {
     expect(COLOR_SCHEME_INIT_SCRIPT).toContain("try{");
     expect(COLOR_SCHEME_INIT_SCRIPT).toContain("catch");
+  });
+});
+
+describe("COLOR_SCHEME_INIT_SCRIPT execution", () => {
+  it("applies dark mode when the theme cookie says dark", () => {
+    const dom = withMockedDom("getpaid-theme=dark", false);
+
+    new Function(COLOR_SCHEME_INIT_SCRIPT)();
+
+    expect(dom.attr()).toBe("dark");
+    expect(dom.colorScheme()).toBe("dark");
+  });
+
+  it("falls back to the prefers-color-scheme media query when the cookie is absent", () => {
+    const dom = withMockedDom("other=1", true);
+
+    new Function(COLOR_SCHEME_INIT_SCRIPT)();
+
+    expect(dom.attr()).toBe("dark");
+  });
+
+  it("extracts the cookie value when surrounded by other cookies", () => {
+    const dom = withMockedDom("a=1; getpaid-theme=dark; b=2", false);
+
+    new Function(COLOR_SCHEME_INIT_SCRIPT)();
+
+    expect(dom.attr()).toBe("dark");
   });
 });
