@@ -17,6 +17,12 @@ import {
   recordPayment,
 } from "@app/server/invoices";
 
+const IDEMPOTENCY_HEADER = "Idempotency-Key";
+
+function readIdempotencyKey(request: Request): string | undefined {
+  return request.headers.get(IDEMPOTENCY_HEADER) ?? undefined;
+}
+
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await context.params;
   const payments = await getPayments(asInvoiceId(id), asUserId(user.id));
@@ -38,8 +44,12 @@ export const POST = withAuth(
         return error;
       }
 
+      const idempotencyKey = readIdempotencyKey(request);
+
       try {
-        const invoice = await recordPayment(asInvoiceId(id), asUserId(user.id), data);
+        const invoice = await recordPayment(asInvoiceId(id), asUserId(user.id), data, {
+          idempotencyKey,
+        });
 
         if (!invoice) {
           return errorResponse(
@@ -78,7 +88,8 @@ export const DELETE = withAuth(async (user, request, context) => {
   const invoice = await deletePayment(
     asInvoiceId(invoiceId),
     asPaymentId(paymentId),
-    asUserId(user.id)
+    asUserId(user.id),
+    { idempotencyKey: readIdempotencyKey(request) }
   );
 
   if (!invoice) {
