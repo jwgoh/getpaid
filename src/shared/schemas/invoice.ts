@@ -70,6 +70,38 @@ function refineInvoiceTotalsCeiling(data: InvoiceTotalsInput, ctx: z.RefinementC
   }
 }
 
+interface InvoiceItemCountInput {
+  items: ReadonlyArray<unknown>;
+  itemGroups?: ReadonlyArray<{ items: ReadonlyArray<unknown> }>;
+}
+
+function hasAtLeastOneItem(data: InvoiceItemCountInput): boolean {
+  const ungroupedCount = data.items.length;
+  const groupedCount = data.itemGroups?.reduce((sum, g) => sum + g.items.length, 0) ?? 0;
+
+  return ungroupedCount + groupedCount > 0;
+}
+
+function atLeastOneItemMessage(): { message: string; path: PropertyKey[] } {
+  return { message: "At least one item is required", path: ["items"] };
+}
+
+const itemsSchema = z
+  .array(invoiceItemSchema)
+  .max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items");
+
+const itemGroupsSchema = z
+  .array(invoiceItemGroupSchema)
+  .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
+  .optional();
+
+const invoiceCommonFields = {
+  itemGroups: itemGroupsSchema,
+  tags: z.array(tagSchema).optional(),
+  discount: discountSchema,
+  taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
+} as const;
+
 export const invoiceFormSchema = z
   .object({
     clientId: z.string().min(1, "Client is required"),
@@ -77,26 +109,12 @@ export const invoiceFormSchema = z
     dueDate: z.string().min(1, "Due date is required"),
     periodStart: z.string().optional(),
     periodEnd: z.string().optional(),
-    items: z.array(invoiceItemSchema).max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items"),
-    itemGroups: z
-      .array(invoiceItemGroupSchema)
-      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
-      .optional(),
+    items: itemsSchema,
     notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional(),
     message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional(),
-    tags: z.array(tagSchema).optional(),
-    discount: discountSchema,
-    taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
+    ...invoiceCommonFields,
   })
-  .refine(
-    (data) => {
-      const ungroupedCount = data.items.length;
-      const groupedCount = data.itemGroups?.reduce((sum, g) => sum + g.items.length, 0) ?? 0;
-
-      return ungroupedCount + groupedCount > 0;
-    },
-    { message: "At least one item is required", path: ["items"] }
-  )
+  .refine(hasAtLeastOneItem, atLeastOneItemMessage())
   .superRefine(refineInvoiceTotalsCeiling)
   .refine(
     (data) => {
@@ -116,26 +134,12 @@ export const createInvoiceSchema = z
     dueDate: dateSchema,
     periodStart: optionalDateSchema,
     periodEnd: optionalDateSchema,
-    items: z.array(invoiceItemSchema).max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items"),
-    itemGroups: z
-      .array(invoiceItemGroupSchema)
-      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
-      .optional(),
+    items: itemsSchema,
     notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional(),
     message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional(),
-    tags: z.array(tagSchema).optional(),
-    discount: discountSchema,
-    taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
+    ...invoiceCommonFields,
   })
-  .refine(
-    (data) => {
-      const ungroupedCount = data.items.length;
-      const groupedCount = data.itemGroups?.reduce((sum, g) => sum + g.items.length, 0) ?? 0;
-
-      return ungroupedCount + groupedCount > 0;
-    },
-    { message: "At least one item is required", path: ["items"] }
-  )
+  .refine(hasAtLeastOneItem, atLeastOneItemMessage())
   .superRefine(refineInvoiceTotalsCeiling);
 
 export const updateInvoiceSchema = z
@@ -145,19 +149,10 @@ export const updateInvoiceSchema = z
     dueDate: dateSchema.optional(),
     periodStart: optionalDateSchema,
     periodEnd: optionalDateSchema,
-    items: z
-      .array(invoiceItemSchema)
-      .max(SCHEMA_LIMITS.INVOICE_ITEMS_MAX, "Too many line items")
-      .optional(),
-    itemGroups: z
-      .array(invoiceItemGroupSchema)
-      .max(SCHEMA_LIMITS.INVOICE_ITEM_GROUPS_MAX, "Too many item groups")
-      .optional(),
+    items: itemsSchema.optional(),
     notes: z.string().max(SCHEMA_LIMITS.INVOICE_NOTES_MAX).optional().nullable(),
     message: z.string().max(SCHEMA_LIMITS.INVOICE_MESSAGE_MAX).optional().nullable(),
-    tags: z.array(tagSchema).optional(),
-    discount: discountSchema,
-    taxRate: z.number().min(0).max(INVOICE.MAX_TAX_RATE).optional(),
+    ...invoiceCommonFields,
   })
   .superRefine((data, ctx) => {
     if ((data.items === undefined) !== (data.itemGroups === undefined)) {
