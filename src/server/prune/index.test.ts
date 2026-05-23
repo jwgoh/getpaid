@@ -183,3 +183,40 @@ describe("pruneExpired — now option", () => {
     expect(pruneConvertedWaitlistEntries).toHaveBeenCalledWith(fakeClient, customNow);
   });
 });
+
+describe("pruneExpired — DB-clock now", () => {
+  it("queries $queryRaw for SELECT NOW() when now option is omitted", async () => {
+    const { pruneExpired } = await loadOrchestrator();
+
+    const dbNow = new Date("2026-07-04T12:00:00Z");
+    const queryRaw = vi.fn().mockResolvedValue([{ now: dbNow }]);
+    const client = { $queryRaw: queryRaw } as unknown as PrismaClient;
+
+    pruneExpiredIdempotencyKeys.mockResolvedValue({ deleted: 0 });
+    pruneSentOutbox.mockResolvedValue({ deletedSent: 0, deletedFailed: 0 });
+    pruneConvertedWaitlistEntries.mockResolvedValue({ deleted: 0 });
+
+    const report = await pruneExpired(client);
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(report.now).toBe(dbNow.toISOString());
+    expect(pruneExpiredIdempotencyKeys).toHaveBeenCalledWith(client, dbNow);
+    expect(pruneSentOutbox).toHaveBeenCalledWith(client, dbNow);
+    expect(pruneConvertedWaitlistEntries).toHaveBeenCalledWith(client, dbNow);
+  });
+
+  it("does not call $queryRaw when an explicit now is provided", async () => {
+    const { pruneExpired } = await loadOrchestrator();
+
+    const queryRaw = vi.fn();
+    const client = { $queryRaw: queryRaw } as unknown as PrismaClient;
+
+    pruneExpiredIdempotencyKeys.mockResolvedValue({ deleted: 0 });
+    pruneSentOutbox.mockResolvedValue({ deletedSent: 0, deletedFailed: 0 });
+    pruneConvertedWaitlistEntries.mockResolvedValue({ deleted: 0 });
+
+    await pruneExpired(client, { now: FIXED_NOW });
+
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+});

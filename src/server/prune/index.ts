@@ -116,11 +116,21 @@ async function runWaitlist(
   }
 }
 
+async function resolveNow(client: PrismaClient, override?: Date): Promise<Date> {
+  if (override) {
+    return override;
+  }
+
+  const rows = await client.$queryRaw<{ now: Date }[]>`SELECT NOW() as now`;
+
+  return rows[0]?.now ?? new Date();
+}
+
 export async function pruneExpired(
   client: PrismaClient,
   options?: PruneOptions
 ): Promise<PruneReport> {
-  const now = options?.now ?? new Date();
+  const now = await resolveNow(client, options?.now);
   const isDryRun = options?.dryRun === true;
 
   const idempotencyKeys = await runIdempotencyKeys(client, now, isDryRun);
