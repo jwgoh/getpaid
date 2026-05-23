@@ -125,6 +125,7 @@ export function InvoiceForm({
             }
             onRemove={form.remove}
             onDuplicate={form.duplicateItem}
+            onMove={form.move}
             groupFields={form.groupFields}
             onRemoveGroup={form.removeGroup}
             onAddGroup={() => form.addGroup(form.resolvedRate / 100)}

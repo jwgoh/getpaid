@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { extractApiErrorMessage } from "@app/shared/api";
 import type { FormMode } from "@app/shared/config/config";
+import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { type Client, ClientFormInput, clientFormSchema } from "@app/shared/schemas";
 import { LoadingButton } from "@app/shared/ui/loading-button";
@@ -34,6 +35,7 @@ interface ClientDialogProps {
 
 export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps) {
   const toast = useToast();
+  const isMobile = useIsMobileDialog();
   const [error, setError] = React.useState<string | null>(null);
 
   const {
@@ -105,7 +107,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ fontWeight: 600 }}>
         {mode === "create" ? "Add New Client" : "Edit Client"}
       </DialogTitle>

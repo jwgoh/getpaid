@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 
+import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { formatCurrency } from "@app/shared/lib/format";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
@@ -34,6 +35,7 @@ export function RecordPaymentDialog({
   remainingBalance,
   currency,
 }: RecordPaymentDialogProps) {
+  const isMobile = useIsMobileDialog();
   const [amount, setAmount] = React.useState("");
   const [note, setNote] = React.useState("");
 
@@ -48,7 +50,7 @@ export function RecordPaymentDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ fontWeight: 600 }}>Record Payment</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 2 }}>

@@ -4,6 +4,7 @@ export { useCountUp } from "./use-count-up";
 export { useDebouncedValue } from "./use-debounced-value";
 export { useDragReorder } from "./use-drag-reorder";
 export { useHydrated } from "./use-hydrated";
+export { useIsMobileDialog } from "./use-is-mobile-dialog";
 export { useItemMenu } from "./use-item-menu";
 export { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 export { useOptimisticDelete } from "./use-optimistic-delete";

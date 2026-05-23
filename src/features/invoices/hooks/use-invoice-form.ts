@@ -104,6 +104,7 @@ export function useInvoiceForm({
     fields,
     append,
     remove,
+    move,
     sensors,
     handleDragEnd,
     error,

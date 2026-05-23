@@ -14,6 +14,8 @@ import {
   Typography,
 } from "@mui/material";
 
+import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
+
 import { PROVIDER_META } from "../constants";
 import { useConnectProvider } from "../hooks";
 
@@ -24,6 +26,7 @@ interface ConnectDialogProps {
 }
 
 export function ConnectDialog({ open, onClose, providerId }: ConnectDialogProps) {
+  const isMobile = useIsMobileDialog();
   const [token, setToken] = React.useState("");
   const mutation = useConnectProvider();
   const meta = PROVIDER_META[providerId];
@@ -53,7 +56,7 @@ export function ConnectDialog({ open, onClose, providerId }: ConnectDialogProps)
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <form onSubmit={handleSubmit}>
         <DialogTitle>Connect {meta?.name ?? providerId}</DialogTitle>
 
