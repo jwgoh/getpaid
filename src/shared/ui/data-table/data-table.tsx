@@ -2,10 +2,8 @@
 
 import * as React from "react";
 
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   alpha,
-  IconButton,
   Paper,
   Table,
   TableBody,
@@ -14,21 +12,13 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TableSortLabel,
-  Tooltip,
   useTheme,
 } from "@mui/material";
 
 import { PAGINATION, UI } from "@app/shared/config/config";
 
-export interface DataTableColumn {
-  id: string;
-  label: string;
-  sortable?: boolean;
-  hideOnMobile?: boolean;
-  align?: "left" | "right";
-  renderHeader?: () => React.ReactNode;
-}
+import { HeaderCellContent } from "./header-cell-content";
+import type { DataTableColumn } from "./types";
 
 interface DataTablePagination {
   page: number;
@@ -50,53 +40,6 @@ interface DataTableProps {
   maxHeight?: number;
   containerRef?: React.RefObject<HTMLDivElement | null>;
   onKeyDown?: (e: React.KeyboardEvent) => void;
-}
-
-interface DataTableRowProps {
-  children: React.ReactNode;
-  onClick?: () => void;
-  onMouseEnter?: () => void;
-  selected?: boolean;
-  focused?: boolean;
-  height?: number;
-  dataIndex?: number;
-  sx?: Record<string, unknown>;
-}
-
-interface DataTableActionsProps {
-  onMenuOpen: (event: React.MouseEvent<HTMLElement>) => void;
-  ariaLabel?: string;
-}
-
-function HeaderCellContent({
-  col,
-  sortColumn,
-  sortDirection,
-  onSort,
-}: {
-  col: DataTableColumn;
-  sortColumn?: string;
-  sortDirection: "asc" | "desc";
-  onSort?: (column: string) => void;
-}) {
-  if (col.renderHeader) {
-    return <>{col.renderHeader()}</>;
-  }
-
-  if (col.sortable === false || !onSort) {
-    return <span style={{ fontWeight: 600 }}>{col.label}</span>;
-  }
-
-  return (
-    <TableSortLabel
-      active={sortColumn === col.id}
-      direction={sortColumn === col.id ? sortDirection : "asc"}
-      onClick={() => onSort(col.id)}
-      sx={{ fontWeight: 600 }}
-    >
-      {col.label}
-    </TableSortLabel>
-  );
 }
 
 export function DataTable({
@@ -169,70 +112,5 @@ export function DataTable({
         />
       )}
     </Paper>
-  );
-}
-
-export function DataTableRow({
-  children,
-  onClick,
-  onMouseEnter,
-  selected,
-  focused,
-  height,
-  dataIndex,
-  sx,
-}: DataTableRowProps) {
-  const theme = useTheme();
-
-  return (
-    <TableRow
-      hover
-      selected={selected}
-      data-index={dataIndex}
-      data-focused={focused || undefined}
-      sx={{
-        cursor: onClick ? "pointer" : undefined,
-        height,
-        "&:hover": {
-          bgcolor: alpha(theme.palette.primary.main, UI.ALPHA_HOVER),
-        },
-        "&:focus-visible": {
-          outline: "2px solid",
-          outlineColor: "primary.main",
-          outlineOffset: -2,
-        },
-        ...(focused && {
-          outline: "2px solid",
-          outlineColor: "primary.main",
-          outlineOffset: -2,
-          bgcolor: alpha(theme.palette.primary.main, UI.ALPHA_HOVER),
-        }),
-        ...sx,
-      }}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-    >
-      {children}
-    </TableRow>
-  );
-}
-
-export function DataTableActions({ onMenuOpen, ariaLabel = "Actions" }: DataTableActionsProps) {
-  return (
-    <TableCell>
-      <Tooltip title="Actions">
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onMenuOpen(e);
-          }}
-          sx={{ color: "text.secondary" }}
-          aria-label={ariaLabel}
-        >
-          <MoreVertIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    </TableCell>
   );
 }
