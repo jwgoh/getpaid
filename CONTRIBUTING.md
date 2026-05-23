@@ -27,7 +27,9 @@ Thanks for your interest in contributing! Here's how to get started.
 
    ```bash
    # Generate a password (required by docker compose — it hard-fails without one)
-   echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> .env
+   # `-hex 16` (not `-base64 32`) so the value is URL-safe in the DATABASE_URL below;
+   # base64 can include `/`, `+`, `=` which break the Postgres connection string.
+   echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" >> .env
 
    docker compose up -d db
    ```
