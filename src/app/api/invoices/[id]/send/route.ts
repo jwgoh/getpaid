@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { asInvoiceId, asUserId } from "@app/shared/types/ids";
 
 import { errorResponse, withAuth } from "@app/server/api/route-helpers";
+import { dispatchOutbox } from "@app/server/email/outbox";
 import {
   InvoiceAlreadySentError,
   InvoiceNotFoundError,
@@ -12,9 +13,15 @@ import {
 export const POST = withAuth(
   async (user, _request, context) => {
     const { id } = await context.params;
-    const updated = await sendInvoice(asInvoiceId(id), asUserId(user.id));
+    const { invoice, outboxId } = await sendInvoice(asInvoiceId(id), asUserId(user.id));
 
-    return NextResponse.json(updated);
+    after(() =>
+      dispatchOutbox(outboxId).catch((error) => {
+        console.error("Invoice send outbox dispatch error:", error);
+      })
+    );
+
+    return NextResponse.json(invoice);
   },
   [
     {

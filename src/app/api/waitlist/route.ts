@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { waitlistSchema } from "@app/shared/schemas";
 
@@ -27,11 +27,23 @@ export async function POST(request: Request) {
     const result = await addToWaitlist(data.email);
 
     if (result.confirmationOutboxId) {
-      await dispatchOutbox(result.confirmationOutboxId);
+      const confirmationOutboxId = result.confirmationOutboxId;
+
+      after(() =>
+        dispatchOutbox(confirmationOutboxId).catch((error) => {
+          console.error("Waitlist confirmation outbox dispatch error:", error);
+        })
+      );
     }
 
     if (result.notificationOutboxId) {
-      await dispatchOutbox(result.notificationOutboxId);
+      const notificationOutboxId = result.notificationOutboxId;
+
+      after(() =>
+        dispatchOutbox(notificationOutboxId).catch((error) => {
+          console.error("Waitlist notification outbox dispatch error:", error);
+        })
+      );
     }
 
     return NextResponse.json({ message: "You've been added to the waitlist!" }, { status: 201 });

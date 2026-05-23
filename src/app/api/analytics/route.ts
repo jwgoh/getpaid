@@ -5,6 +5,8 @@ import { asUserId } from "@app/shared/types/ids";
 import { getAnalytics } from "@app/server/analytics";
 import { withAuth } from "@app/server/api/route-helpers";
 
+export const maxDuration = 30;
+
 export const GET = withAuth(async (user) => {
   const analytics = await getAnalytics(asUserId(user.id));
 

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { waitlistSchema } from "@app/shared/schemas";
 
@@ -15,8 +15,13 @@ export const POST = withAdmin(async (_user, request) => {
 
   try {
     const result = await approveWaitlistEntry(data.email);
+    const outboxId = result.outboxId;
 
-    await dispatchOutbox(result.outboxId);
+    after(() =>
+      dispatchOutbox(outboxId).catch((dispatchError) => {
+        console.error("Waitlist approval outbox dispatch error:", dispatchError);
+      })
+    );
 
     return NextResponse.json({ message: "User approved and notified" });
   } catch (err) {

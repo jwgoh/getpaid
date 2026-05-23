@@ -18,11 +18,7 @@ import {
   mapInvoiceItem,
   mapInvoiceItemGroups,
 } from "@app/server/email/invoice-email-dto";
-import {
-  buildOutboxIdempotencyKey,
-  createEmailOutbox,
-  dispatchOutbox,
-} from "@app/server/email/outbox";
+import { buildOutboxIdempotencyKey, createEmailOutbox } from "@app/server/email/outbox";
 import {
   type InvoiceWithRelations,
   logInvoiceEvent,
@@ -159,10 +155,15 @@ async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string>
   });
 }
 
+export interface SendInvoiceResult {
+  invoice: InvoiceWithRelations | null;
+  outboxId: string;
+}
+
 export async function sendInvoice(
   invoiceId: InvoiceId,
   userId: UserId
-): Promise<InvoiceWithRelations | null> {
+): Promise<SendInvoiceResult> {
   const invoice = await loadInvoiceForSend(invoiceId, userId);
   const ctx = buildSendContext(invoice);
   const sentAt = new Date();
@@ -177,9 +178,7 @@ export async function sendInvoice(
     payload,
   });
 
-  await dispatchOutbox(outboxId);
-
-  return prisma.invoice.findUnique({
+  const updated = await prisma.invoice.findUnique({
     where: { id: invoice.id },
     include: {
       client: true,
@@ -187,4 +186,6 @@ export async function sendInvoice(
       itemGroups: ITEM_GROUPS_INCLUDE,
     },
   });
+
+  return { invoice: updated, outboxId };
 }
