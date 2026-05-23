@@ -168,17 +168,19 @@ src/
 
 ## Scripts
 
-| Script                   | Description                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| `pnpm dev`               | Start development server                                                             |
-| `pnpm build`             | Production build                                                                     |
-| `pnpm lint`              | Run ESLint                                                                           |
-| `pnpm typecheck`         | TypeScript type checking                                                             |
-| `pnpm format`            | Format code with Prettier                                                            |
-| `pnpm db:migrate`        | Create and apply migrations during development (`prisma migrate dev`)                |
-| `pnpm db:migrate:deploy` | Apply pending migrations to a database (`prisma migrate deploy`) — used in CI / prod |
-| `pnpm db:seed`           | Seed demo data                                                                       |
-| `pnpm db:studio`         | Open Prisma Studio                                                                   |
+| Script                   | Description                                                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`               | Start development server                                                                                                                                                       |
+| `pnpm build`             | Production build                                                                                                                                                               |
+| `pnpm lint`              | Run ESLint                                                                                                                                                                     |
+| `pnpm typecheck`         | TypeScript type checking                                                                                                                                                       |
+| `pnpm format`            | Format code with Prettier                                                                                                                                                      |
+| `pnpm db:migrate`        | Create and apply migrations during development (`prisma migrate dev`)                                                                                                          |
+| `pnpm db:migrate:deploy` | Apply pending migrations to a database (`prisma migrate deploy`) — used in CI / prod                                                                                           |
+| `pnpm db:seed`           | Seed demo data                                                                                                                                                                 |
+| `pnpm db:studio`         | Open Prisma Studio                                                                                                                                                             |
+| `pnpm outbox:run`        | Dispatch PENDING outbox emails (cron worker — see [`docs/runbooks/cron.md`](./docs/runbooks/cron.md))                                                                          |
+| `pnpm prune:expired`     | Delete expired idempotency keys, sent/failed outbox rows, orphan waitlist entries; pass `--dry-run` to preview counts (see [`docs/runbooks/cron.md`](./docs/runbooks/cron.md)) |
 
 ## Production migrations
 
