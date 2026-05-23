@@ -1,5 +1,7 @@
-import { togglProvider } from "./toggl";
+import { TogglApiError, togglProvider } from "./toggl";
 import type { TimeTrackingProvider } from "./types";
+
+export { TogglApiError };
 
 const PROVIDERS = [togglProvider] as const;
 

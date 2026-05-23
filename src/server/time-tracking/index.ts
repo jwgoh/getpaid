@@ -8,7 +8,7 @@ export type {
   TimeEntryItem,
   TimeTrackingProvider,
 } from "./providers";
-export { getAllProviders, getProvider, UnknownProviderError } from "./providers";
+export { getAllProviders, getProvider, TogglApiError, UnknownProviderError } from "./providers";
 export {
   ConnectionNotFoundError,
   connectProvider,

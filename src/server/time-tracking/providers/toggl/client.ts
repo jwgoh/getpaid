@@ -1,6 +1,8 @@
 import { TIME_TRACKING } from "@app/shared/config/config";
 import { EXTERNAL_HTTP_TIMEOUTS_MS } from "@app/shared/lib/http";
 
+import { retryOnTransient } from "./retry";
+
 interface TogglUser {
   id: number;
   email: string;
@@ -90,7 +92,7 @@ const SUB_GROUPING_API_MAP: Record<string, string> = {
   descriptions: "time_entries",
 };
 
-class TogglApiError extends Error {
+export class TogglApiError extends Error {
   constructor(
     public status: number,
     message: string
@@ -100,11 +102,14 @@ class TogglApiError extends Error {
   }
 }
 
+const RETRY_MAX_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 500;
+
 function buildAuthHeader(token: string): string {
   return `Basic ${Buffer.from(`${token}:api_token`).toString("base64")}`;
 }
 
-async function togglFetch<T>(url: string, token: string, options?: RequestInit): Promise<T> {
+async function performTogglFetch<T>(url: string, token: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...options,
     signal: options?.signal ?? AbortSignal.timeout(EXTERNAL_HTTP_TIMEOUTS_MS.TOGGL),
@@ -122,6 +127,14 @@ async function togglFetch<T>(url: string, token: string, options?: RequestInit):
   }
 
   return response.json() as Promise<T>;
+}
+
+async function togglFetch<T>(url: string, token: string, options?: RequestInit): Promise<T> {
+  return retryOnTransient(() => performTogglFetch<T>(url, token, options), {
+    maxAttempts: RETRY_MAX_ATTEMPTS,
+    baseDelayMs: RETRY_BASE_DELAY_MS,
+    signal: options?.signal ?? undefined,
+  });
 }
 
 export async function fetchMe(token: string): Promise<TogglUser> {
