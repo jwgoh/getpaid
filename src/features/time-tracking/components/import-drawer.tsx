@@ -5,6 +5,7 @@ import * as React from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import { Alert, Box, Button, Drawer, IconButton, Stack, Typography } from "@mui/material";
 
+import { extractApiErrorMessage } from "@app/shared/api";
 import { CURRENCY, DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
 
 import type {
@@ -189,7 +190,7 @@ export function ImportDrawer({
 
             {searchMutation.isError && (
               <Alert severity="error">
-                {searchMutation.error?.message ?? "Failed to load time entries"}
+                {extractApiErrorMessage(searchMutation.error, "Failed to load time entries")}
               </Alert>
             )}
 
