@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import { cookies, headers } from "next/headers";
 
-import { COOKIE_KEYS } from "@app/shared/config/config";
 import { SEO } from "@app/shared/config/seo";
-import {
-  buildColorSchemeScript,
-  DEFAULT_THEME_MODE,
-  parseThemeMode,
-} from "@app/shared/lib/theme-mode";
+import { COLOR_SCHEME_INIT_SCRIPT } from "@app/shared/lib/color-scheme-init-script";
 
 import { Providers } from "@app/providers";
 
@@ -17,8 +11,6 @@ const outfit = Outfit({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
 });
-
-const COLOR_SCHEME_INIT = buildColorSchemeScript(COOKIE_KEYS.THEME_MODE);
 
 export const metadata: Metadata = {
   metadataBase: new URL(SEO.SITE_URL),
@@ -50,23 +42,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
-  const initialMode =
-    parseThemeMode(cookieStore.get(COOKIE_KEYS.THEME_MODE)?.value) ?? DEFAULT_THEME_MODE;
-  const nonce = headerStore.get("x-nonce") ?? undefined;
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT_SCRIPT }} />
       </head>
       <body className={outfit.variable}>
-        <Providers initialMode={initialMode}>{children}</Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

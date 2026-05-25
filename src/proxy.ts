@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { COLOR_SCHEME_INIT_SCRIPT_SHA256 } from "@app/shared/lib/color-scheme-init-script";
+
 const PUBLIC_INVOICE_PATH_PREFIX = "/i/";
 
 const PUBLIC_INVOICE_RESPONSE_HEADERS: Record<string, string> = {
@@ -10,8 +12,8 @@ const PUBLIC_INVOICE_RESPONSE_HEADERS: Record<string, string> = {
 
 function buildContentSecurityPolicy(nonce: string, isProd: boolean): string {
   const scriptSrc = isProd
-    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
-    : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`;
+    ? `script-src 'self' 'nonce-${nonce}' '${COLOR_SCHEME_INIT_SCRIPT_SHA256}' 'strict-dynamic'`
+    : `script-src 'self' 'nonce-${nonce}' '${COLOR_SCHEME_INIT_SCRIPT_SHA256}' 'strict-dynamic' 'unsafe-eval'`;
 
   return [
     "default-src 'self'",

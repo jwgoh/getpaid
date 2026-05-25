@@ -1,96 +1,28 @@
+import type { Theme } from "@mui/material/styles";
 import { alpha } from "@mui/material/styles";
 
 import { ANIMATION, UI } from "@app/shared/config/config";
 
-export const brand = {
-  primary: "#0f766e",
-  primaryLight: "#2dd4bf",
-  primaryDark: "#0a5e58",
-  secondary: "#6366f1",
-  secondaryLight: "#a5b4fc",
-  secondaryDark: "#4338ca",
-  accent: "#f97316",
-  error: "#ef4444",
-  warning: "#f59e0b",
-  info: "#3b82f6",
-  success: "#10b981",
-};
-
-export const typography = {
-  fontFamily: '"Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  h1: {
-    fontWeight: 800,
-    fontSize: "2.25rem",
-    lineHeight: 1.15,
-    letterSpacing: "-0.025em",
-    "@media (min-width:900px)": {
-      fontSize: "3.5rem",
-    },
-  },
-  h2: {
-    fontWeight: 700,
-    fontSize: "2rem",
-    lineHeight: 1.3,
-    letterSpacing: "-0.02em",
-  },
-  h3: {
-    fontWeight: 700,
-    fontSize: "1.5rem",
-    lineHeight: 1.4,
-    letterSpacing: "-0.015em",
-  },
-  h4: {
-    fontWeight: 700,
-    fontSize: "1.25rem",
-    lineHeight: 1.4,
-    letterSpacing: "-0.01em",
-  },
-  h5: {
-    fontWeight: 600,
-    fontSize: "1.125rem",
-    lineHeight: 1.5,
-  },
-  h6: {
-    fontWeight: 600,
-    fontSize: "1rem",
-    lineHeight: 1.5,
-  },
-  subtitle1: {
-    fontSize: "1rem",
-    fontWeight: 500,
-    lineHeight: 1.5,
-  },
-  subtitle2: {
-    fontSize: "0.875rem",
-    fontWeight: 500,
-    lineHeight: 1.5,
-  },
-  body1: {
-    fontSize: "0.9375rem",
-    lineHeight: 1.6,
-  },
-  body2: {
-    fontSize: "0.8125rem",
-    lineHeight: 1.6,
-  },
-  button: {
-    fontWeight: 600,
-    textTransform: "none" as const,
-    letterSpacing: "0.01em",
-  },
-  caption: {
-    fontSize: "0.75rem",
-    lineHeight: 1.5,
-  },
-  overline: {
-    fontSize: "0.75rem",
-    fontWeight: 600,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase" as const,
-  },
-};
-
-const transitionAll = `all ${ANIMATION.FAST}ms ease`;
+import { brand } from "./palettes";
+import {
+  DARK_APPBAR_BG,
+  DARK_APPBAR_COLOR,
+  DARK_APPBAR_SHADOW,
+  DARK_BORDER,
+  DARK_ELEVATION_1,
+  DARK_ELEVATION_2,
+  DARK_MENU_SHADOW,
+  DARK_TABLE_HEAD_COLOR,
+  LIGHT_APPBAR_BG,
+  LIGHT_APPBAR_COLOR,
+  LIGHT_APPBAR_SHADOW,
+  LIGHT_BORDER,
+  LIGHT_ELEVATION_1,
+  LIGHT_ELEVATION_2,
+  LIGHT_MENU_SHADOW,
+  LIGHT_TABLE_HEAD_COLOR,
+  TRANSITION_ALL,
+} from "./style-tokens";
 
 export const sharedComponents = {
   MuiCssBaseline: {
@@ -109,7 +41,7 @@ export const sharedComponents = {
   MuiButtonBase: {
     styleOverrides: {
       root: {
-        transition: transitionAll,
+        transition: TRANSITION_ALL,
         "&:active": {
           transform: `scale(${ANIMATION.BUTTON_PRESS_SCALE})`,
         },
@@ -123,7 +55,7 @@ export const sharedComponents = {
         padding: "10px 20px",
         fontSize: "0.9375rem",
         boxShadow: "none",
-        transition: transitionAll,
+        transition: TRANSITION_ALL,
         "&:hover": {
           boxShadow: "none",
         },
@@ -159,7 +91,7 @@ export const sharedComponents = {
   MuiIconButton: {
     styleOverrides: {
       root: {
-        transition: transitionAll,
+        transition: TRANSITION_ALL,
         "@media (pointer: coarse)": {
           minWidth: 44,
           minHeight: 44,
@@ -169,23 +101,39 @@ export const sharedComponents = {
   },
   MuiPaper: {
     styleOverrides: {
-      root: {
+      root: ({ theme }: { theme: Theme }) => ({
         borderRadius: UI.BORDER_RADIUS_LG,
-      },
-      elevation1: {
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
-      },
-      elevation2: {
-        boxShadow: "0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06)",
-      },
+        ...theme.applyStyles("dark", {
+          backgroundImage: "none",
+        }),
+      }),
+      elevation1: ({ theme }: { theme: Theme }) => ({
+        boxShadow: LIGHT_ELEVATION_1,
+        border: LIGHT_BORDER,
+        ...theme.applyStyles("dark", {
+          boxShadow: DARK_ELEVATION_1,
+          border: DARK_BORDER,
+        }),
+      }),
+      elevation2: ({ theme }: { theme: Theme }) => ({
+        boxShadow: LIGHT_ELEVATION_2,
+        ...theme.applyStyles("dark", {
+          boxShadow: DARK_ELEVATION_2,
+        }),
+      }),
     },
   },
   MuiCard: {
     styleOverrides: {
-      root: {
+      root: ({ theme }: { theme: Theme }) => ({
         borderRadius: UI.BORDER_RADIUS_LG,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
-      },
+        border: LIGHT_BORDER,
+        boxShadow: LIGHT_ELEVATION_1,
+        ...theme.applyStyles("dark", {
+          border: DARK_BORDER,
+          boxShadow: DARK_ELEVATION_1,
+        }),
+      }),
     },
   },
   MuiTextField: {
@@ -193,7 +141,7 @@ export const sharedComponents = {
       root: {
         "& .MuiOutlinedInput-root": {
           borderRadius: UI.BORDER_RADIUS_SM,
-          transition: transitionAll,
+          transition: TRANSITION_ALL,
           "&.Mui-focused": {
             boxShadow: `0 0 0 ${UI.FOCUS_RING_WIDTH}px ${alpha(brand.primary, UI.ALPHA_FOCUS_RING)}`,
           },
@@ -205,7 +153,7 @@ export const sharedComponents = {
     styleOverrides: {
       root: {
         borderRadius: UI.BORDER_RADIUS_SM,
-        transition: transitionAll,
+        transition: TRANSITION_ALL,
         "&.Mui-focused": {
           boxShadow: `0 0 0 ${UI.FOCUS_RING_WIDTH}px ${alpha(brand.primary, UI.ALPHA_FOCUS_RING)}`,
         },
@@ -217,17 +165,20 @@ export const sharedComponents = {
       root: {
         borderRadius: UI.BORDER_RADIUS_SM,
         fontWeight: 500,
-        transition: transitionAll,
+        transition: TRANSITION_ALL,
       },
     },
   },
   MuiTableCell: {
     styleOverrides: {
-      head: {
+      head: ({ theme }: { theme: Theme }) => ({
         fontWeight: 600,
         fontSize: "0.8125rem",
-        color: "inherit",
-      },
+        color: LIGHT_TABLE_HEAD_COLOR,
+        ...theme.applyStyles("dark", {
+          color: DARK_TABLE_HEAD_COLOR,
+        }),
+      }),
     },
   },
   MuiDialog: {
@@ -246,17 +197,27 @@ export const sharedComponents = {
   },
   MuiAppBar: {
     styleOverrides: {
-      root: {
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-      },
+      root: ({ theme }: { theme: Theme }) => ({
+        backgroundColor: LIGHT_APPBAR_BG,
+        color: LIGHT_APPBAR_COLOR,
+        boxShadow: LIGHT_APPBAR_SHADOW,
+        ...theme.applyStyles("dark", {
+          backgroundColor: DARK_APPBAR_BG,
+          color: DARK_APPBAR_COLOR,
+          boxShadow: DARK_APPBAR_SHADOW,
+        }),
+      }),
     },
   },
   MuiMenu: {
     styleOverrides: {
-      paper: {
+      paper: ({ theme }: { theme: Theme }) => ({
         borderRadius: UI.BORDER_RADIUS_MD,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05)",
-      },
+        boxShadow: LIGHT_MENU_SHADOW,
+        ...theme.applyStyles("dark", {
+          boxShadow: DARK_MENU_SHADOW,
+        }),
+      }),
     },
   },
   MuiTooltip: {
@@ -269,7 +230,7 @@ export const sharedComponents = {
   MuiLink: {
     styleOverrides: {
       root: {
-        transition: transitionAll,
+        transition: TRANSITION_ALL,
       },
     },
   },
@@ -286,7 +247,7 @@ export const sharedComponents = {
   MuiListItemButton: {
     styleOverrides: {
       root: {
-        transition: transitionAll,
+        transition: TRANSITION_ALL,
       },
     },
   },
