@@ -46,6 +46,11 @@ export default defineConfig({
           pool: "forks",
           fileParallelism: false,
           testTimeout: INTEGRATION_TEST_TIMEOUT_MS,
+          server: {
+            deps: {
+              inline: ["next-auth", "@auth/core"],
+            },
+          },
         },
       },
     ],
