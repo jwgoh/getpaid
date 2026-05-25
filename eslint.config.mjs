@@ -196,6 +196,7 @@ const eslintConfig = defineConfig([
         { type: "shared", pattern: "src/shared/**" },
         { type: "providers", pattern: "src/providers/**" },
         { type: "types", pattern: "src/types/**" },
+        { type: "test", pattern: "src/test/**" },
       ],
     },
     rules: {
