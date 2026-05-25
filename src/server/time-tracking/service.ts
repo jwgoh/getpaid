@@ -2,7 +2,7 @@ import type { UserId } from "@app/shared/types/ids";
 
 import { prisma } from "@app/server/db";
 
-import { decrypt, encrypt } from "./encryption";
+import { decrypt, encrypt, TokenDecryptError } from "./encryption";
 import { getProvider, type ProviderCallContext, type TimeEntriesQuery } from "./providers";
 
 export class ConnectionNotFoundError extends Error {
@@ -16,6 +16,13 @@ export class InvalidProviderTokenError extends Error {
   constructor(public readonly providerId: string) {
     super(`Invalid API token for ${providerId}`);
     this.name = "InvalidProviderTokenError";
+  }
+}
+
+export class ConnectionDecryptError extends Error {
+  constructor(public readonly providerId: string) {
+    super(`Stored ${providerId} credentials could not be decrypted and were removed`);
+    this.name = "ConnectionDecryptError";
   }
 }
 
@@ -102,12 +109,58 @@ async function getDecryptedToken(userId: UserId, providerId: string): Promise<st
     throw new ConnectionNotFoundError(providerId);
   }
 
+  let token: string;
+
+  try {
+    token = decrypt(connection.encryptedToken);
+  } catch (error) {
+    if (error instanceof TokenDecryptError) {
+      await wipeUndecryptableConnection(connection.id, userId, providerId, error);
+      throw new ConnectionDecryptError(providerId);
+    }
+
+    throw error;
+  }
+
   await prisma.timeTrackingConnection.update({
     where: { id: connection.id },
     data: { lastUsedAt: new Date() },
   });
 
-  return decrypt(connection.encryptedToken);
+  return token;
+}
+
+async function wipeUndecryptableConnection(
+  connectionId: string,
+  userId: UserId,
+  providerId: string,
+  cause: TokenDecryptError
+): Promise<void> {
+  const innerCause = cause.cause instanceof Error ? cause.cause.message : String(cause.cause ?? "");
+
+  console.error(
+    JSON.stringify({
+      event: "time_tracking.token.decrypt_failed",
+      userId,
+      provider: providerId,
+      connectionId,
+      cause: innerCause,
+    })
+  );
+
+  try {
+    await prisma.timeTrackingConnection.delete({ where: { id: connectionId } });
+  } catch (deleteError) {
+    console.error(
+      JSON.stringify({
+        event: "time_tracking.token.wipe_failed",
+        userId,
+        provider: providerId,
+        connectionId,
+        cause: deleteError instanceof Error ? deleteError.message : String(deleteError),
+      })
+    );
+  }
 }
 
 export async function getWorkspaces(userId: UserId, providerId: string, ctx?: ProviderCallContext) {
