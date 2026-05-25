@@ -15,7 +15,6 @@ import { ToastProvider } from "./toast";
 
 export { QueryProvider } from "./query";
 export { SessionProvider } from "./session-provider";
-export { COLOR_SCHEME_INIT_SCRIPT } from "./theme/color-scheme-init-script";
 export { type ThemeMode, ThemeRegistry, useThemeMode } from "./theme/registry";
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -1,6 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 
 import { UI } from "@app/shared/config/config";
+import { COLOR_SCHEME_ATTRIBUTE } from "@app/shared/lib/color-scheme-init-script";
 
 import { sharedComponents } from "./components";
 import { lightOnlyComponents } from "./components-light-only";
@@ -9,7 +10,7 @@ import { typography } from "./typography";
 
 export const theme = createTheme({
   cssVariables: {
-    colorSchemeSelector: "data-mui-color-scheme",
+    colorSchemeSelector: COLOR_SCHEME_ATTRIBUTE,
   },
   colorSchemes: {
     light: {

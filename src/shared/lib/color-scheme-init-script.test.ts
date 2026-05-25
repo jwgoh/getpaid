@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { COOKIE_KEYS } from "@app/shared/config/config";
 
 import {
+  COLOR_SCHEME_ATTRIBUTE,
   COLOR_SCHEME_INIT_SCRIPT,
   COLOR_SCHEME_INIT_SCRIPT_SHA256,
 } from "./color-scheme-init-script";
@@ -34,7 +35,7 @@ function withMockedDom(cookie: string, prefersDark: boolean): MockedDom {
   });
 
   return {
-    attr: () => attrs["data-mui-color-scheme"] ?? null,
+    attr: () => attrs[COLOR_SCHEME_ATTRIBUTE] ?? null,
     colorScheme: () => style.colorScheme,
   };
 }
@@ -53,8 +54,8 @@ describe("COLOR_SCHEME_INIT_SCRIPT", () => {
     expect(COLOR_SCHEME_INIT_SCRIPT).toContain(COOKIE_KEYS.THEME_MODE);
   });
 
-  it("sets the data-mui-color-scheme attribute and documentElement.style.colorScheme", () => {
-    expect(COLOR_SCHEME_INIT_SCRIPT).toContain("data-mui-color-scheme");
+  it("sets the COLOR_SCHEME_ATTRIBUTE and documentElement.style.colorScheme", () => {
+    expect(COLOR_SCHEME_INIT_SCRIPT).toContain(COLOR_SCHEME_ATTRIBUTE);
     expect(COLOR_SCHEME_INIT_SCRIPT).toContain("documentElement.style.colorScheme");
   });
 

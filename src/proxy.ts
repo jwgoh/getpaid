@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { COLOR_SCHEME_INIT_SCRIPT_SHA256 } from "@app/providers/theme/color-scheme-init-script";
+import { COLOR_SCHEME_INIT_SCRIPT_SHA256 } from "@app/shared/lib/color-scheme-init-script";
 
 const PUBLIC_INVOICE_PATH_PREFIX = "/i/";
 

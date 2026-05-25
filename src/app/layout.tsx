@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 
 import { SEO } from "@app/shared/config/seo";
+import { COLOR_SCHEME_INIT_SCRIPT } from "@app/shared/lib/color-scheme-init-script";
 
-import { COLOR_SCHEME_INIT_SCRIPT, Providers } from "@app/providers";
+import { Providers } from "@app/providers";
 
 const outfit = Outfit({
   variable: "--font-outfit",
