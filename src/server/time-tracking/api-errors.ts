@@ -1,3 +1,5 @@
+import { API_ERROR_CODES } from "@app/shared/api/error-codes";
+
 import { errorResponse } from "@app/server/api/route-helpers";
 import { gatewayTimeoutResponse, isRequestBudgetExceeded } from "@app/server/api/timeout";
 import {
@@ -73,11 +75,7 @@ export const timeTrackingErrorHandlers: ErrorHandler[] = [
   {
     check: (error) => error instanceof ConnectionDecryptError,
     respond: (error) =>
-      errorResponse(
-        "CONNECTION_DECRYPT_FAILED",
-        `${error.message}. Please reconnect the provider.`,
-        STATUS_GONE
-      ),
+      errorResponse(API_ERROR_CODES.CONNECTION_DECRYPT_FAILED, error.message, STATUS_GONE),
   },
   {
     check: (error) => error instanceof TogglApiError,

@@ -21,7 +21,7 @@ export class InvalidProviderTokenError extends Error {
 
 export class ConnectionDecryptError extends Error {
   constructor(public readonly providerId: string) {
-    super(`Stored ${providerId} credentials could not be decrypted and were removed`);
+    super(`Stored ${providerId} credentials could not be decrypted, please reconnect`);
     this.name = "ConnectionDecryptError";
   }
 }
@@ -149,7 +149,7 @@ async function wipeUndecryptableConnection(
   );
 
   try {
-    await prisma.timeTrackingConnection.delete({ where: { id: connectionId } });
+    await prisma.timeTrackingConnection.deleteMany({ where: { id: connectionId } });
   } catch (deleteError) {
     console.error(
       JSON.stringify({

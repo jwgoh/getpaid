@@ -6,7 +6,7 @@ const VALID_KEY = randomBytes(32).toString("base64");
 const timeTrackingConnection = {
   findUnique: vi.fn(),
   update: vi.fn(),
-  delete: vi.fn(),
+  deleteMany: vi.fn(),
 };
 
 vi.mock("@app/server/db", () => ({
@@ -51,7 +51,7 @@ const CORRUPT_CIPHERTEXT = Buffer.from("garbage-bytes-not-valid-aes-gcm-payload"
 beforeEach(() => {
   timeTrackingConnection.findUnique.mockReset();
   timeTrackingConnection.update.mockReset();
-  timeTrackingConnection.delete.mockReset();
+  timeTrackingConnection.deleteMany.mockReset();
   mockProvider.getWorkspaces.mockReset();
 });
 
@@ -81,7 +81,7 @@ describe("getWorkspaces — decrypt flow", () => {
       where: { id: CONNECTION_ID },
       data: { lastUsedAt: expect.any(Date) },
     });
-    expect(timeTrackingConnection.delete).not.toHaveBeenCalled();
+    expect(timeTrackingConnection.deleteMany).not.toHaveBeenCalled();
     expect(mockProvider.getWorkspaces).toHaveBeenCalledWith("toggl-token", undefined);
   });
 
@@ -94,15 +94,18 @@ describe("getWorkspaces — decrypt flow", () => {
       provider: PROVIDER_ID,
       encryptedToken: CORRUPT_CIPHERTEXT,
     });
-    timeTrackingConnection.delete.mockResolvedValue({});
+    timeTrackingConnection.deleteMany.mockResolvedValue({ count: 1 });
 
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await expect(getWorkspaces(USER_ID, PROVIDER_ID)).rejects.toBeInstanceOf(
-      ConnectionDecryptError
-    );
+    const promise = getWorkspaces(USER_ID, PROVIDER_ID);
 
-    expect(timeTrackingConnection.delete).toHaveBeenCalledWith({ where: { id: CONNECTION_ID } });
+    await expect(promise).rejects.toBeInstanceOf(ConnectionDecryptError);
+    await expect(promise).rejects.toThrow(/please reconnect/);
+
+    expect(timeTrackingConnection.deleteMany).toHaveBeenCalledWith({
+      where: { id: CONNECTION_ID },
+    });
     expect(timeTrackingConnection.update).not.toHaveBeenCalled();
     expect(mockProvider.getWorkspaces).not.toHaveBeenCalled();
 
@@ -117,7 +120,7 @@ describe("getWorkspaces — decrypt flow", () => {
     errorSpy.mockRestore();
   });
 
-  it("still throws ConnectionDecryptError even if the DELETE cleanup itself fails", async () => {
+  it("does not log wipe_failed when the row was already removed by a concurrent request", async () => {
     const { getWorkspaces, ConnectionDecryptError } = await loadService();
 
     timeTrackingConnection.findUnique.mockResolvedValue({
@@ -126,7 +129,7 @@ describe("getWorkspaces — decrypt flow", () => {
       provider: PROVIDER_ID,
       encryptedToken: CORRUPT_CIPHERTEXT,
     });
-    timeTrackingConnection.delete.mockRejectedValue(new Error("db is down"));
+    timeTrackingConnection.deleteMany.mockResolvedValue({ count: 0 });
 
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -134,7 +137,33 @@ describe("getWorkspaces — decrypt flow", () => {
       ConnectionDecryptError
     );
 
-    expect(timeTrackingConnection.delete).toHaveBeenCalled();
+    const wipeFailLine = errorSpy.mock.calls.find((call) =>
+      String(call[0]).includes("time_tracking.token.wipe_failed")
+    );
+
+    expect(wipeFailLine).toBeUndefined();
+
+    errorSpy.mockRestore();
+  });
+
+  it("still throws ConnectionDecryptError even if the wipe DELETE itself fails", async () => {
+    const { getWorkspaces, ConnectionDecryptError } = await loadService();
+
+    timeTrackingConnection.findUnique.mockResolvedValue({
+      id: CONNECTION_ID,
+      userId: USER_ID,
+      provider: PROVIDER_ID,
+      encryptedToken: CORRUPT_CIPHERTEXT,
+    });
+    timeTrackingConnection.deleteMany.mockRejectedValue(new Error("db is down"));
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(getWorkspaces(USER_ID, PROVIDER_ID)).rejects.toBeInstanceOf(
+      ConnectionDecryptError
+    );
+
+    expect(timeTrackingConnection.deleteMany).toHaveBeenCalled();
 
     const wipeFailLine = errorSpy.mock.calls.find((call) =>
       String(call[0]).includes("time_tracking.token.wipe_failed")
@@ -154,7 +183,7 @@ describe("getWorkspaces — decrypt flow", () => {
       ConnectionNotFoundError
     );
     expect(timeTrackingConnection.update).not.toHaveBeenCalled();
-    expect(timeTrackingConnection.delete).not.toHaveBeenCalled();
+    expect(timeTrackingConnection.deleteMany).not.toHaveBeenCalled();
     expect(mockProvider.getWorkspaces).not.toHaveBeenCalled();
   });
 });
