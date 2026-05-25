@@ -46,6 +46,14 @@ describe("cookieStorageManager", () => {
       expect(manager.get(DEFAULT_VALUE)).toBe(DEFAULT_VALUE);
     });
 
+    it("returns 'system' when the cookie value is 'system'", () => {
+      withMockedDocument("getpaid-theme=system", false);
+
+      const manager = cookieStorageManager({ key: COOKIE_KEY });
+
+      expect(manager.get(DEFAULT_VALUE)).toBe("system");
+    });
+
     it("returns the default value when the cookie value is invalid", () => {
       withMockedDocument("getpaid-theme=blue", false);
 
@@ -94,6 +102,16 @@ describe("cookieStorageManager", () => {
       manager.set("nonsense");
 
       expect(cookies.read()).toBe("");
+    });
+
+    it("persists 'system' so MUI's setMode('system') is honored", () => {
+      const cookies = withMockedDocument("", false);
+
+      const manager = cookieStorageManager({ key: COOKIE_KEY });
+
+      manager.set("system");
+
+      expect(cookies.read()).toContain("getpaid-theme=system");
     });
 
     it("is a no-op when document is not defined", () => {
