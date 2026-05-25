@@ -38,17 +38,29 @@ export function encrypt(plaintext: string): string {
   return Buffer.concat([iv, authTag, encrypted]).toString("base64");
 }
 
+export class TokenDecryptError extends Error {
+  constructor(cause?: unknown) {
+    super("Failed to decrypt token", cause === undefined ? undefined : { cause });
+    this.name = "TokenDecryptError";
+  }
+}
+
 export function decrypt(ciphertext: string): string {
   const key = getKey();
-  const data = Buffer.from(ciphertext, "base64");
 
-  const iv = data.subarray(0, IV_LENGTH);
-  const authTag = data.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
-  const encrypted = data.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
+  try {
+    const data = Buffer.from(ciphertext, "base64");
 
-  const decipher = createDecipheriv(ALGORITHM, key, iv);
+    const iv = data.subarray(0, IV_LENGTH);
+    const authTag = data.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
+    const encrypted = data.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
 
-  decipher.setAuthTag(authTag);
+    const decipher = createDecipheriv(ALGORITHM, key, iv);
 
-  return decipher.update(encrypted) + decipher.final("utf8");
+    decipher.setAuthTag(authTag);
+
+    return decipher.update(encrypted) + decipher.final("utf8");
+  } catch (error) {
+    throw new TokenDecryptError(error);
+  }
 }

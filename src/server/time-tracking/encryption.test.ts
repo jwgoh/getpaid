@@ -74,4 +74,50 @@ describe("encryption", () => {
       expect(() => encrypt("token")).toThrow(/ENCRYPTION_KEY environment variable is required/);
     });
   });
+
+  describe("decrypt failure semantics", () => {
+    it("throws TokenDecryptError when ciphertext was encrypted under a different key", async () => {
+      const { encrypt } = await loadEncryption(VALID_KEY);
+      const ciphertext = encrypt("toggl-token");
+
+      const otherKey = randomBytes(32).toString("base64");
+      const { decrypt, TokenDecryptError } = await loadEncryption(otherKey);
+
+      expect(() => decrypt(ciphertext)).toThrow(TokenDecryptError);
+    });
+
+    it("throws TokenDecryptError when ciphertext is truncated or corrupted", async () => {
+      const { encrypt, decrypt, TokenDecryptError } = await loadEncryption(VALID_KEY);
+      const ciphertext = encrypt("toggl-token");
+      const truncated = Buffer.from(ciphertext, "base64").subarray(0, 8).toString("base64");
+
+      expect(() => decrypt(truncated)).toThrow(TokenDecryptError);
+    });
+
+    it("preserves the underlying decipher error as `cause` for observability", async () => {
+      const { encrypt } = await loadEncryption(VALID_KEY);
+      const ciphertext = encrypt("toggl-token");
+
+      const otherKey = randomBytes(32).toString("base64");
+      const { decrypt, TokenDecryptError } = await loadEncryption(otherKey);
+
+      try {
+        decrypt(ciphertext);
+        expect.fail("decrypt should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(TokenDecryptError);
+        expect((error as Error).cause).toBeInstanceOf(Error);
+      }
+    });
+
+    it("propagates ENCRYPTION_KEY misconfig errors without wrapping them", async () => {
+      const { encrypt } = await loadEncryption(VALID_KEY);
+      const ciphertext = encrypt("toggl-token");
+
+      const { decrypt, TokenDecryptError } = await loadEncryption(undefined);
+
+      expect(() => decrypt(ciphertext)).toThrow(/ENCRYPTION_KEY environment variable is required/);
+      expect(() => decrypt(ciphertext)).not.toThrow(TokenDecryptError);
+    });
+  });
 });

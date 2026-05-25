@@ -1,6 +1,9 @@
+import { API_ERROR_CODES } from "@app/shared/api/error-codes";
+
 import { errorResponse } from "@app/server/api/route-helpers";
 import { gatewayTimeoutResponse, isRequestBudgetExceeded } from "@app/server/api/timeout";
 import {
+  ConnectionDecryptError,
   ConnectionNotFoundError,
   TogglApiError,
   UnknownProviderError,
@@ -10,6 +13,7 @@ const STATUS_RATE_LIMITED = 429;
 const STATUS_SERVER_ERROR_MIN = 500;
 const STATUS_BAD_GATEWAY = 502;
 const STATUS_NOT_FOUND = 404;
+const STATUS_GONE = 410;
 const STATUS_BAD_REQUEST = 400;
 const STATUS_UNAUTHORIZED = 401;
 const STATUS_FORBIDDEN = 403;
@@ -67,6 +71,11 @@ export const timeTrackingErrorHandlers: ErrorHandler[] = [
   {
     check: (error) => error instanceof ConnectionNotFoundError,
     respond: (error) => errorResponse("NOT_FOUND", error.message, STATUS_NOT_FOUND),
+  },
+  {
+    check: (error) => error instanceof ConnectionDecryptError,
+    respond: (error) =>
+      errorResponse(API_ERROR_CODES.CONNECTION_DECRYPT_FAILED, error.message, STATUS_GONE),
   },
   {
     check: (error) => error instanceof TogglApiError,

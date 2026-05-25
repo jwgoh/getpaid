@@ -11,6 +11,7 @@ export type {
 } from "./providers";
 export { getAllProviders, getProvider, TogglApiError, UnknownProviderError } from "./providers";
 export {
+  ConnectionDecryptError,
   ConnectionNotFoundError,
   connectProvider,
   disconnectProvider,
