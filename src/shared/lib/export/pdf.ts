@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import { DISCOUNT_TYPE, type DiscountTypeValue } from "@app/shared/config/invoice-status";
 import { formatCurrency, formatDate } from "@app/shared/lib/format";
 import type { InvoiceItemGroupResponse, InvoiceItemResponse } from "@app/shared/schemas/api";
+import { sumCents } from "@app/shared/types/money";
 
 import { LAYOUT, PDF_COLORS, STATUS_COLORS } from "./pdf-constants";
 
@@ -193,7 +194,7 @@ function renderItemsTable(doc: jsPDF, invoice: InvoicePdfData, yOffset = 0): num
   const tableData: string[][] = [];
 
   invoice.itemGroups?.forEach((group) => {
-    const groupTotal = group.items.reduce((sum, item) => sum + item.amount, 0);
+    const groupTotal = sumCents(group.items.map((item) => item.amount));
 
     tableData.push([group.title, "", "", formatCurrency(groupTotal, invoice.currency)]);
     group.items.forEach((item) => {
