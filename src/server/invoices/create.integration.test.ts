@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { TIME } from "@app/shared/config/config";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { type CreateInvoiceInput } from "@app/shared/schemas";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
@@ -29,7 +30,7 @@ async function seedUserAndClient(): Promise<UserClientPair> {
 }
 
 function futureDueDate(): Date {
-  return new Date(Date.now() + DAYS_IN_FUTURE * 24 * 60 * 60 * 1000);
+  return new Date(Date.now() + DAYS_IN_FUTURE * TIME.DAY);
 }
 
 function buildBaseInput(clientId: string): CreateInvoiceInput {

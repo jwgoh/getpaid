@@ -225,12 +225,11 @@ describe("sendInvoice transactional guarantees", () => {
     const rejected = settled.filter((r) => r.status === "rejected");
 
     expect(fulfilled.length + rejected.length).toBe(2);
-    expect(fulfilled.length).toBeGreaterThanOrEqual(1);
+    expect(fulfilled.length).toBe(1);
+    expect(rejected.length).toBe(1);
 
     for (const r of rejected) {
-      if (r.status === "rejected") {
-        expect(r.reason).toBeInstanceOf(InvoiceAlreadySentError);
-      }
+      expect(r.reason).toBeInstanceOf(InvoiceAlreadySentError);
     }
 
     const outboxRows = await prisma.emailOutbox.findMany({

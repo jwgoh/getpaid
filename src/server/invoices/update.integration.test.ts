@@ -179,8 +179,8 @@ describe("updateInvoice — money overflow service guard (schema-vs-code drift)"
   });
 });
 
-describe("updateInvoice — concurrent updates", () => {
-  it("preserves both field updates when two concurrent updateInvoice calls touch different metadata fields", async () => {
+describe("updateInvoice — non-overlapping serialized writes", () => {
+  it("converges to both updates when two updateInvoice calls touch disjoint metadata fields under serial pool", async () => {
     const seed = await seedDraftInvoiceWithItem();
 
     const results = await Promise.all([

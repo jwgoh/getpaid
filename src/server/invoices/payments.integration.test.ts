@@ -193,10 +193,12 @@ describe("recordPayment — Invoice_paidAmount_lte_total_check boundary", () => 
 
     expect(results).toHaveLength(2);
 
-    for (const r of results) {
-      if (r.status === "rejected") {
-        expect(r.reason).toBeInstanceOf(PaymentExceedsBalanceError);
-      }
+    const rejected = results.filter((r) => r.status === "rejected");
+
+    expect(rejected.length).toBeGreaterThan(0);
+
+    for (const r of rejected) {
+      expect(r.reason).toBeInstanceOf(PaymentExceedsBalanceError);
     }
 
     const after = await prisma.invoice.findUniqueOrThrow({ where: { id: scenario.invoice.id } });

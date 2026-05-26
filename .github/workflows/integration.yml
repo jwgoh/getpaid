@@ -65,5 +65,4 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/getpaid_test
           DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/getpaid_test
-          NEXTAUTH_SECRET: ci-secret-please-rotate
         run: pnpm test:integration

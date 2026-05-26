@@ -1,12 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TIME } from "@app/shared/config/config";
-import {
-  EMAIL_OUTBOX,
-  EMAIL_OUTBOX_KIND,
-  EMAIL_OUTBOX_RELATED_TYPE,
-  EMAIL_OUTBOX_STATUS,
-} from "@app/shared/config/email-outbox";
+import { EMAIL_OUTBOX, EMAIL_OUTBOX_STATUS } from "@app/shared/config/email-outbox";
 
 const sendEmailMock = vi.fn();
 
@@ -178,15 +173,11 @@ describe("dispatchOutbox permanent failure", () => {
 describe("dispatchOutbox malformed payload", () => {
   it("flips a row with a malformed payload to FAILED without calling sendEmail", async () => {
     const ctx = await seedUserAndInvoice();
-    const row = await prisma.emailOutbox.create({
-      data: {
-        userId: ctx.userId,
-        kind: EMAIL_OUTBOX_KIND.INVOICE,
-        relatedType: EMAIL_OUTBOX_RELATED_TYPE.INVOICE,
-        relatedId: ctx.invoiceId,
-        idempotencyKey: "malformed-payload-key-aaaaaaaa",
-        payload: { not: "a-real-resend-payload" },
-      },
+    const row = await factories.createEmailOutbox(prisma, {
+      userId: ctx.userId,
+      relatedId: ctx.invoiceId,
+      idempotencyKey: "malformed-payload-key-aaaaaaaa",
+      payload: { not: "a-real-resend-payload" },
     });
 
     const updated = await dispatchOutbox(row.id);
@@ -232,6 +223,8 @@ describe("processOutbox PENDING-only filter", () => {
     const result = await processOutbox();
 
     expect(result.attempted).toBe(2);
+    expect(result.sent).toBe(2);
+    expect(result.failed).toBe(0);
     expect(sendEmailMock).toHaveBeenCalledTimes(2);
 
     const fresh = await prisma.emailOutbox.findUniqueOrThrow({ where: { id: pendingFresh.id } });
@@ -293,6 +286,9 @@ describe("processOutbox per-row failure isolation — MT-008 deterministic", () 
     const result = await processOutbox();
 
     expect(result.attempted).toBe(totalRows);
+    expect(result.sent).toBe(okRows.length);
+    expect(result.failed).toBe(0);
+    expect(result.pending).toBe(1);
     expect(sendEmailMock).toHaveBeenCalledTimes(totalRows);
 
     const failingState = await prisma.emailOutbox.findUniqueOrThrow({
