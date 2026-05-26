@@ -17,7 +17,7 @@
     "test:watch": "vitest --project=unit",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --project=integration",
-    "test:integration:up": "docker compose -f docker-compose.test.yml up -d && DATABASE_URL=$DATABASE_URL_TEST pnpm prisma migrate deploy",
+    "test:integration:up": "docker compose -f docker-compose.test.yml up -d --wait && DATABASE_URL=$DATABASE_URL_TEST pnpm prisma migrate deploy",
     "test:integration:down": "docker compose -f docker-compose.test.yml down",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
