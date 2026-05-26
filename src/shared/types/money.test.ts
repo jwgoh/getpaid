@@ -72,3 +72,13 @@ describe("type contract", () => {
     expect(x).toBe(10);
   });
 });
+
+describe("fromDollars edge cases", () => {
+  it("propagates NaN when input is NaN", () => {
+    expect(Number.isNaN(fromDollars(NaN))).toBe(true);
+  });
+
+  it("propagates Infinity when input is Infinity", () => {
+    expect(fromDollars(Infinity)).toBe(asCents(Infinity));
+  });
+});
