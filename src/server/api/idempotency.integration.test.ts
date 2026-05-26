@@ -16,7 +16,6 @@ const PG_UNIQUE_VIOLATION = "P2002";
 const HANDLER_DELAY_MS = 80;
 const CACHED_STATUS = 201;
 const REUSED_STATUS = 422;
-const IN_PROGRESS_STATUS = 409;
 const RESPONSE_BODY = { ok: true };
 
 interface IdempotencyContext {
@@ -139,8 +138,8 @@ describe("withIdempotency body-hash mismatch", () => {
   });
 });
 
-describe("withIdempotency real P2002 race serialization", () => {
-  it("serializes two concurrent same-key requests via the @@unique constraint so only one handler runs", async () => {
+describe("withIdempotency concurrent same-key serialization", () => {
+  it("runs the handler exactly once and serves the cached response on the loser when two same-key requests race", async () => {
     const ctx = await seedUser();
     let runs = 0;
     const handler = vi.fn(async () => {
@@ -158,19 +157,13 @@ describe("withIdempotency real P2002 race serialization", () => {
 
     expect(runs).toBe(1);
 
-    const statuses = [resA.status, resB.status].sort();
+    const statuses = [resA.status, resB.status];
 
     expect(statuses).toContain(CACHED_STATUS);
 
     const loser = resA.status === CACHED_STATUS ? resB : resA;
 
-    if (loser.status === IN_PROGRESS_STATUS) {
-      const payload = (await loser.json()) as { error: { code: string } };
-
-      expect(payload.error.code).toBe("IDEMPOTENCY_KEY_IN_PROGRESS");
-    } else {
-      expect(loser.status).toBe(CACHED_STATUS);
-    }
+    expect(loser.status).toBe(CACHED_STATUS);
   });
 });
 
