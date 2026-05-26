@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 
-const USER_DATA_TABLES = [
+export const TRUNCATE_TABLES = [
   "EmailOutbox",
   "IdempotencyKey",
   "InvoiceTemplateItem",
@@ -87,12 +87,12 @@ export async function assertTestDatabase(
 }
 
 export async function truncateAll(client: PrismaClient): Promise<void> {
-  const quoted = USER_DATA_TABLES.map((table) => `"${table}"`).join(", ");
+  const quoted = TRUNCATE_TABLES.map((table) => `"${table}"`).join(", ");
 
   await client.$executeRawUnsafe(`TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE;`);
 }
 
-function findLatestMigrationOnDisk(): string {
+export function findLatestMigrationOnDisk(): string {
   let entries: string[];
 
   try {
@@ -145,5 +145,3 @@ export async function verifyMigrationsApplied(client: PrismaClient): Promise<voi
 export async function disconnectDb(client: PrismaClient): Promise<void> {
   await client.$disconnect();
 }
-
-export { USER_DATA_TABLES };
