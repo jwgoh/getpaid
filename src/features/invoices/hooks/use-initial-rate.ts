@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import type { InvoiceFormInput } from "@app/shared/schemas";
+import { type Cents, toDollars } from "@app/shared/types/money";
 
 import type { InvoiceFormMode } from "../types";
 
@@ -10,7 +11,7 @@ export function useInitialRate(
   mode: InvoiceFormMode,
   hasInitialData: boolean,
   hasTemplate: boolean,
-  resolvedRate: number,
+  resolvedRate: Cents,
   items: InvoiceFormInput["items"],
   setValue: (name: `items.${number}.unitPrice`, value: number) => void
 ) {
@@ -27,7 +28,7 @@ export function useInitialRate(
       return;
     }
 
-    const rateInDollars = resolvedRate / 100;
+    const rateInDollars = toDollars(resolvedRate);
 
     items.forEach((item, index) => {
       if (item.unitPrice === 0) {

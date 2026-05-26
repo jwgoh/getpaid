@@ -3,6 +3,7 @@ import { Invoice, InvoiceEvent, InvoiceEventType, InvoiceStatus, Prisma } from "
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 import { asInvoiceId, type InvoiceId, type PublicId, type UserId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 
@@ -51,6 +52,7 @@ export async function markInvoicePaid(
     }
 
     const paidAt = new Date();
+    const invoiceTotal = asCents(invoice.total);
 
     const claim = await tx.invoice.updateMany({
       where: { id, paidAt: null, paidAmount: 0 },
@@ -58,7 +60,7 @@ export async function markInvoicePaid(
         status: INVOICE_STATUS.PAID,
         paidAt,
         paymentMethod: PAYMENT_METHOD.MANUAL,
-        paidAmount: invoice.total,
+        paidAmount: invoiceTotal,
       },
     });
 
@@ -69,7 +71,7 @@ export async function markInvoicePaid(
     const payment = await tx.payment.create({
       data: {
         invoiceId: invoice.id,
-        amount: invoice.total,
+        amount: invoiceTotal,
         method: PAYMENT_METHOD.MANUAL,
         paidAt,
       },
@@ -80,7 +82,7 @@ export async function markInvoicePaid(
         invoiceId: invoice.id,
         type: INVOICE_EVENT.PAYMENT_RECORDED,
         payload: {
-          amount: invoice.total,
+          amount: invoiceTotal,
           method: PAYMENT_METHOD.MANUAL,
           paymentId: payment.id,
         },

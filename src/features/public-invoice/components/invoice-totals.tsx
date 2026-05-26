@@ -4,10 +4,11 @@ import { Box, Divider, Stack, Typography, useTheme } from "@mui/material";
 
 import { ensureReadableForeground } from "@app/shared/lib/contrast";
 import { formatCurrency } from "@app/shared/lib/format";
+import type { Cents } from "@app/shared/types/money";
 
 interface InvoiceTotalsProps {
-  subtotal: number;
-  total: number;
+  subtotal: Cents;
+  total: Cents;
   currency: string;
   primaryColor: string;
 }

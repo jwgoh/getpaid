@@ -13,6 +13,7 @@ import {
 
 import { formatCurrency, formatDate } from "@app/shared/lib/format";
 import type { Invoice } from "@app/shared/schemas/api";
+import type { Cents } from "@app/shared/types/money";
 import { InvoiceItemsTable } from "@app/shared/ui/invoice-items-table";
 
 function TotalsSummary({
@@ -20,7 +21,7 @@ function TotalsSummary({
   remainingBalance,
 }: {
   invoice: Invoice;
-  remainingBalance: number;
+  remainingBalance: Cents;
 }) {
   const theme = useTheme();
   const paidPercentage = invoice.total > 0 ? ((invoice.paidAmount || 0) / invoice.total) * 100 : 0;
@@ -92,7 +93,7 @@ export function BillingCard({
   remainingBalance,
 }: {
   invoice: Invoice;
-  remainingBalance: number;
+  remainingBalance: Cents;
 }) {
   return (
     <Paper sx={{ p: 4, mb: 3, borderRadius: 3 }}>

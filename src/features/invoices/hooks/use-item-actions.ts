@@ -4,7 +4,7 @@ import * as React from "react";
 import type { UseFieldArrayReturn } from "react-hook-form";
 
 import { SORT_ORDER } from "@app/shared/config/config";
-import type { InvoiceFormInput, InvoiceItemGroupInput } from "@app/shared/schemas";
+import type { InvoiceFormInput } from "@app/shared/schemas";
 
 export function useItemActions(
   items: InvoiceFormInput["items"],
@@ -29,7 +29,7 @@ export function useItemActions(
   );
 
   const addImportedGroups = React.useCallback(
-    (groups: InvoiceItemGroupInput[]) => {
+    (groups: NonNullable<InvoiceFormInput["itemGroups"]>) => {
       const emptyIndexes: number[] = [];
 
       items.forEach((item, index) => {

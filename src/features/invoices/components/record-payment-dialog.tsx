@@ -16,6 +16,7 @@ import {
 
 import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { formatCurrency } from "@app/shared/lib/format";
+import type { Cents } from "@app/shared/types/money";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 interface RecordPaymentDialogProps {
@@ -23,7 +24,7 @@ interface RecordPaymentDialogProps {
   onClose: () => void;
   onConfirm: (amount: string, note: string) => void;
   isLoading: boolean;
-  remainingBalance: number;
+  remainingBalance: Cents;
   currency: string;
 }
 

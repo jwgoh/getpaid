@@ -2,9 +2,9 @@
 
 import * as React from "react";
 
-import { CURRENCY } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import type { InvoiceFormInput } from "@app/shared/schemas";
+import { toDollars } from "@app/shared/types/money";
 
 import { getTemplateDueDate } from "../lib/invoice-calculations";
 import type { InvoiceFormMode, TemplateData } from "../types";
@@ -28,7 +28,7 @@ export function useTemplateApplication(
           title: item.title,
           description: item.description ?? "",
           quantity: item.quantity,
-          unitPrice: item.unitPrice / CURRENCY.CENTS_MULTIPLIER,
+          unitPrice: toDollars(item.unitPrice),
         })),
         itemGroups: template.itemGroups.map((group) => ({
           title: group.title,
@@ -36,7 +36,7 @@ export function useTemplateApplication(
             title: item.title,
             description: item.description ?? "",
             quantity: item.quantity,
-            unitPrice: item.unitPrice / CURRENCY.CENTS_MULTIPLIER,
+            unitPrice: toDollars(item.unitPrice),
           })),
         })),
         notes: template.notes || "",

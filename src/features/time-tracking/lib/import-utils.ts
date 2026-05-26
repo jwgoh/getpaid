@@ -1,5 +1,6 @@
-import { CURRENCY, TIME_TRACKING } from "@app/shared/config/config";
-import type { InvoiceItemGroupInput } from "@app/shared/schemas";
+import { TIME_TRACKING } from "@app/shared/config/config";
+import type { InvoiceFormInput } from "@app/shared/schemas";
+import { asCents, type Cents, toDollars } from "@app/shared/types/money";
 
 import type { ImportedGroup } from "../api";
 import { RATE_SOURCE, type RateSource } from "../constants";
@@ -10,12 +11,12 @@ export function formatHours(seconds: number): string {
   return `${hours.toFixed(2)}h`;
 }
 
-export function formatAmount(cents: number | null): string {
+export function formatAmount(cents: Cents | null): string {
   if (cents === null) {
     return "";
   }
 
-  return `$${(cents / CURRENCY.CENTS_MULTIPLIER).toFixed(2)}`;
+  return `$${toDollars(cents).toFixed(2)}`;
 }
 
 export function buildDateRange(): { startDate: string; endDate: string } {
@@ -32,21 +33,23 @@ export function buildDateRange(): { startDate: string; endDate: string } {
 
 export function resolveItemRate(
   rateSource: RateSource,
-  providerRateCents: number | null,
-  getpaidRateCents: number,
-  customRateCents: number
-): number {
+  providerRateCents: Cents | null,
+  getpaidRateCents: Cents,
+  customRateCents: Cents
+): Cents {
   switch (rateSource) {
     case RATE_SOURCE.PROVIDER:
       return providerRateCents ?? getpaidRateCents;
     case RATE_SOURCE.GETPAID:
-      return getpaidRateCents || providerRateCents || 0;
+      return getpaidRateCents || providerRateCents || asCents(0);
     case RATE_SOURCE.CUSTOM:
       return customRateCents;
   }
 }
 
-export function mapImportedGroups(groups: ImportedGroup[]): InvoiceItemGroupInput[] {
+export function mapImportedGroups(
+  groups: ImportedGroup[]
+): NonNullable<InvoiceFormInput["itemGroups"]> {
   return groups.map((g) => ({
     title: g.title,
     items: g.items.map((item) => ({

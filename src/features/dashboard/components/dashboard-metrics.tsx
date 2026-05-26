@@ -7,23 +7,24 @@ import WarningIcon from "@mui/icons-material/Warning";
 import { Grid, useTheme } from "@mui/material";
 
 import { formatCurrencyCompact } from "@app/shared/lib/format";
+import type { Cents } from "@app/shared/types/money";
 import { MetricCard } from "@app/shared/ui/metric-card";
 import { StatSkeleton } from "@app/shared/ui/skeletons";
 import { StaggerList } from "@app/shared/ui/stagger-list";
 
 interface DashboardMetricsProps {
   isLoading: boolean;
-  totalRevenue: number;
-  revenueThisMonth: number;
-  outstandingBalance: number;
-  overdueAmount: number;
+  totalRevenue: Cents;
+  revenueThisMonth: Cents;
+  outstandingBalance: Cents;
+  overdueAmount: Cents;
   revenueChange: number;
   displayCurrency: string;
 }
 
 interface MetricDefinition {
   title: string;
-  value: number;
+  value: Cents;
   icon: React.ReactNode;
   colorKey: "success" | "primary" | "warning" | "error";
   href: string;

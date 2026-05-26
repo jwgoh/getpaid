@@ -2,8 +2,8 @@
 
 import { Checkbox, Stack, Typography } from "@mui/material";
 
-import { CURRENCY } from "@app/shared/config/config";
 import type { TimeEntryItem } from "@app/shared/schemas/api";
+import { toDollars } from "@app/shared/types/money";
 
 import { formatAmount, formatHours } from "../lib/import-utils";
 
@@ -39,7 +39,7 @@ export function TimeEntryItemRow({ item, selected, onToggle }: TimeEntryItemRowP
             color="text.secondary"
             sx={{ minWidth: 80, textAlign: "right" }}
           >
-            × ${(item.rateCents / CURRENCY.CENTS_MULTIPLIER).toFixed(2)}
+            × ${toDollars(item.rateCents).toFixed(2)}
           </Typography>
         )}
         <Typography variant="body2" fontWeight={500} sx={{ minWidth: 70, textAlign: "right" }}>

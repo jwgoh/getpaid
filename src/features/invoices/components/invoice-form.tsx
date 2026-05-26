@@ -4,8 +4,9 @@ import * as React from "react";
 
 import { Alert, Box, Paper } from "@mui/material";
 
-import type { InvoiceItemGroupInput } from "@app/shared/schemas";
+import type { InvoiceFormInput } from "@app/shared/schemas";
 import type { Client } from "@app/shared/schemas/api";
+import { type Cents, toDollars } from "@app/shared/types/money";
 import { PageHeader } from "@app/shared/ui/page-header";
 
 import { useInvoiceForm } from "../hooks/use-invoice-form";
@@ -22,8 +23,8 @@ import { InvoiceFormLineItems } from "./invoice-form-line-items";
 import { InvoiceFormTotals } from "./invoice-form-totals";
 
 interface ImportRenderProps {
-  addGroups: (groups: InvoiceItemGroupInput[]) => void;
-  rateCents: number;
+  addGroups: (groups: NonNullable<InvoiceFormInput["itemGroups"]>) => void;
+  rateCents: Cents;
 }
 
 interface InvoiceFormProps {
@@ -36,7 +37,7 @@ interface InvoiceFormProps {
   template?: TemplateData;
   templateLoading: boolean;
   createClientMutation: CreateClientMutation;
-  defaultRate?: number;
+  defaultRate?: Cents;
   defaultCurrency?: string;
   renderImport?: (props: ImportRenderProps) => React.ReactNode;
 }
@@ -120,7 +121,7 @@ export function InvoiceForm({
                 title: "",
                 description: "",
                 quantity: 1,
-                unitPrice: form.resolvedRate / 100,
+                unitPrice: toDollars(form.resolvedRate),
               })
             }
             onRemove={form.remove}
@@ -128,8 +129,8 @@ export function InvoiceForm({
             onMove={form.move}
             groupFields={form.groupFields}
             onRemoveGroup={form.removeGroup}
-            onAddGroup={() => form.addGroup(form.resolvedRate / 100)}
-            defaultUnitPrice={form.resolvedRate / 100}
+            onAddGroup={() => form.addGroup(toDollars(form.resolvedRate))}
+            defaultUnitPrice={toDollars(form.resolvedRate)}
           />
 
           {renderImport?.({

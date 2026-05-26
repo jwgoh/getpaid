@@ -1,10 +1,10 @@
 "use client";
 
 import { extractApiErrorMessage } from "@app/shared/api";
-import { CURRENCY } from "@app/shared/config/config";
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 import { useConfirmDialog } from "@app/shared/hooks/use-confirm-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
+import { fromDollars } from "@app/shared/types/money";
 
 import { useDeletePayment, useMarkInvoicePaid, useRecordPayment } from ".";
 
@@ -36,7 +36,7 @@ export function usePaymentHandlers(
   };
 
   const handleRecordPayment = (amount: string, note: string) => {
-    const amountInCents = Math.round(parseFloat(amount) * CURRENCY.CENTS_MULTIPLIER);
+    const amountInCents = fromDollars(parseFloat(amount));
 
     if (isNaN(amountInCents) || amountInCents <= 0) {
       toast.error("Please enter a valid amount");

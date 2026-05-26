@@ -23,7 +23,8 @@ export const recordPaymentSchema = z.object({
     .number()
     .int("Amount must be a whole number of cents")
     .positive()
-    .max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large"),
+    .max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large")
+    .transform(asCents),
   method: paymentMethodSchema,
   note: z.string().max(SCHEMA_LIMITS.PAYMENT_NOTE_MAX).optional(),
   paidAt: z.string().optional(),

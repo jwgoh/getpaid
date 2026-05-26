@@ -3,7 +3,7 @@ import { z } from "zod";
 import { BRANDING, INVOICE } from "@app/shared/config/config";
 import { DISCOUNT_TYPE } from "@app/shared/config/invoice-status";
 import { calculateTotals } from "@app/shared/lib/calculations";
-import { asCents } from "@app/shared/types/money";
+import { type Cents } from "@app/shared/types/money";
 
 import { dateSchema, optionalDateSchema } from "./date";
 import { SCHEMA_LIMITS } from "./limits";
@@ -45,8 +45,8 @@ export const discountSchema = z
   .optional();
 
 interface InvoiceTotalsInput {
-  items?: { quantity: number; unitPrice: number }[];
-  itemGroups?: { items: { quantity: number; unitPrice: number }[] }[];
+  items?: { quantity: number; unitPrice: Cents }[];
+  itemGroups?: { items: { quantity: number; unitPrice: Cents }[] }[];
   discount?: { type: DiscountType; value: number } | null;
   taxRate?: number;
 }
@@ -60,11 +60,7 @@ function refineInvoiceTotalsCeiling(data: InvoiceTotalsInput, ctx: z.RefinementC
     ...(data.items ?? []),
     ...(data.itemGroups?.flatMap((group) => group.items) ?? []),
   ];
-  const itemsForTotals = allItems.map((item) => ({
-    quantity: item.quantity,
-    unitPrice: asCents(item.unitPrice),
-  }));
-  const { subtotal, total } = calculateTotals(itemsForTotals, data.discount, data.taxRate);
+  const { subtotal, total } = calculateTotals(allItems, data.discount, data.taxRate);
 
   if (subtotal > SCHEMA_LIMITS.MONEY_MAX_CENTS || total > SCHEMA_LIMITS.MONEY_MAX_CENTS) {
     ctx.addIssue({
@@ -173,6 +169,6 @@ export const updateInvoiceSchema = z
 export type DiscountType = z.infer<typeof discountTypeSchema>;
 export type InvoiceItemInput = z.infer<typeof invoiceItemSchema>;
 export type InvoiceItemGroupInput = z.infer<typeof invoiceItemGroupSchema>;
-export type InvoiceFormInput = z.infer<typeof invoiceFormSchema>;
+export type InvoiceFormInput = z.input<typeof invoiceFormSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;

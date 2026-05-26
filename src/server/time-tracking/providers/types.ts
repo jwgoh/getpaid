@@ -1,3 +1,5 @@
+import type { Cents } from "@app/shared/types/money";
+
 export type BreakdownOption = "projects" | "clients" | "tasks" | "descriptions";
 
 export type RoundingDirection = "nearest" | "up" | "down";
@@ -25,7 +27,7 @@ export interface NormalizedWorkspace {
   id: string;
   name: string;
   defaultCurrency: string | null;
-  defaultHourlyRateCents: number | null;
+  defaultHourlyRateCents: Cents | null;
   roundingDirection: RoundingDirection;
   roundingMinutes: number;
 }
@@ -39,7 +41,7 @@ export interface NormalizedProject {
   billable: boolean;
   color: string | null;
   currency: string | null;
-  rateCents: number | null;
+  rateCents: Cents | null;
 }
 
 export interface NormalizedClient {
@@ -63,22 +65,22 @@ export interface TimeEntryGroup {
   title: string;
   items: TimeEntryItem[];
   totalSeconds: number;
-  totalAmountCents: number | null;
+  totalAmountCents: Cents | null;
 }
 
 export interface TimeEntryItem {
   id: string;
   title: string;
   seconds: number;
-  amountCents: number | null;
-  rateCents: number | null;
+  amountCents: Cents | null;
+  rateCents: Cents | null;
   currency: string | null;
 }
 
 export interface TimeEntriesResult {
   groups: TimeEntryGroup[];
   totalSeconds: number;
-  totalAmountCents: number | null;
+  totalAmountCents: Cents | null;
   currency: string | null;
 }
 

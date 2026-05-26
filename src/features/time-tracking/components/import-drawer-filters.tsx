@@ -22,6 +22,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { type Dayjs } from "dayjs";
 
 import type { ProviderInfo, TimeTrackingProject } from "@app/shared/schemas/api";
+import type { Cents } from "@app/shared/types/money";
 
 import type { RateSource } from "../constants";
 import { useProjects, useWorkspaces } from "../hooks";
@@ -45,12 +46,12 @@ interface ImportDrawerFiltersProps {
   subGrouping: string;
   roundingMinutes: number;
   rateSource: RateSource;
-  customRateCents: number;
+  customRateCents: Cents;
   onGroupingChange: (v: string) => void;
   onSubGroupingChange: (v: string) => void;
   onRoundingChange: (v: number) => void;
   onRateSourceChange: (v: RateSource) => void;
-  onCustomRateChange: (v: number) => void;
+  onCustomRateChange: (v: Cents) => void;
   isSearching: boolean;
   onSearch: () => void;
 }

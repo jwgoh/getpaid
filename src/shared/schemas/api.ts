@@ -238,7 +238,10 @@ export const timeTrackingProjectSchema = z.object({
   billable: z.boolean(),
   color: z.string().nullable(),
   currency: z.string().nullable(),
-  rateCents: z.number().nullable(),
+  rateCents: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
 });
 
 export const timeTrackingProjectListSchema = z.array(timeTrackingProjectSchema);
@@ -247,8 +250,14 @@ export const timeEntryItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   seconds: z.number(),
-  amountCents: z.number().nullable(),
-  rateCents: z.number().nullable(),
+  amountCents: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
+  rateCents: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
   currency: z.string().nullable(),
 });
 
@@ -257,13 +266,19 @@ export const timeEntryGroupSchema = z.object({
   title: z.string(),
   items: z.array(timeEntryItemSchema),
   totalSeconds: z.number(),
-  totalAmountCents: z.number().nullable(),
+  totalAmountCents: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
 });
 
 export const timeEntriesResultSchema = z.object({
   groups: z.array(timeEntryGroupSchema),
   totalSeconds: z.number(),
-  totalAmountCents: z.number().nullable(),
+  totalAmountCents: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
   currency: z.string().nullable(),
 });
 

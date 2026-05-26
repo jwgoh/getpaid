@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { asCents } from "@app/shared/types/money";
+
 import { SCHEMA_LIMITS } from "./limits";
 
 export const lineItemSchema = z
@@ -13,7 +15,8 @@ export const lineItemSchema = z
     unitPrice: z
       .number()
       .min(0, "Unit price must be non-negative")
-      .max(SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS, "Unit price is too large"),
+      .max(SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS, "Unit price is too large")
+      .transform(asCents),
     sortOrder: z.number().int().optional(),
   })
   .refine((item) => Math.round(item.quantity * item.unitPrice) <= SCHEMA_LIMITS.MONEY_MAX_CENTS, {

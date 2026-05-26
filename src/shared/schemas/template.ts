@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { BRANDING, INVOICE, VALIDATION } from "@app/shared/config/config";
 import { DISCOUNT_TYPE, type DiscountTypeValue } from "@app/shared/config/invoice-status";
+import type { Cents } from "@app/shared/types/money";
 
 import { SCHEMA_LIMITS } from "./limits";
 import { lineItemGroupSchema, lineItemSchema } from "./line-item";
@@ -90,7 +91,7 @@ export const templateFormSchema = z
   );
 
 export type TemplateItem = z.infer<typeof templateItemSchema>;
-export type TemplateFormData = z.infer<typeof templateFormSchema>;
+export type TemplateFormData = z.input<typeof templateFormSchema>;
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;
 
@@ -101,7 +102,7 @@ export interface TemplateResponseItem {
   title: string;
   description: string | null;
   quantity: number;
-  unitPrice: number;
+  unitPrice: Cents;
   sortOrder: number;
 }
 

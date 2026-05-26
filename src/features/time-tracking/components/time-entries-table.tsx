@@ -5,6 +5,7 @@ import * as React from "react";
 import { alpha, Box, Checkbox, Stack, Typography, useTheme } from "@mui/material";
 
 import type { TimeEntriesResult, TimeEntryGroup } from "@app/shared/schemas/api";
+import { asCents } from "@app/shared/types/money";
 
 import type { Selection } from "../api";
 import { formatAmount, formatHours } from "../lib/import-utils";
@@ -46,20 +47,22 @@ export function TimeEntriesTable({ data, selection, onSelectionChange }: TimeEnt
     );
   }, 0);
 
-  const selectedAmount = data.groups.reduce((sum, group) => {
-    const groupSel = selection[group.id];
+  const selectedAmount = asCents(
+    data.groups.reduce((sum, group) => {
+      const groupSel = selection[group.id];
 
-    if (!groupSel) {
-      return sum;
-    }
+      if (!groupSel) {
+        return sum;
+      }
 
-    return (
-      sum +
-      group.items
-        .filter((item) => groupSel.has(item.id))
-        .reduce((s, item) => s + (item.amountCents ?? 0), 0)
-    );
-  }, 0);
+      return (
+        sum +
+        group.items
+          .filter((item) => groupSel.has(item.id))
+          .reduce((s, item) => s + (item.amountCents ?? 0), 0)
+      );
+    }, 0)
+  );
 
   const handleSelectAll = () => {
     if (allSelected) {
@@ -135,7 +138,7 @@ export function TimeEntriesTable({ data, selection, onSelectionChange }: TimeEnt
             {formatHours(selectedSeconds)}
           </Typography>
           <Typography variant="body2" fontWeight={600}>
-            {formatAmount(selectedAmount || null)}
+            {formatAmount(selectedAmount > 0 ? selectedAmount : null)}
           </Typography>
         </Stack>
       </Stack>

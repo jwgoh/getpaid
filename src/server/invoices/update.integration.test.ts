@@ -4,6 +4,7 @@ import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { type UpdateInvoiceInput } from "@app/shared/schemas";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
 import { asInvoiceId, asUserId, type InvoiceId, type UserId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 import { MoneyOverflowError, updateInvoice } from "@app/server/invoices";
@@ -90,7 +91,7 @@ describe("updateInvoice — happy paths", () => {
         {
           title: "Updated line",
           quantity: newQuantity,
-          unitPrice: newUnitPrice,
+          unitPrice: asCents(newUnitPrice),
         },
       ],
       itemGroups: [],
@@ -155,7 +156,7 @@ describe("updateInvoice — money overflow service guard (schema-vs-code drift)"
         {
           title: "Overflow line",
           quantity: SCHEMA_LIMITS.QUANTITY_MAX,
-          unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
+          unitPrice: asCents(SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS),
         },
       ],
       itemGroups: [],
