@@ -1,4 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 const USER_DATA_TABLES = [
   "EmailOutbox",
@@ -23,6 +25,8 @@ const USER_DATA_TABLES = [
 
 const NOT_READY_MESSAGE = "Integration test DB not ready. Run `pnpm test:integration:up` first.";
 const TEST_DB_NAME_TOKEN = "test";
+const MIGRATIONS_DIR = join(process.cwd(), "prisma", "migrations");
+const MIGRATION_DIR_PATTERN = /^\d{14}_/;
 
 export class HarnessError extends Error {
   constructor(message: string) {
@@ -88,11 +92,53 @@ export async function truncateAll(client: PrismaClient): Promise<void> {
   await client.$executeRawUnsafe(`TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE;`);
 }
 
-export async function verifyMigrationsApplied(client: PrismaClient): Promise<void> {
+function findLatestMigrationOnDisk(): string {
+  let entries: string[];
+
   try {
-    await client.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+    entries = readdirSync(MIGRATIONS_DIR);
+  } catch {
+    throw new HarnessError(
+      `Could not read migrations directory at ${MIGRATIONS_DIR}. ` +
+        `Integration tests require a prisma/migrations/ directory.`
+    );
+  }
+
+  const migrationDirs = entries.filter((name) => MIGRATION_DIR_PATTERN.test(name)).sort();
+  const latest = migrationDirs.at(-1);
+
+  if (!latest) {
+    throw new HarnessError(
+      `No migrations found in ${MIGRATIONS_DIR}. ` +
+        `Integration tests require at least one applied migration.`
+    );
+  }
+
+  return latest;
+}
+
+export async function verifyMigrationsApplied(client: PrismaClient): Promise<void> {
+  const latestOnDisk = findLatestMigrationOnDisk();
+
+  let rows: Array<{ migration_name: string }>;
+
+  try {
+    rows = await client.$queryRaw<Array<{ migration_name: string }>>`
+      SELECT migration_name
+      FROM "_prisma_migrations"
+      WHERE migration_name = ${latestOnDisk}
+        AND finished_at IS NOT NULL
+      LIMIT 1
+    `;
   } catch {
     throw new HarnessError(NOT_READY_MESSAGE);
+  }
+
+  if (rows.length === 0) {
+    throw new HarnessError(
+      `Latest migration "${latestOnDisk}" is not applied to the test database. ` +
+        `Run \`pnpm test:integration:up\` to apply pending migrations.`
+    );
   }
 }
 
