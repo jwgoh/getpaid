@@ -6,6 +6,7 @@ import { calculateTotals, isMoneyLimitExceeded } from "@app/shared/lib/calculati
 import { CreateInvoiceInput } from "@app/shared/schemas";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
 import type { UserId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 
@@ -22,7 +23,11 @@ export async function createInvoice(
   data: CreateInvoiceInput
 ): Promise<InvoiceWithRelations> {
   const allItems = [...data.items, ...(data.itemGroups?.flatMap((g) => g.items) ?? [])];
-  const totals = calculateTotals(allItems, data.discount, data.taxRate);
+  const itemsForCalc = allItems.map((item) => ({
+    quantity: item.quantity,
+    unitPrice: asCents(item.unitPrice),
+  }));
+  const totals = calculateTotals(itemsForCalc, data.discount, data.taxRate);
 
   if (isMoneyLimitExceeded(totals, SCHEMA_LIMITS.MONEY_MAX_CENTS)) {
     throw new MoneyOverflowError();

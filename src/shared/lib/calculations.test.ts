@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { DISCOUNT_TYPE } from "@app/shared/config/invoice-status";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
+import { asCents } from "@app/shared/types/money";
 
 import { buildDiscountInput, calculateTotals, isMoneyLimitExceeded } from "./calculations";
 
 describe("calculateTotals — basic arithmetic", () => {
   it("sums line items into the subtotal", () => {
     const result = calculateTotals([
-      { quantity: 2, unitPrice: 1500 },
-      { quantity: 1, unitPrice: 500 },
+      { quantity: 2, unitPrice: asCents(1500) },
+      { quantity: 1, unitPrice: asCents(500) },
     ]);
 
     expect(result.subtotal).toBe(3500);
@@ -17,7 +18,7 @@ describe("calculateTotals — basic arithmetic", () => {
   });
 
   it("applies a percentage discount", () => {
-    const result = calculateTotals([{ quantity: 1, unitPrice: 10_000 }], {
+    const result = calculateTotals([{ quantity: 1, unitPrice: asCents(10_000) }], {
       type: DISCOUNT_TYPE.PERCENTAGE,
       value: 10,
     });
@@ -27,7 +28,7 @@ describe("calculateTotals — basic arithmetic", () => {
   });
 
   it("applies a fixed discount", () => {
-    const result = calculateTotals([{ quantity: 1, unitPrice: 10_000 }], {
+    const result = calculateTotals([{ quantity: 1, unitPrice: asCents(10_000) }], {
       type: DISCOUNT_TYPE.FIXED,
       value: 2500,
     });
@@ -38,7 +39,7 @@ describe("calculateTotals — basic arithmetic", () => {
 
   it("applies tax on the discounted amount", () => {
     const result = calculateTotals(
-      [{ quantity: 1, unitPrice: 10_000 }],
+      [{ quantity: 1, unitPrice: asCents(10_000) }],
       { type: DISCOUNT_TYPE.FIXED, value: 2000 },
       20
     );
@@ -48,7 +49,7 @@ describe("calculateTotals — basic arithmetic", () => {
   });
 
   it("never lets a discount push the total below zero", () => {
-    const result = calculateTotals([{ quantity: 1, unitPrice: 1000 }], {
+    const result = calculateTotals([{ quantity: 1, unitPrice: asCents(1000) }], {
       type: DISCOUNT_TYPE.FIXED,
       value: 5000,
     });
@@ -60,7 +61,10 @@ describe("calculateTotals — basic arithmetic", () => {
 describe("calculateTotals — boundary", () => {
   it("computes the maximum per-line product without overflowing MONEY_MAX_CENTS", () => {
     const result = calculateTotals([
-      { quantity: SCHEMA_LIMITS.QUANTITY_MAX, unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS },
+      {
+        quantity: SCHEMA_LIMITS.QUANTITY_MAX,
+        unitPrice: asCents(SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS),
+      },
     ]);
 
     expect(result.subtotal).toBe(
@@ -73,7 +77,7 @@ describe("calculateTotals — boundary", () => {
   it("can produce a subtotal above MONEY_MAX_CENTS when many max line items are summed", () => {
     const maxLine = {
       quantity: SCHEMA_LIMITS.QUANTITY_MAX,
-      unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
+      unitPrice: asCents(SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS),
     };
     const result = calculateTotals([maxLine, maxLine]);
 
@@ -104,7 +108,12 @@ describe("isMoneyLimitExceeded", () => {
   it("returns false for totals at the limit", () => {
     expect(
       isMoneyLimitExceeded(
-        { subtotal: limit, discountAmount: 0, taxAmount: 0, total: limit },
+        {
+          subtotal: asCents(limit),
+          discountAmount: asCents(0),
+          taxAmount: asCents(0),
+          total: asCents(limit),
+        },
         limit
       )
     ).toBe(false);
@@ -113,7 +122,12 @@ describe("isMoneyLimitExceeded", () => {
   it("returns true when the total exceeds the limit", () => {
     expect(
       isMoneyLimitExceeded(
-        { subtotal: limit, discountAmount: 0, taxAmount: 1, total: limit + 1 },
+        {
+          subtotal: asCents(limit),
+          discountAmount: asCents(0),
+          taxAmount: asCents(1),
+          total: asCents(limit + 1),
+        },
         limit
       )
     ).toBe(true);
@@ -122,7 +136,12 @@ describe("isMoneyLimitExceeded", () => {
   it("returns true when the subtotal alone exceeds the limit", () => {
     expect(
       isMoneyLimitExceeded(
-        { subtotal: limit + 1, discountAmount: 0, taxAmount: 0, total: 0 },
+        {
+          subtotal: asCents(limit + 1),
+          discountAmount: asCents(0),
+          taxAmount: asCents(0),
+          total: asCents(0),
+        },
         limit
       )
     ).toBe(true);
@@ -131,7 +150,12 @@ describe("isMoneyLimitExceeded", () => {
   it("returns true when the tax amount alone exceeds the limit", () => {
     expect(
       isMoneyLimitExceeded(
-        { subtotal: 0, discountAmount: 0, taxAmount: limit + 1, total: 0 },
+        {
+          subtotal: asCents(0),
+          discountAmount: asCents(0),
+          taxAmount: asCents(limit + 1),
+          total: asCents(0),
+        },
         limit
       )
     ).toBe(true);
@@ -142,7 +166,7 @@ describe("calculateTotals — persisted tax overflow vector (QA-001 PATCH path)"
   it("produces a total above MONEY_MAX_CENTS from an in-range subtotal once tax is applied", () => {
     const maxLine = {
       quantity: SCHEMA_LIMITS.QUANTITY_MAX,
-      unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
+      unitPrice: asCents(SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS),
     };
     const result = calculateTotals([maxLine], undefined, 10);
 

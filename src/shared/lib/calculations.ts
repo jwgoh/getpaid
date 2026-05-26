@@ -1,10 +1,19 @@
-import { PERCENT } from "@app/shared/config/config";
 import {
   DISCOUNT_NONE,
   DISCOUNT_TYPE,
   type DiscountTypeValue,
   isDiscountType,
 } from "@app/shared/config/invoice-status";
+import {
+  addCents,
+  applyPercent,
+  asCents,
+  type Cents,
+  clampNonNegative,
+  multiplyCentsByQuantity,
+  subtractCents,
+  sumCents,
+} from "@app/shared/types/money";
 
 export interface DiscountInput {
   type: DiscountTypeValue;
@@ -13,18 +22,18 @@ export interface DiscountInput {
 
 interface LineItem {
   quantity: number;
-  unitPrice: number;
+  unitPrice: Cents;
 }
 
 export interface TotalsResult {
-  subtotal: number;
-  discountAmount: number;
-  taxAmount: number;
-  total: number;
+  subtotal: Cents;
+  discountAmount: Cents;
+  taxAmount: Cents;
+  total: Cents;
 }
 
-export function calculateSubtotal(items: LineItem[]): number {
-  return items.reduce((sum, item) => sum + Math.round(item.quantity * item.unitPrice), 0);
+export function calculateSubtotal(items: LineItem[]): Cents {
+  return sumCents(items.map((item) => multiplyCentsByQuantity(item.unitPrice, item.quantity)));
 }
 
 export function calculateTotals(
@@ -34,19 +43,19 @@ export function calculateTotals(
 ): TotalsResult {
   const subtotal = calculateSubtotal(items);
 
-  let discountAmount = 0;
+  let discountAmount: Cents = asCents(0);
 
   if (discount && discount.value > 0) {
     if (discount.type === DISCOUNT_TYPE.PERCENTAGE) {
-      discountAmount = Math.round((subtotal * discount.value) / PERCENT.DIVISOR);
+      discountAmount = applyPercent(subtotal, discount.value);
     } else {
-      discountAmount = discount.value;
+      discountAmount = asCents(discount.value);
     }
   }
 
-  const afterDiscount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = taxRate ? Math.round((afterDiscount * taxRate) / PERCENT.DIVISOR) : 0;
-  const total = afterDiscount + taxAmount;
+  const afterDiscount = clampNonNegative(subtractCents(subtotal, discountAmount));
+  const taxAmount = taxRate ? applyPercent(afterDiscount, taxRate) : asCents(0);
+  const total = addCents(afterDiscount, taxAmount);
 
   return { subtotal, discountAmount, taxAmount, total };
 }
