@@ -2,12 +2,13 @@ import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { isOverdue } from "@app/shared/lib/invoice-status-predicates";
 import type { AnalyticsData, CurrencyMetrics, MonthlyRevenue } from "@app/shared/schemas/api";
 import { asInvoiceId, type UserId } from "@app/shared/types/ids";
+import { asCents, type Cents, sumCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 
 interface InvoiceForMetrics {
   status: string;
-  total: number;
+  total: Cents;
   paidAt: Date | null;
   dueDate: Date;
 }
@@ -34,7 +35,7 @@ const MONTHS_TO_SHOW = 6;
 const RECENT_INVOICES_LIMIT = 5;
 
 function calculateMonthlyRevenue(
-  paidInvoices: { paidAt: Date | null; total: number }[],
+  paidInvoices: { paidAt: Date | null; total: Cents }[],
   now: Date
 ): MonthlyRevenue[] {
   const result: MonthlyRevenue[] = [];
@@ -44,17 +45,16 @@ function calculateMonthlyRevenue(
     const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
     const monthName = monthStart.toLocaleDateString("en-US", { month: "short" });
 
-    const revenue = paidInvoices
-      .filter((inv) => {
-        if (!inv.paidAt) {
-          return false;
-        }
+    const monthlyPaid = paidInvoices.filter((inv) => {
+      if (!inv.paidAt) {
+        return false;
+      }
 
-        const paidDate = new Date(inv.paidAt);
+      const paidDate = new Date(inv.paidAt);
 
-        return paidDate >= monthStart && paidDate <= monthEnd;
-      })
-      .reduce((sum, inv) => sum + inv.total, 0);
+      return paidDate >= monthStart && paidDate <= monthEnd;
+    });
+    const revenue = sumCents(monthlyPaid.map((inv) => inv.total));
 
     result.push({ month: monthName, revenue });
   }
@@ -69,18 +69,22 @@ function calculateMetricsForInvoices(
   sixtyDaysAgo: Date
 ): Omit<CurrencyMetrics, "monthlyRevenue"> {
   const paidInvoices = invoices.filter((inv) => inv.status === INVOICE_STATUS.PAID || inv.paidAt);
-  const totalRevenue = paidInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const totalRevenue = sumCents(paidInvoices.map((inv) => inv.total));
 
-  const revenueThisMonth = paidInvoices
-    .filter((inv) => inv.paidAt && new Date(inv.paidAt) >= thirtyDaysAgo)
-    .reduce((sum, inv) => sum + inv.total, 0);
+  const revenueThisMonth = sumCents(
+    paidInvoices
+      .filter((inv) => inv.paidAt && new Date(inv.paidAt) >= thirtyDaysAgo)
+      .map((inv) => inv.total)
+  );
 
-  const revenueLastMonth = paidInvoices
-    .filter(
-      (inv) =>
-        inv.paidAt && new Date(inv.paidAt) >= sixtyDaysAgo && new Date(inv.paidAt) < thirtyDaysAgo
-    )
-    .reduce((sum, inv) => sum + inv.total, 0);
+  const revenueLastMonth = sumCents(
+    paidInvoices
+      .filter(
+        (inv) =>
+          inv.paidAt && new Date(inv.paidAt) >= sixtyDaysAgo && new Date(inv.paidAt) < thirtyDaysAgo
+      )
+      .map((inv) => inv.total)
+  );
 
   const outstandingInvoices = invoices.filter(
     (inv) =>
@@ -89,16 +93,16 @@ function calculateMetricsForInvoices(
         inv.status === INVOICE_STATUS.VIEWED ||
         inv.status === INVOICE_STATUS.OVERDUE)
   );
-  const outstandingBalance = outstandingInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const outstandingBalance = sumCents(outstandingInvoices.map((inv) => inv.total));
 
   const overdueInvoices = invoices.filter((inv) => isOverdue(inv, now));
-  const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const overdueAmount = sumCents(overdueInvoices.map((inv) => inv.total));
 
   return { totalRevenue, revenueThisMonth, revenueLastMonth, outstandingBalance, overdueAmount };
 }
 
-function fetchInvoicesForAnalytics(userId: UserId) {
-  return prisma.invoice.findMany({
+async function fetchInvoicesForAnalytics(userId: UserId): Promise<InvoiceForAggregation[]> {
+  const rows = await prisma.invoice.findMany({
     where: { userId },
     select: {
       id: true,
@@ -110,6 +114,14 @@ function fetchInvoicesForAnalytics(userId: UserId) {
       dueDate: true,
     },
   });
+
+  return rows.map((row) => ({
+    status: row.status,
+    total: asCents(row.total),
+    currency: row.currency,
+    paidAt: row.paidAt,
+    dueDate: row.dueDate,
+  }));
 }
 
 function mapRecentInvoiceDto(invoice: RecentInvoiceRow): AnalyticsData["recentInvoices"][number] {
@@ -117,7 +129,7 @@ function mapRecentInvoiceDto(invoice: RecentInvoiceRow): AnalyticsData["recentIn
     id: asInvoiceId(invoice.id),
     publicId: invoice.publicId,
     status: invoice.status,
-    total: invoice.total,
+    total: asCents(invoice.total),
     currency: invoice.currency,
     clientName: invoice.client.name,
     createdAt: invoice.createdAt.toISOString(),

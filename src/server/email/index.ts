@@ -5,6 +5,7 @@ import { env } from "@app/shared/config/env";
 import { SEO } from "@app/shared/config/seo";
 import { formatCurrency, formatDate } from "@app/shared/lib/format";
 import { EXTERNAL_HTTP_TIMEOUTS_MS, withTimeout } from "@app/shared/lib/http";
+import { type Cents } from "@app/shared/types/money";
 
 import { escapeHtml } from "./escape";
 import {
@@ -33,7 +34,7 @@ export interface InvoiceEmailData {
   senderName: string;
   senderEmail: string;
   publicId: string;
-  total: number;
+  total: Cents;
   currency: string;
   dueDate: Date;
   periodStart: Date | null;

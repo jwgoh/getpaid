@@ -5,6 +5,7 @@ import { INVOICE } from "@app/shared/config/config";
 import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_RELATED_TYPE } from "@app/shared/config/email-outbox";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { asInvoiceId, type InvoiceId, type UserId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 import {
@@ -100,7 +101,7 @@ function buildInvoiceEmailData(invoice: InvoiceForSend, ctx: BuildEmailContext):
     senderName: ctx.senderName,
     senderEmail: ctx.senderEmail,
     publicId: invoice.publicId,
-    total: invoice.total,
+    total: asCents(invoice.total),
     currency: invoice.currency,
     dueDate: invoice.dueDate,
     periodStart: invoice.periodStart,

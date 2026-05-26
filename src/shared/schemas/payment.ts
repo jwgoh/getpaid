@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { TIME } from "@app/shared/config/config";
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
+import { asCents } from "@app/shared/types/money";
 
 import { dateSchema } from "./date";
 import { SCHEMA_LIMITS } from "./limits";
@@ -33,7 +34,8 @@ export const recordPaymentApiSchema = z.object({
     .number()
     .int("Amount must be a whole number of cents")
     .positive()
-    .max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large"),
+    .max(SCHEMA_LIMITS.MONEY_MAX_CENTS, "Amount is too large")
+    .transform(asCents),
   method: paymentMethodSchema,
   note: z.string().max(SCHEMA_LIMITS.PAYMENT_NOTE_MAX).optional(),
   paidAt: paidAtSchema.optional(),

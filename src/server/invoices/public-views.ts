@@ -1,5 +1,6 @@
 import { BRANDING } from "@app/shared/config/config";
 import type { PublicId, UserId } from "@app/shared/types/ids";
+import { asCents, type Cents } from "@app/shared/types/money";
 
 import { markInvoiceViewed } from "./lifecycle";
 import { getInvoiceByPublicId } from "./queries";
@@ -11,8 +12,8 @@ export interface PublicInvoiceItemDTO {
   title: string;
   description: string | null;
   quantity: number;
-  unitPrice: number;
-  amount: number;
+  unitPrice: Cents;
+  amount: Cents;
 }
 
 export interface PublicInvoiceItemGroupDTO {
@@ -36,8 +37,8 @@ export interface PublicInvoiceDTO {
   publicId: string;
   status: string;
   currency: string;
-  subtotal: number;
-  total: number;
+  subtotal: Cents;
+  total: Cents;
   dueDate: string;
   periodStart: string | null;
   periodEnd: string | null;
@@ -64,8 +65,8 @@ function toItemDTO(item: InvoiceWithRelations["items"][number]): PublicInvoiceIt
     title: item.title,
     description: item.description,
     quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    amount: item.amount,
+    unitPrice: asCents(item.unitPrice),
+    amount: asCents(item.amount),
   };
 }
 
@@ -84,8 +85,8 @@ export function toPublicInvoiceDTO(invoice: InvoiceWithRelations): PublicInvoice
     publicId: invoice.publicId,
     status: invoice.status,
     currency: invoice.currency,
-    subtotal: invoice.subtotal,
-    total: invoice.total,
+    subtotal: asCents(invoice.subtotal),
+    total: asCents(invoice.total),
     dueDate: invoice.dueDate.toISOString(),
     periodStart: invoice.periodStart?.toISOString() ?? null,
     periodEnd: invoice.periodEnd?.toISOString() ?? null,
