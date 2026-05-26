@@ -1,6 +1,6 @@
 import { DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
 import { runWithConcurrency } from "@app/shared/lib/concurrency";
-import { asCents, type Cents, fromDollars } from "@app/shared/types/money";
+import { addCents, asCents, type Cents, fromDollars } from "@app/shared/types/money";
 
 import type {
   NormalizedClient,
@@ -134,7 +134,7 @@ function mapGroup(
         groupAmountCents = asCents(0);
       }
 
-      groupAmountCents = asCents(groupAmountCents + itemAmountCents);
+      groupAmountCents = addCents(groupAmountCents, itemAmountCents);
     }
 
     const subId = sub.id !== null ? String(sub.id) : `sub-${groupId}-${sub.seconds}`;
@@ -275,7 +275,7 @@ export const togglProvider: TimeTrackingProvider = {
           totalAmountCents = asCents(0);
         }
 
-        totalAmountCents = asCents(totalAmountCents + mapped.totalAmountCents);
+        totalAmountCents = addCents(totalAmountCents, mapped.totalAmountCents);
       }
 
       if (!detectedCurrency) {

@@ -23,12 +23,7 @@ export const senderProfileFormSchema = z
     address: z.string().max(SCHEMA_LIMITS.ADDRESS_MAX).optional(),
     taxId: z.string().max(SCHEMA_LIMITS.TAX_ID_MAX).optional(),
     defaultCurrency: z.string().max(SCHEMA_LIMITS.CURRENCY_CODE_MAX),
-    defaultRate: z
-      .number()
-      .min(0)
-      .max(SCHEMA_LIMITS.MONEY_MAX_CENTS)
-      .optional()
-      .transform((v) => (v === undefined ? undefined : asCents(v))),
+    defaultRate: z.number().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS).optional(),
   })
   .refine((data) => data.companyName || data.displayName, {
     message: "Either company name or display name is required",

@@ -138,7 +138,7 @@ export function TimeEntriesTable({ data, selection, onSelectionChange }: TimeEnt
             {formatHours(selectedSeconds)}
           </Typography>
           <Typography variant="body2" fontWeight={600}>
-            {formatAmount(selectedAmount > 0 ? selectedAmount : null)}
+            {formatAmount(selectedAmount || null)}
           </Typography>
         </Stack>
       </Stack>
