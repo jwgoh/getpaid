@@ -129,6 +129,29 @@ describe("dispatchOutbox exhaustion", () => {
     expect(updated?.attempts).toBe(EMAIL_OUTBOX.MAX_ATTEMPTS);
     expect(updated?.nextAttemptAt).toBeNull();
   });
+
+  it("MT-014: keeps the row PENDING with nextAttemptAt set when attempts = MAX_ATTEMPTS - 2 and the next transient lands one below exhaustion", async () => {
+    const ctx = await seedUserAndInvoice();
+    const startingAttempts = EMAIL_OUTBOX.MAX_ATTEMPTS - 2;
+    const row = await factories.createEmailOutbox(prisma, {
+      userId: ctx.userId,
+      relatedId: ctx.invoiceId,
+      attempts: startingAttempts,
+    });
+
+    sendEmailMock.mockResolvedValueOnce(
+      buildErrorResponse(TRANSIENT_STATUS, "internal_server_error", "still transient")
+    );
+
+    const updated = await dispatchOutbox(row.id);
+
+    expect(updated?.status).toBe(EMAIL_OUTBOX_STATUS.PENDING);
+    expect(updated?.attempts).toBe(startingAttempts + 1);
+    expect(updated?.attempts).toBeLessThan(EMAIL_OUTBOX.MAX_ATTEMPTS);
+    expect(updated?.lastAttemptedAt).not.toBeNull();
+    expect(updated?.nextAttemptAt).not.toBeNull();
+    expect((updated?.nextAttemptAt?.getTime() ?? 0) > Date.now()).toBe(true);
+  });
 });
 
 describe("dispatchOutbox permanent failure", () => {

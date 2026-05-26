@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { Prisma } from "@prisma/client";
+import { createHash } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TIME } from "@app/shared/config/config";
@@ -299,5 +300,38 @@ describe("withIdempotency P2002 detection sanity check", () => {
       .catch((err: unknown) => err);
 
     expect(lastError).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
+  });
+});
+
+describe("withIdempotency — MT-013 IDEMPOTENCY_KEY_IN_PROGRESS deterministic branch", () => {
+  it("returns 409 IDEMPOTENCY_KEY_IN_PROGRESS when a same-key claim row exists with responseStatus = null", async () => {
+    const ctx = await seedUser();
+    const body = { amount: 100 };
+    const requestHash = createHash("sha256")
+      .update(`POST:${JSON.stringify(body)}`)
+      .digest("hex");
+
+    await factories.createIdempotencyKey(prisma, {
+      userId: ctx.userId,
+      endpoint: ENDPOINT,
+      key: VALID_HEADER_KEY,
+      requestHash,
+      responseStatus: null,
+      responseBody: Prisma.DbNull,
+    });
+
+    const handler = successHandler();
+    const wrapped = withIdempotency(handler, { endpoint: ENDPOINT });
+
+    const response = await wrapped(
+      { id: ctx.userId, email: ctx.email },
+      buildRequest(body),
+      buildContext()
+    );
+    const payload = (await response.json()) as { error: { code: string } };
+
+    expect(response.status).toBe(409);
+    expect(payload.error.code).toBe("IDEMPOTENCY_KEY_IN_PROGRESS");
+    expect(handler).not.toHaveBeenCalled();
   });
 });
