@@ -127,6 +127,51 @@ describe("markInvoicePaid — PROD-001 partial-paid guard", () => {
   });
 });
 
+describe("markInvoicePaid — PROD-002 TOCTOU regression — exactly-one Payment under concurrency", () => {
+  it("writes exactly one Payment, one PAID_MANUAL event, and one PAYMENT_RECORDED event when two concurrent calls race", async () => {
+    const seed = await seedSentInvoice(0);
+
+    const settled = await Promise.allSettled([
+      markInvoicePaid(seed.invoiceId, seed.userId),
+      markInvoicePaid(seed.invoiceId, seed.userId),
+    ]);
+
+    expect(settled).toHaveLength(2);
+    expect(settled.every((r) => r.status === "fulfilled")).toBe(true);
+
+    const successful = settled.filter(
+      (r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof markInvoicePaid>>> =>
+        r.status === "fulfilled" && r.value !== null
+    );
+
+    expect(successful).toHaveLength(1);
+
+    const payments = await prisma.payment.findMany({ where: { invoiceId: seed.invoiceRowId } });
+
+    expect(payments).toHaveLength(1);
+    expect(payments[0].amount).toBe(DEFAULT_TOTAL_CENTS);
+    expect(payments[0].method).toBe(PAYMENT_METHOD.MANUAL);
+
+    const paidEvents = await prisma.invoiceEvent.findMany({
+      where: { invoiceId: seed.invoiceRowId, type: INVOICE_EVENT.PAID_MANUAL },
+    });
+    const paymentEvents = await prisma.invoiceEvent.findMany({
+      where: { invoiceId: seed.invoiceRowId, type: INVOICE_EVENT.PAYMENT_RECORDED },
+    });
+
+    expect(paidEvents).toHaveLength(1);
+    expect(paymentEvents).toHaveLength(1);
+
+    const persisted = await prisma.invoice.findUniqueOrThrow({
+      where: { id: seed.invoiceRowId },
+    });
+
+    expect(persisted.status).toBe(INVOICE_STATUS.PAID);
+    expect(persisted.paidAmount).toBe(DEFAULT_TOTAL_CENTS);
+    expect(persisted.paidAt).not.toBeNull();
+  });
+});
+
 describe("markInvoiceViewed — CROSS-006 / REL-004 first-view-wins claim", () => {
   it("sets viewedAt and logs a VIEWED event on the first call", async () => {
     const seed = await seedSentInvoice(0);
