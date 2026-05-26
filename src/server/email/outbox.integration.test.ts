@@ -231,42 +231,65 @@ describe("processOutbox PENDING-only filter", () => {
   });
 });
 
-describe("processOutbox per-row failure isolation", () => {
-  it("attempts every PENDING row exactly once even when one dispatch throws unhandled", async () => {
+describe("processOutbox per-row failure isolation — MT-008 deterministic", () => {
+  it("isolates a per-row dispatch failure to the offending row keyed by payload subject, not call order", async () => {
     const ctx = await seedUserAndInvoice();
-    const rows = await Promise.all([
-      factories.createEmailOutbox(prisma, { userId: ctx.userId, relatedId: ctx.invoiceId }),
+    const failingSubject = "FAIL_ME_SUBJECT";
+    const failingRow = await factories.createEmailOutbox(prisma, {
+      userId: ctx.userId,
+      relatedId: ctx.invoiceId,
+      payload: {
+        from: "no-reply@test.local",
+        to: "recipient@test.local",
+        subject: failingSubject,
+        html: "<p>fail</p>",
+        text: "fail",
+      },
+    });
+    const okRows = await Promise.all([
       factories.createEmailOutbox(prisma, { userId: ctx.userId, relatedId: ctx.invoiceId }),
       factories.createEmailOutbox(prisma, { userId: ctx.userId, relatedId: ctx.invoiceId }),
       factories.createEmailOutbox(prisma, { userId: ctx.userId, relatedId: ctx.invoiceId }),
       factories.createEmailOutbox(prisma, { userId: ctx.userId, relatedId: ctx.invoiceId }),
     ]);
 
-    sendEmailMock.mockImplementation(async () => {
-      if (sendEmailMock.mock.calls.length === 3) {
-        throw new Error("inflight resend failure");
+    sendEmailMock.mockImplementation(async (payload: unknown) => {
+      const subject =
+        typeof payload === "object" && payload !== null
+          ? (payload as { subject?: unknown }).subject
+          : undefined;
+
+      if (subject === failingSubject) {
+        throw new Error("deterministic resend failure for FAIL_ME_SUBJECT");
       }
 
       return buildSuccessResponse();
     });
 
+    const totalRows = okRows.length + 1;
     const result = await processOutbox();
 
-    expect(result.attempted).toBe(rows.length);
-    expect(sendEmailMock).toHaveBeenCalledTimes(rows.length);
+    expect(result.attempted).toBe(totalRows);
+    expect(sendEmailMock).toHaveBeenCalledTimes(totalRows);
 
-    const states = await prisma.emailOutbox.findMany({
-      where: { id: { in: rows.map((r) => r.id) } },
+    const failingState = await prisma.emailOutbox.findUniqueOrThrow({
+      where: { id: failingRow.id },
       select: { id: true, status: true, attempts: true },
     });
 
-    expect(states).toHaveLength(rows.length);
+    expect(failingState.status).toBe(EMAIL_OUTBOX_STATUS.PENDING);
+    expect(failingState.attempts).toBe(1);
 
-    const sentStates = states.filter((s) => s.status === EMAIL_OUTBOX_STATUS.SENT);
-    const pendingStates = states.filter((s) => s.status === EMAIL_OUTBOX_STATUS.PENDING);
+    const okStates = await prisma.emailOutbox.findMany({
+      where: { id: { in: okRows.map((r) => r.id) } },
+      select: { id: true, status: true, attempts: true },
+    });
 
-    expect(sentStates).toHaveLength(rows.length - 1);
-    expect(pendingStates).toHaveLength(1);
-    expect(pendingStates[0].attempts).toBe(1);
+    expect(okStates).toHaveLength(okRows.length);
+
+    for (const state of okStates) {
+      expect(state.status).toBe(EMAIL_OUTBOX_STATUS.SENT);
+      expect(state.attempts).toBe(0);
+    }
   });
 });
