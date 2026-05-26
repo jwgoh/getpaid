@@ -17,6 +17,7 @@ const PG_UNIQUE_VIOLATION = "P2002";
 const HANDLER_DELAY_MS = 80;
 const CACHED_STATUS = 201;
 const REUSED_STATUS = 422;
+const IN_PROGRESS_STATUS = 409;
 const RESPONSE_BODY = { ok: true };
 
 interface IdempotencyContext {
@@ -140,7 +141,7 @@ describe("withIdempotency body-hash mismatch", () => {
 });
 
 describe("withIdempotency concurrent same-key serialization", () => {
-  it("runs the handler exactly once and serves the cached response on the loser when two same-key requests race", async () => {
+  it("runs the handler exactly once and returns 409 IN_PROGRESS to the loser while the winner is mid-handler", async () => {
     const ctx = await seedUser();
     let runs = 0;
     const handler = vi.fn(async () => {
@@ -161,10 +162,7 @@ describe("withIdempotency concurrent same-key serialization", () => {
     const statuses = [resA.status, resB.status];
 
     expect(statuses).toContain(CACHED_STATUS);
-
-    const loser = resA.status === CACHED_STATUS ? resB : resA;
-
-    expect(loser.status).toBe(CACHED_STATUS);
+    expect(statuses).toContain(IN_PROGRESS_STATUS);
   });
 });
 
