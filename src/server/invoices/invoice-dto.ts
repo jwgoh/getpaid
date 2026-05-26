@@ -8,6 +8,7 @@ import {
 } from "@app/shared/config/invoice-status";
 import type { PaymentMethodValue } from "@app/shared/config/payment-method";
 import { parseInvoiceTags } from "@app/shared/schemas/invoice";
+import { asCents, type Cents } from "@app/shared/types/money";
 
 import { ITEM_GROUPS_INCLUDE } from "./item-groups";
 
@@ -44,8 +45,8 @@ export interface InvoiceItemDTO {
   title: string;
   description: string | null;
   quantity: number;
-  unitPrice: number;
-  amount: number;
+  unitPrice: Cents;
+  amount: Cents;
   sortOrder: number;
 }
 
@@ -66,7 +67,7 @@ export interface InvoiceEventDTO {
 export interface InvoicePaymentDTO {
   id: string;
   invoiceId: string;
-  amount: number;
+  amount: Cents;
   method: PaymentMethodValue;
   note: string | null;
   paidAt: string;
@@ -78,8 +79,8 @@ export interface InvoiceListItemDTO {
   publicId: string;
   status: InvoiceStatusValue;
   currency: string;
-  total: number;
-  paidAmount: number;
+  total: Cents;
+  paidAmount: Cents;
   dueDate: string;
   tags: string[];
   createdAt: string;
@@ -91,14 +92,14 @@ export interface InvoiceDetailDTO {
   publicId: string;
   status: InvoiceStatusValue;
   currency: string;
-  subtotal: number;
+  subtotal: Cents;
   discountType: DiscountTypeValue | null;
   discountValue: number;
-  discountAmount: number;
+  discountAmount: Cents;
   taxRate: number;
-  taxAmount: number;
-  total: number;
-  paidAmount: number;
+  taxAmount: Cents;
+  total: Cents;
+  paidAmount: Cents;
   dueDate: string;
   periodStart: string | null;
   periodEnd: string | null;
@@ -124,8 +125,8 @@ function toItemDTO(item: InvoiceDetailRow["items"][number]): InvoiceItemDTO {
     title: item.title,
     description: item.description,
     quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    amount: item.amount,
+    unitPrice: asCents(item.unitPrice),
+    amount: asCents(item.amount),
     sortOrder: item.sortOrder,
   };
 }
@@ -152,7 +153,7 @@ function toPaymentDTO(payment: InvoiceDetailRow["payments"][number]): InvoicePay
   return {
     id: payment.id,
     invoiceId: payment.invoiceId,
-    amount: payment.amount,
+    amount: asCents(payment.amount),
     method: payment.method as PaymentMethodValue,
     note: payment.note,
     paidAt: payment.paidAt.toISOString(),
@@ -169,8 +170,8 @@ export function toInvoiceListItemDTO(
     publicId: row.publicId,
     status,
     currency: row.currency,
-    total: row.total,
-    paidAmount: row.paidAmount,
+    total: asCents(row.total),
+    paidAmount: asCents(row.paidAmount),
     dueDate: row.dueDate.toISOString(),
     tags: parseInvoiceTags(row.tags),
     createdAt: row.createdAt.toISOString(),
@@ -190,14 +191,14 @@ export function toInvoiceDetailDTO(
     publicId: row.publicId,
     status,
     currency: row.currency,
-    subtotal: row.subtotal,
+    subtotal: asCents(row.subtotal),
     discountType: isDiscountType(row.discountType) ? row.discountType : null,
     discountValue: row.discountValue,
-    discountAmount: row.discountAmount,
+    discountAmount: asCents(row.discountAmount),
     taxRate: row.taxRate,
-    taxAmount: row.taxAmount,
-    total: row.total,
-    paidAmount: row.paidAmount,
+    taxAmount: asCents(row.taxAmount),
+    total: asCents(row.total),
+    paidAmount: asCents(row.paidAmount),
     dueDate: row.dueDate.toISOString(),
     periodStart: row.periodStart?.toISOString() ?? null,
     periodEnd: row.periodEnd?.toISOString() ?? null,

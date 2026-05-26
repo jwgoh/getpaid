@@ -10,6 +10,7 @@ import {
   type InvoiceId,
   type UserId,
 } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 import { deletePayment, PaymentExceedsBalanceError, recordPayment } from "@app/server/invoices";
@@ -79,7 +80,7 @@ describe("recordPayment — balance computation", () => {
     const scenario = await seedInvoice(INVOICE_STATUS.SENT, HUNDRED_DOLLARS_CENTS, 0);
 
     const result = await recordPayment(scenario.invoiceId, scenario.userId, {
-      amount: FIFTY_DOLLARS_CENTS,
+      amount: asCents(FIFTY_DOLLARS_CENTS),
       method: PAYMENT_METHOD.BANK_TRANSFER,
     });
 
@@ -107,7 +108,7 @@ describe("recordPayment — balance computation", () => {
     const scenario = await seedInvoice(INVOICE_STATUS.SENT, FIFTY_DOLLARS_CENTS, 0);
 
     const result = await recordPayment(scenario.invoiceId, scenario.userId, {
-      amount: FIFTY_DOLLARS_CENTS,
+      amount: asCents(FIFTY_DOLLARS_CENTS),
       method: PAYMENT_METHOD.MANUAL,
     });
 
@@ -129,7 +130,7 @@ describe("recordPayment — balance computation", () => {
     );
 
     await recordPayment(scenario.invoiceId, scenario.userId, {
-      amount: FIFTY_DOLLARS_CENTS,
+      amount: asCents(FIFTY_DOLLARS_CENTS),
       method: PAYMENT_METHOD.MANUAL,
     });
 
@@ -147,7 +148,7 @@ describe("recordPayment — Invoice_paidAmount_lte_total_check boundary", () => 
 
     await expect(
       recordPayment(scenario.invoiceId, scenario.userId, {
-        amount: HUNDRED_DOLLARS_CENTS,
+        amount: asCents(HUNDRED_DOLLARS_CENTS),
         method: PAYMENT_METHOD.BANK_TRANSFER,
       })
     ).rejects.toBeInstanceOf(PaymentExceedsBalanceError);
@@ -182,11 +183,11 @@ describe("recordPayment — Invoice_paidAmount_lte_total_check boundary", () => 
 
     const results = await Promise.allSettled([
       recordPayment(scenario.invoiceId, scenario.userId, {
-        amount: RACE_PAYMENT_CENTS,
+        amount: asCents(RACE_PAYMENT_CENTS),
         method: PAYMENT_METHOD.BANK_TRANSFER,
       }),
       recordPayment(scenario.invoiceId, scenario.userId, {
-        amount: RACE_PAYMENT_CENTS,
+        amount: asCents(RACE_PAYMENT_CENTS),
         method: PAYMENT_METHOD.BANK_TRANSFER,
       }),
     ]);

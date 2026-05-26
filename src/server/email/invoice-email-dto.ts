@@ -1,6 +1,7 @@
 import type { SenderProfile } from "@prisma/client";
 
 import { BRANDING } from "@app/shared/config/config";
+import { asCents } from "@app/shared/types/money";
 
 import type { EmailBranding } from "./index";
 import type { EmailItemGroup, EmailLineItem } from "./template";
@@ -33,8 +34,8 @@ export function mapInvoiceItem(item: InvoiceItemSource): EmailLineItem {
     title: item.title,
     description: item.description,
     quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    amount: item.amount,
+    unitPrice: asCents(item.unitPrice),
+    amount: asCents(item.amount),
   };
 }
 

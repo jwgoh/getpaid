@@ -1,5 +1,6 @@
 import { EMAIL, FONT_FAMILY_MAP } from "@app/shared/config/config";
 import { formatCurrency } from "@app/shared/lib/format";
+import { type Cents, sumCents } from "@app/shared/types/money";
 
 import { escapeHtml } from "./escape";
 
@@ -7,8 +8,8 @@ export interface EmailLineItem {
   title: string;
   description?: string | null;
   quantity: number;
-  unitPrice: number;
-  amount: number;
+  unitPrice: Cents;
+  amount: Cents;
 }
 
 export interface EmailItemGroup {
@@ -97,7 +98,7 @@ export function buildLineItemsTable(
 
   if (itemGroups?.length) {
     for (const group of itemGroups) {
-      const groupTotal = group.items.reduce((sum, item) => sum + item.amount, 0);
+      const groupTotal = sumCents(group.items.map((item) => item.amount));
 
       rows += `<tr style="background: #f5f5f5;">
         <td colspan="3" style="padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #eee;">${escapeHtml(group.title)}</td>

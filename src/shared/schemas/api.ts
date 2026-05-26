@@ -3,6 +3,7 @@ import { z } from "zod";
 import { DISCOUNT_TYPE, INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 import { asClientId, asInvoiceId, asPaymentId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 const invoiceStatusSchema = z.nativeEnum(INVOICE_STATUS);
 const invoiceEventTypeSchema = z.nativeEnum(INVOICE_EVENT);
@@ -32,7 +33,10 @@ export const clientSchema = z.object({
   id: z.string().transform(asClientId),
   name: z.string(),
   email: z.string(),
-  defaultRate: z.number().nullable(),
+  defaultRate: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -44,8 +48,8 @@ export const invoiceItemResponseSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   quantity: z.number(),
-  unitPrice: z.number(),
-  amount: z.number(),
+  unitPrice: z.number().transform(asCents),
+  amount: z.number().transform(asCents),
   sortOrder: z.number().optional(),
 });
 
@@ -66,7 +70,7 @@ export const invoiceEventSchema = z.object({
 export const paymentSchema = z.object({
   id: z.string().transform(asPaymentId),
   invoiceId: z.string().transform(asInvoiceId),
-  amount: z.number(),
+  amount: z.number().transform(asCents),
   method: paymentMethodSchema,
   note: z.string().nullable(),
   paidAt: z.string(),
@@ -80,14 +84,14 @@ export const invoiceSchema = z.object({
   publicId: z.string(),
   status: invoiceStatusSchema,
   currency: z.string(),
-  subtotal: z.number(),
+  subtotal: z.number().transform(asCents),
   discountType: discountTypeSchema.nullable(),
   discountValue: z.number(),
-  discountAmount: z.number(),
+  discountAmount: z.number().transform(asCents),
   taxRate: z.number(),
-  taxAmount: z.number(),
-  total: z.number(),
-  paidAmount: z.number(),
+  taxAmount: z.number().transform(asCents),
+  total: z.number().transform(asCents),
+  paidAmount: z.number().transform(asCents),
   dueDate: z.string(),
   periodStart: z.string().nullable(),
   periodEnd: z.string().nullable(),
@@ -112,8 +116,8 @@ export const invoiceListItemSchema = z.object({
   publicId: z.string(),
   status: invoiceStatusSchema,
   currency: z.string(),
-  total: z.number(),
-  paidAmount: z.number(),
+  total: z.number().transform(asCents),
+  paidAmount: z.number().transform(asCents),
   dueDate: z.string(),
   tags: z.array(z.string()),
   createdAt: z.string(),
@@ -136,41 +140,44 @@ export const senderProfileResponseSchema = z.object({
   footerText: z.string().nullable(),
   fontFamily: z.string().nullable(),
   invoicePrefix: z.string().nullable(),
-  defaultRate: z.number().nullable(),
+  defaultRate: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
 });
 
 export const monthlyRevenueSchema = z.object({
   month: z.string(),
-  revenue: z.number(),
+  revenue: z.number().transform(asCents),
 });
 
 export const recentInvoiceSchema = z.object({
   id: z.string().transform(asInvoiceId),
   publicId: z.string(),
   clientName: z.string(),
-  total: z.number(),
+  total: z.number().transform(asCents),
   currency: z.string(),
   status: z.string(),
   createdAt: z.string(),
 });
 
 export const currencyMetricsSchema = z.object({
-  totalRevenue: z.number(),
-  revenueThisMonth: z.number(),
-  revenueLastMonth: z.number(),
-  outstandingBalance: z.number(),
-  overdueAmount: z.number(),
+  totalRevenue: z.number().transform(asCents),
+  revenueThisMonth: z.number().transform(asCents),
+  revenueLastMonth: z.number().transform(asCents),
+  outstandingBalance: z.number().transform(asCents),
+  overdueAmount: z.number().transform(asCents),
   monthlyRevenue: z.array(monthlyRevenueSchema),
 });
 
 export const analyticsDataSchema = z.object({
   currencies: z.array(z.string()),
   byCurrency: z.record(z.string(), currencyMetricsSchema),
-  totalRevenue: z.number(),
-  revenueThisMonth: z.number(),
-  revenueLastMonth: z.number(),
-  outstandingBalance: z.number(),
-  overdueAmount: z.number(),
+  totalRevenue: z.number().transform(asCents),
+  revenueThisMonth: z.number().transform(asCents),
+  revenueLastMonth: z.number().transform(asCents),
+  outstandingBalance: z.number().transform(asCents),
+  overdueAmount: z.number().transform(asCents),
   totalInvoices: z.number(),
   paidInvoices: z.number(),
   overdueInvoices: z.number(),
@@ -264,8 +271,8 @@ export const publicInvoiceSchema = z.object({
   publicId: z.string(),
   status: z.string(),
   currency: z.string(),
-  subtotal: z.number(),
-  total: z.number(),
+  subtotal: z.number().transform(asCents),
+  total: z.number().transform(asCents),
   dueDate: z.string(),
   periodStart: z.string().nullable(),
   periodEnd: z.string().nullable(),

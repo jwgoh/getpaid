@@ -6,6 +6,7 @@ import {
   type InvoiceStatusValue,
 } from "@app/shared/config/invoice-status";
 import { asPaymentId, type InvoiceId, type PaymentId, type UserId } from "@app/shared/types/ids";
+import { asCents, type Cents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 
@@ -53,7 +54,7 @@ function isRecordNotFoundError(error: unknown): boolean {
 }
 
 export interface RecordPaymentInput {
-  amount: number;
+  amount: Cents;
   method: PaymentMethod;
   note?: string;
   paidAt?: Date;
@@ -67,7 +68,7 @@ interface PaymentLogPayload {
   event: string;
   invoiceId: InvoiceId;
   userId: UserId;
-  amount?: number;
+  amount?: Cents;
   paymentId?: PaymentId;
   idempotencyKey?: string;
   reason?: string;
@@ -260,6 +261,8 @@ export async function deletePayment(
     return null;
   }
 
+  const paymentAmount = asCents(payment.amount);
+
   try {
     const updatedInvoice = await prisma.$transaction(async (tx) => {
       await tx.payment.delete({
@@ -268,7 +271,7 @@ export async function deletePayment(
 
       const decremented = await tx.invoice.update({
         where: { id: payment.invoiceId },
-        data: { paidAmount: { decrement: payment.amount } },
+        data: { paidAmount: { decrement: paymentAmount } },
         select: { paidAmount: true, viewedAt: true },
       });
 
@@ -304,7 +307,7 @@ export async function deletePayment(
           type: INVOICE_EVENT.PAYMENT_DELETED,
           payload: {
             paymentId,
-            amount: payment.amount,
+            amount: paymentAmount,
             method: payment.method,
             actorUserId: userId,
             previousStatus: payment.invoice.status,
@@ -320,7 +323,7 @@ export async function deletePayment(
       event: "payment.deleted",
       invoiceId,
       userId,
-      amount: payment.amount,
+      amount: paymentAmount,
       paymentId,
       idempotencyKey: context.idempotencyKey,
     });
@@ -332,7 +335,7 @@ export async function deletePayment(
         event: "payment.delete.race.payment_deleted",
         invoiceId,
         userId,
-        amount: payment.amount,
+        amount: paymentAmount,
         paymentId,
         idempotencyKey: context.idempotencyKey,
         reason: "payment or invoice deleted concurrently during delete",
