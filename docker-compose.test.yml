@@ -6,8 +6,8 @@ services:
       POSTGRES_DB: "getpaid_test"
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
-    volumes:
-      - getpaid_test_pgdata:/var/lib/postgresql/data
+    tmpfs:
+      - /var/lib/postgresql/data
     ports:
       - "5434:5432"
     healthcheck:
@@ -15,6 +15,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-volumes:
-  getpaid_test_pgdata:
