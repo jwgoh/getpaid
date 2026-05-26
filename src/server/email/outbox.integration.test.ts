@@ -262,14 +262,11 @@ describe("processOutbox per-row failure isolation", () => {
 
     expect(states).toHaveLength(rows.length);
 
-    const sentCount = states.filter((s) => s.status === EMAIL_OUTBOX_STATUS.SENT).length;
-    const stillPendingCount = states.filter((s) => s.status === EMAIL_OUTBOX_STATUS.PENDING).length;
+    const sentStates = states.filter((s) => s.status === EMAIL_OUTBOX_STATUS.SENT);
+    const pendingStates = states.filter((s) => s.status === EMAIL_OUTBOX_STATUS.PENDING);
 
-    expect(sentCount).toBeGreaterThanOrEqual(rows.length - 1);
-    expect(sentCount + stillPendingCount).toBe(rows.length);
-
-    for (const state of states) {
-      expect(state.attempts).toBeGreaterThanOrEqual(1);
-    }
+    expect(sentStates).toHaveLength(rows.length - 1);
+    expect(pendingStates).toHaveLength(1);
+    expect(pendingStates[0].attempts).toBe(1);
   });
 });
