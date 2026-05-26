@@ -1,11 +1,11 @@
-import { CURRENCY } from "@app/shared/config/config";
+import { type Cents, toDollars } from "@app/shared/types/money";
 
 interface InvoiceExportData {
   id: string;
   publicId: string;
   status: string;
   currency: string;
-  total: number;
+  total: Cents;
   dueDate: string;
   createdAt: string;
   client: {
@@ -68,7 +68,7 @@ export function exportInvoicesToCSV(invoices: InvoiceExportData[]): void {
     clientName: invoice.client.name,
     clientEmail: invoice.client.email,
     status: invoice.status,
-    amount: (invoice.total / CURRENCY.CENTS_MULTIPLIER).toFixed(2),
+    amount: toDollars(invoice.total).toFixed(2),
     currency: invoice.currency,
     dueDate: new Date(invoice.dueDate).toLocaleDateString(),
     createdAt: new Date(invoice.createdAt).toLocaleDateString(),

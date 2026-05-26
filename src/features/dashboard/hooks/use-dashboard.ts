@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { asCents } from "@app/shared/types/money";
+
 import type { MonthlyRevenue } from "..";
 import { useAnalytics } from ".";
 
@@ -33,11 +35,11 @@ function deriveCurrencyValues(
   if (!source) {
     return {
       displayCurrency,
-      totalRevenue: 0,
-      revenueThisMonth: 0,
-      revenueLastMonth: 0,
-      outstandingBalance: 0,
-      overdueAmount: 0,
+      totalRevenue: asCents(0),
+      revenueThisMonth: asCents(0),
+      revenueLastMonth: asCents(0),
+      outstandingBalance: asCents(0),
+      overdueAmount: asCents(0),
       monthlyRevenue: EMPTY_MONTHLY_REVENUE,
     };
   }

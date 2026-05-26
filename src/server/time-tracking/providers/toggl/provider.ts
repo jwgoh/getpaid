@@ -1,5 +1,6 @@
-import { CURRENCY, DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
+import { DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
 import { runWithConcurrency } from "@app/shared/lib/concurrency";
+import { addCents, asCents, type Cents, fromDollars } from "@app/shared/types/money";
 
 import type {
   NormalizedClient,
@@ -109,31 +110,31 @@ function mapGroup(
   const groupTitle = (group.id !== null ? groupNames.get(String(group.id)) : null) ?? "Ungrouped";
 
   let groupSeconds = 0;
-  let groupAmountCents: number | null = null;
+  let groupAmountCents: Cents | null = null;
 
   const items: TimeEntryItem[] = group.sub_groups.map((sub) => {
     groupSeconds += sub.seconds;
 
-    let itemAmountCents: number | null = null;
-    let itemRateCents: number | null = null;
+    let itemAmountCents: Cents | null = null;
+    let itemRateCents: Cents | null = null;
     let itemCurrency: string | null = null;
 
     if (sub.rates.length > 0) {
       const rate = sub.rates[0];
 
-      itemRateCents = rate.hourly_rate_in_cents;
+      itemRateCents = asCents(rate.hourly_rate_in_cents);
       itemCurrency = rate.currency;
       const roundedHours =
         Math.round((sub.seconds / TIME_TRACKING.SECONDS_PER_HOUR) * DECIMAL_ROUNDING_FACTOR) /
         DECIMAL_ROUNDING_FACTOR;
 
-      itemAmountCents = Math.round(roundedHours * rate.hourly_rate_in_cents);
+      itemAmountCents = asCents(Math.round(roundedHours * rate.hourly_rate_in_cents));
 
       if (groupAmountCents === null) {
-        groupAmountCents = 0;
+        groupAmountCents = asCents(0);
       }
 
-      groupAmountCents += itemAmountCents;
+      groupAmountCents = addCents(groupAmountCents, itemAmountCents);
     }
 
     const subId = sub.id !== null ? String(sub.id) : `sub-${groupId}-${sub.seconds}`;
@@ -188,9 +189,7 @@ export const togglProvider: TimeTrackingProvider = {
       id: String(ws.id),
       name: ws.name,
       defaultCurrency: ws.default_currency || null,
-      defaultHourlyRateCents: ws.default_hourly_rate
-        ? Math.round(ws.default_hourly_rate * CURRENCY.CENTS_MULTIPLIER)
-        : null,
+      defaultHourlyRateCents: ws.default_hourly_rate ? fromDollars(ws.default_hourly_rate) : null,
       roundingDirection: ROUNDING_DIRECTION_MAP[ws.rounding] ?? "nearest",
       roundingMinutes: ws.rounding_minutes,
     }));
@@ -217,7 +216,7 @@ export const togglProvider: TimeTrackingProvider = {
       billable: p.billable,
       color: p.color || null,
       currency: p.currency || null,
-      rateCents: p.rate ? Math.round(p.rate * CURRENCY.CENTS_MULTIPLIER) : null,
+      rateCents: p.rate ? fromDollars(p.rate) : null,
     }));
   },
 
@@ -263,7 +262,7 @@ export const togglProvider: TimeTrackingProvider = {
     ]);
 
     let totalSeconds = 0;
-    let totalAmountCents: number | null = null;
+    let totalAmountCents: Cents | null = null;
     let detectedCurrency: string | null = null;
 
     const groups: TimeEntryGroup[] = response.groups.map((group) => {
@@ -273,10 +272,10 @@ export const togglProvider: TimeTrackingProvider = {
 
       if (mapped.totalAmountCents !== null) {
         if (totalAmountCents === null) {
-          totalAmountCents = 0;
+          totalAmountCents = asCents(0);
         }
 
-        totalAmountCents += mapped.totalAmountCents;
+        totalAmountCents = addCents(totalAmountCents, mapped.totalAmountCents);
       }
 
       if (!detectedCurrency) {

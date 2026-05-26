@@ -4,9 +4,9 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import { extractApiErrorMessage } from "@app/shared/api";
-import { CURRENCY } from "@app/shared/config/config";
 import { useToast } from "@app/shared/hooks/use-toast";
 import type { CreateInvoiceInput, InvoiceFormInput, UpdateInvoiceInput } from "@app/shared/schemas";
+import { fromDollars } from "@app/shared/types/money";
 
 import type { InvoiceFormMode } from "../types";
 import { useCreateInvoice, useUpdateInvoice } from ".";
@@ -22,7 +22,7 @@ type TransformedItems = ReturnType<typeof transformForSubmit>;
 function transformForSubmit(data: InvoiceFormInput) {
   const items = data.items.map((item, i) => ({
     ...item,
-    unitPrice: Math.round(item.unitPrice * CURRENCY.CENTS_MULTIPLIER),
+    unitPrice: fromDollars(item.unitPrice),
     sortOrder: i,
   }));
 
@@ -31,7 +31,7 @@ function transformForSubmit(data: InvoiceFormInput) {
     sortOrder: gi,
     items: group.items.map((item, ii) => ({
       ...item,
-      unitPrice: Math.round(item.unitPrice * CURRENCY.CENTS_MULTIPLIER),
+      unitPrice: fromDollars(item.unitPrice),
       sortOrder: ii,
     })),
   }));

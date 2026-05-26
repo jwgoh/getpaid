@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { BRANDING, VALIDATION } from "@app/shared/config/config";
+import { asCents } from "@app/shared/types/money";
 
 import { SCHEMA_LIMITS } from "./limits";
 
@@ -65,7 +66,13 @@ export const senderProfileSchema = z.object({
     .max(VALIDATION.MAX_PREFIX_LENGTH)
     .regex(/^[A-Za-z0-9]*$/, "Only letters and numbers allowed")
     .optional(),
-  defaultRate: z.number().int().min(0).max(SCHEMA_LIMITS.MONEY_MAX_CENTS).optional(),
+  defaultRate: z
+    .number()
+    .int()
+    .min(0)
+    .max(SCHEMA_LIMITS.MONEY_MAX_CENTS)
+    .optional()
+    .transform((v) => (v === undefined ? undefined : asCents(v))),
 });
 
 export const createSenderProfileSchema = senderProfileSchema.refine(
@@ -79,5 +86,5 @@ export const createSenderProfileSchema = senderProfileSchema.refine(
 );
 
 export type FontFamilyOption = (typeof FONT_FAMILY_OPTIONS)[number];
-export type SenderProfileFormInput = z.infer<typeof senderProfileFormSchema>;
+export type SenderProfileFormInput = z.input<typeof senderProfileFormSchema>;
 export type SenderProfileInput = z.infer<typeof senderProfileSchema>;

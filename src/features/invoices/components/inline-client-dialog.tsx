@@ -17,7 +17,8 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
-import { CreateClientInput, createClientSchema } from "@app/shared/schemas";
+import { ClientFormInput, clientFormSchema, type CreateClientInput } from "@app/shared/schemas";
+import { fromDollars } from "@app/shared/types/money";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 interface InlineClientDialogProps {
@@ -41,12 +42,16 @@ export function InlineClientDialog({
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CreateClientInput>({
-    resolver: zodResolver(createClientSchema),
+  } = useForm<ClientFormInput>({
+    resolver: zodResolver(clientFormSchema),
   });
 
-  const onSubmit = (data: CreateClientInput) => {
-    onSubmitProp(data);
+  const onSubmit = (data: ClientFormInput) => {
+    onSubmitProp({
+      name: data.name,
+      email: data.email,
+      defaultRate: data.defaultRate !== undefined ? fromDollars(data.defaultRate) : undefined,
+    });
   };
 
   React.useEffect(() => {

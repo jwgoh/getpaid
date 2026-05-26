@@ -138,7 +138,7 @@ async function getItemsForCalculation(
     title: item.title,
     description: item.description ?? undefined,
     quantity: item.quantity,
-    unitPrice: item.unitPrice,
+    unitPrice: asCents(item.unitPrice),
   }));
 }
 
@@ -171,11 +171,7 @@ export async function updateInvoice(
       const discount = resolveDiscount(data, invoice);
       const taxRate = data.taxRate !== undefined ? data.taxRate : invoice.taxRate;
       const itemsForCalc = await getItemsForCalculation(tx, id, data);
-      const itemsForTotals = itemsForCalc.map((item) => ({
-        quantity: item.quantity,
-        unitPrice: asCents(item.unitPrice),
-      }));
-      const totals = calculateTotals(itemsForTotals, discount, taxRate);
+      const totals = calculateTotals(itemsForCalc, discount, taxRate);
 
       if (isMoneyLimitExceeded(totals, SCHEMA_LIMITS.MONEY_MAX_CENTS)) {
         throw new MoneyOverflowError();

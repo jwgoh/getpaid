@@ -91,7 +91,7 @@ export async function duplicateInvoice(
             title: item.title,
             description: item.description ?? undefined,
             quantity: item.quantity,
-            unitPrice: item.unitPrice,
+            unitPrice: asCents(item.unitPrice),
             sortOrder: item.sortOrder,
           })),
         }))

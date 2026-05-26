@@ -1,4 +1,5 @@
 import { CURRENCY } from "@app/shared/config/config";
+import { type Cents } from "@app/shared/types/money";
 
 export function formatCurrency(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
@@ -14,6 +15,14 @@ export function formatCurrencyCompact(amount: number, currency = "USD"): string 
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount / CURRENCY.CENTS_MULTIPLIER);
+}
+
+export function formatCents(amount: Cents, currency = "USD"): string {
+  return formatCurrency(amount, currency);
+}
+
+export function formatCentsCompact(amount: Cents, currency = "USD"): string {
+  return formatCurrencyCompact(amount, currency);
 }
 
 export function formatDate(date: string | Date): string {

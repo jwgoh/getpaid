@@ -5,6 +5,7 @@ import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status
 import { type CreateInvoiceInput } from "@app/shared/schemas";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
 import { asUserId, type UserId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 import { ClientNotFoundError, createInvoice, MoneyOverflowError } from "@app/server/invoices";
@@ -42,7 +43,7 @@ function buildBaseInput(clientId: string): CreateInvoiceInput {
       {
         title: "Consulting",
         quantity: DEFAULT_QUANTITY,
-        unitPrice: DEFAULT_UNIT_PRICE_CENTS,
+        unitPrice: asCents(DEFAULT_UNIT_PRICE_CENTS),
       },
     ],
   };
@@ -107,7 +108,7 @@ describe("createInvoice — money overflow service guard", () => {
         {
           title: "Massive line",
           quantity: SCHEMA_LIMITS.QUANTITY_MAX,
-          unitPrice: SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS,
+          unitPrice: asCents(SCHEMA_LIMITS.MONEY_MAX_LINE_ITEM_CENTS),
         },
       ],
       taxRate: OVERFLOW_TAX_RATE_PCT,

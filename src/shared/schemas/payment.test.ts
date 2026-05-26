@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PAYMENT_METHOD } from "@app/shared/config/payment-method";
 
+import { clientSchema } from "./api";
 import { recordPaymentApiSchema, recordPaymentSchema } from "./payment";
 
 function buildPayload(overrides: Record<string, unknown> = {}) {
@@ -93,5 +94,59 @@ describe("payment amount validation — integer cents (QA-001)", () => {
     const result = recordPaymentSchema.safeParse(buildPayload({ amount: 10_000 }));
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe("payment amount validation — non-finite", () => {
+  it("rejects NaN amount in recordPaymentApiSchema", () => {
+    const result = recordPaymentApiSchema.safeParse(buildPayload({ amount: NaN }));
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(["amount"]);
+    }
+  });
+
+  it("rejects Infinity amount in recordPaymentApiSchema", () => {
+    const result = recordPaymentApiSchema.safeParse(buildPayload({ amount: Infinity }));
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("clientSchema.defaultRate nullable transform", () => {
+  it("preserves null", () => {
+    const result = clientSchema.safeParse({
+      id: "c1",
+      name: "X",
+      email: "x@y.com",
+      defaultRate: null,
+      createdAt: "2025-01-01",
+      updatedAt: "2025-01-01",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.defaultRate).toBeNull();
+    }
+  });
+
+  it("brands non-null number as Cents", () => {
+    const result = clientSchema.safeParse({
+      id: "c1",
+      name: "X",
+      email: "x@y.com",
+      defaultRate: 10_000,
+      createdAt: "2025-01-01",
+      updatedAt: "2025-01-01",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.defaultRate).toBe(10_000);
+    }
   });
 });

@@ -9,7 +9,7 @@ import { Breadcrumbs } from "@app/shared/ui/breadcrumbs";
 import { CardSkeleton } from "@app/shared/ui/skeletons";
 
 import { useSenderProfile } from "@app/features/settings";
-import { useTemplate } from "@app/features/templates";
+import { mapTemplateToFormData, useTemplate } from "@app/features/templates";
 import { TemplateForm } from "@app/features/templates/components";
 
 export default function EditTemplatePage() {
@@ -57,34 +57,7 @@ export default function EditTemplatePage() {
         mode="edit"
         templateId={templateId}
         defaultCurrency={senderProfile?.defaultCurrency}
-        initialData={{
-          name: template.name,
-          description: template.description || "",
-          currency: template.currency,
-          discountType: template.discountType || "",
-          discountValue:
-            template.discountType === "FIXED"
-              ? template.discountValue / 100
-              : template.discountValue,
-          taxRate: template.taxRate,
-          notes: template.notes || "",
-          dueDays: template.dueDays,
-          items: template.items.map((item) => ({
-            title: item.title,
-            description: item.description || "",
-            quantity: item.quantity,
-            unitPrice: item.unitPrice / 100,
-          })),
-          itemGroups: template.itemGroups?.map((group) => ({
-            title: group.title,
-            items: group.items.map((item) => ({
-              title: item.title,
-              description: item.description || "",
-              quantity: item.quantity,
-              unitPrice: item.unitPrice / 100,
-            })),
-          })),
-        }}
+        initialData={mapTemplateToFormData(template)}
       />
     </AppLayout>
   );

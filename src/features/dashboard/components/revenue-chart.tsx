@@ -14,6 +14,7 @@ import {
 
 import { CHART } from "@app/shared/config/config";
 import { formatCurrencyCompact } from "@app/shared/lib/format";
+import { asCents, toDollars } from "@app/shared/types/money";
 import { CardSkeleton } from "@app/shared/ui/skeletons";
 
 import type { MonthlyRevenue } from "../api";
@@ -54,7 +55,7 @@ export function RevenueChart({ isLoading, monthlyRevenue, displayCurrency }: Rev
                 currency: displayCurrency,
                 notation: "compact",
                 maximumFractionDigits: 0,
-              }).format(value / 100)
+              }).format(toDollars(asCents(value as number)))
             }
           />
           <Tooltip

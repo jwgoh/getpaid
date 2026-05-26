@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useDragReorder, useUnsavedChanges } from "@app/shared/hooks";
 import { InvoiceFormInput, invoiceFormSchema } from "@app/shared/schemas";
 import type { Client } from "@app/shared/schemas/api";
+import { asCents, type Cents } from "@app/shared/types/money";
 
 import { computeSubtotal, getDefaultDueDate, getFormDefaults } from "../lib/invoice-calculations";
 import type {
@@ -33,7 +34,7 @@ interface UseInvoiceFormOptions {
   template?: TemplateData;
   templateLoading: boolean;
   createClientMutation: CreateClientMutation;
-  defaultRate?: number;
+  defaultRate?: Cents;
   defaultCurrency?: string;
 }
 
@@ -46,7 +47,7 @@ export function useInvoiceForm({
   template,
   templateLoading,
   createClientMutation,
-  defaultRate = 0,
+  defaultRate = asCents(0),
   defaultCurrency,
 }: UseInvoiceFormOptions) {
   const clientDialog = useClientDialog(createClientMutation);

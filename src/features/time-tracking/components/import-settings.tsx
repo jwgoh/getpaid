@@ -13,8 +13,9 @@ import {
   TextField,
 } from "@mui/material";
 
-import { CURRENCY, UI } from "@app/shared/config/config";
+import { UI } from "@app/shared/config/config";
 import type { ProviderInfo } from "@app/shared/schemas/api";
+import { type Cents, fromDollars, toDollars } from "@app/shared/types/money";
 
 import { BREAKDOWN_LABELS, RATE_SOURCE, type RateSource, ROUNDING_LABELS } from "../constants";
 
@@ -24,12 +25,12 @@ interface ImportSettingsProps {
   subGrouping: string;
   roundingMinutes: number;
   rateSource: RateSource;
-  customRate: number;
+  customRate: Cents;
   onGroupingChange: (value: string) => void;
   onSubGroupingChange: (value: string) => void;
   onRoundingChange: (value: number) => void;
   onRateSourceChange: (value: RateSource) => void;
-  onCustomRateChange: (value: number) => void;
+  onCustomRateChange: (value: Cents) => void;
 }
 
 export function ImportSettings({
@@ -144,10 +145,8 @@ export function ImportSettings({
             size="small"
             type="number"
             label="Rate/hr"
-            value={customRate / CURRENCY.CENTS_MULTIPLIER || ""}
-            onChange={(e) =>
-              onCustomRateChange(Math.round(Number(e.target.value) * CURRENCY.CENTS_MULTIPLIER))
-            }
+            value={toDollars(customRate) || ""}
+            onChange={(e) => onCustomRateChange(fromDollars(Number(e.target.value)))}
             slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
             sx={{ width: UI.FIELD_WIDTH_RATE }}
           />

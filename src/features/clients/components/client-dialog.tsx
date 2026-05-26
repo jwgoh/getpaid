@@ -18,10 +18,11 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { extractApiErrorMessage } from "@app/shared/api";
-import { CURRENCY, type FormMode } from "@app/shared/config/config";
+import { type FormMode } from "@app/shared/config/config";
 import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { type Client, ClientFormInput, clientFormSchema } from "@app/shared/schemas";
+import { asCents, fromDollars, toDollars } from "@app/shared/types/money";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 import { useCreateClient, useUpdateClient } from "../hooks";
@@ -48,7 +49,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
     defaultValues: {
       name: client?.name || "",
       email: client?.email || "",
-      defaultRate: client?.defaultRate ? client.defaultRate / CURRENCY.CENTS_MULTIPLIER : undefined,
+      defaultRate: client?.defaultRate ? toDollars(asCents(client.defaultRate)) : undefined,
     },
   });
 
@@ -57,9 +58,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
       reset({
         name: client?.name || "",
         email: client?.email || "",
-        defaultRate: client?.defaultRate
-          ? client.defaultRate / CURRENCY.CENTS_MULTIPLIER
-          : undefined,
+        defaultRate: client?.defaultRate ? toDollars(asCents(client.defaultRate)) : undefined,
       });
     }
   }, [open, client, reset]);
@@ -76,9 +75,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
     setError(null);
     const data = {
       ...formData,
-      defaultRate: formData.defaultRate
-        ? Math.round(formData.defaultRate * CURRENCY.CENTS_MULTIPLIER)
-        : undefined,
+      defaultRate: formData.defaultRate ? fromDollars(formData.defaultRate) : undefined,
     };
 
     if (mode === "create") {

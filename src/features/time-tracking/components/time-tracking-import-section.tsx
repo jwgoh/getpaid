@@ -3,7 +3,8 @@
 import TimerIcon from "@mui/icons-material/Timer";
 import { Button, Stack } from "@mui/material";
 
-import type { InvoiceItemGroupInput } from "@app/shared/schemas";
+import type { InvoiceFormInput } from "@app/shared/schemas";
+import type { Cents } from "@app/shared/types/money";
 
 import type { ImportedGroup } from "../api";
 import { useTimeTrackingConnections, useTimeTrackingProviders } from "../hooks";
@@ -12,8 +13,8 @@ import { mapImportedGroups } from "../lib/import-utils";
 import { ImportDrawer } from "./import-drawer";
 
 interface TimeTrackingImportSectionProps {
-  onImport: (groups: InvoiceItemGroupInput[]) => void;
-  getpaidRateCents: number;
+  onImport: (groups: NonNullable<InvoiceFormInput["itemGroups"]>) => void;
+  getpaidRateCents: Cents;
 }
 
 export function TimeTrackingImportSection({

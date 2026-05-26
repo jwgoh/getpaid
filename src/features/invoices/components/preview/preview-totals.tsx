@@ -3,10 +3,11 @@
 import { Box, Divider, Stack, Typography } from "@mui/material";
 
 import { formatCurrency } from "@app/shared/lib/format";
+import type { Cents } from "@app/shared/types/money";
 
 interface PreviewTotalsProps {
-  subtotal: number;
-  total: number;
+  subtotal: Cents;
+  total: Cents;
   currency: string;
 }
 

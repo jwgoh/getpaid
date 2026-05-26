@@ -1,17 +1,13 @@
 import { DISCOUNT_TYPE, isDiscountType } from "@app/shared/config/invoice-status";
 import { buildDiscountInput, calculateTotals } from "@app/shared/lib/calculations";
 import type { Template, TemplateFormData } from "@app/shared/schemas";
-import { asCents } from "@app/shared/types/money";
+import { fromDollars } from "@app/shared/types/money";
 
 export function calculateEstimatedTotal(template: Template) {
   const allItems = [...template.items, ...template.itemGroups.flatMap((g) => g.items)];
-  const itemsForTotals = allItems.map((item) => ({
-    quantity: item.quantity,
-    unitPrice: asCents(item.unitPrice),
-  }));
 
   const { total } = calculateTotals(
-    itemsForTotals,
+    allItems,
     buildDiscountInput(template.discountType, template.discountValue),
     template.taxRate
   );
@@ -24,8 +20,7 @@ function buildDiscount(discountType: string | undefined, discountValue: number |
     return undefined;
   }
 
-  const value =
-    discountType === DISCOUNT_TYPE.FIXED ? Math.round(discountValue * 100) : discountValue;
+  const value = discountType === DISCOUNT_TYPE.FIXED ? fromDollars(discountValue) : discountValue;
 
   return { type: discountType, value };
 }
@@ -43,7 +38,7 @@ export function buildSubmitData(data: TemplateFormData) {
       title: item.title,
       description: item.description || undefined,
       quantity: item.quantity,
-      unitPrice: Math.round(item.unitPrice * 100),
+      unitPrice: fromDollars(item.unitPrice),
     })),
     itemGroups: data.itemGroups?.map((group) => ({
       title: group.title,
@@ -51,7 +46,7 @@ export function buildSubmitData(data: TemplateFormData) {
         title: item.title,
         description: item.description || undefined,
         quantity: item.quantity,
-        unitPrice: Math.round(item.unitPrice * 100),
+        unitPrice: fromDollars(item.unitPrice),
       })),
     })),
   };

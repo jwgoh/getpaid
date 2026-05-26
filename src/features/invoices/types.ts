@@ -1,4 +1,5 @@
-import type { CreateClientInput, InvoiceItemGroupInput } from "@app/shared/schemas";
+import type { CreateClientInput, InvoiceFormInput } from "@app/shared/schemas";
+import type { Cents } from "@app/shared/types/money";
 
 export type { FormMode as InvoiceFormMode } from "@app/shared/config/config";
 
@@ -7,10 +8,10 @@ export interface TemplateData {
   currency: string;
   dueDays: number;
   notes: string | null;
-  items: { title: string; description: string | null; quantity: number; unitPrice: number }[];
+  items: { title: string; description: string | null; quantity: number; unitPrice: Cents }[];
   itemGroups: {
     title: string;
-    items: { title: string; description: string | null; quantity: number; unitPrice: number }[];
+    items: { title: string; description: string | null; quantity: number; unitPrice: Cents }[];
   }[];
 }
 
@@ -32,7 +33,7 @@ export interface InvoiceInitialData {
   periodStart?: string;
   periodEnd?: string;
   items: { title: string; description: string; quantity: number; unitPrice: number }[];
-  itemGroups?: InvoiceItemGroupInput[];
+  itemGroups?: NonNullable<InvoiceFormInput["itemGroups"]>;
   notes: string;
   message?: string;
 }

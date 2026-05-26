@@ -6,8 +6,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Alert, Box, Button, Drawer, IconButton, Stack, Typography } from "@mui/material";
 
 import { extractApiErrorMessage } from "@app/shared/api";
-import { CURRENCY, DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
+import { DECIMAL_ROUNDING_FACTOR, TIME_TRACKING } from "@app/shared/config/config";
 import type { ProviderInfo, TimeEntriesResult, TimeTrackingProject } from "@app/shared/schemas/api";
+import { asCents, type Cents, toDollars } from "@app/shared/types/money";
 
 import type { ImportedGroup, ImportedItem, Selection } from "../api";
 import { RATE_SOURCE, type RateSource } from "../constants";
@@ -21,7 +22,7 @@ interface ImportDrawerProps {
   onClose: () => void;
   providerId: string;
   provider: ProviderInfo;
-  getpaidRateCents: number;
+  getpaidRateCents: Cents;
   onImport: (groups: ImportedGroup[]) => void;
 }
 
@@ -45,7 +46,7 @@ export function ImportDrawer({
   const [rateSource, setRateSource] = React.useState<RateSource>(
     provider.capabilities.hasBillableRates ? RATE_SOURCE.PROVIDER : RATE_SOURCE.GETPAID
   );
-  const [customRateCents, setCustomRateCents] = React.useState(0);
+  const [customRateCents, setCustomRateCents] = React.useState<Cents>(asCents(0));
   const [selection, setSelection] = React.useState<Selection>({});
   const [result, setResult] = React.useState<TimeEntriesResult | null>(null);
 
@@ -112,7 +113,7 @@ export function ImportDrawer({
             title: item.title,
             description: "",
             quantity: roundedHours,
-            unitPrice: rateCents / CURRENCY.CENTS_MULTIPLIER,
+            unitPrice: toDollars(rateCents),
           };
         });
 

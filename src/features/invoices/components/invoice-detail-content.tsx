@@ -8,6 +8,7 @@ import { Alert, Box, Button } from "@mui/material";
 import { INVOICE_STATUS, STATUS_CONFIG } from "@app/shared/config/invoice-status";
 import { AppLayout } from "@app/shared/layout/app-layout";
 import type { Invoice } from "@app/shared/schemas/api";
+import { asCents, type Cents, subtractCents } from "@app/shared/types/money";
 import { ConfirmDialog } from "@app/shared/ui/confirm-dialog";
 import { CardSkeleton } from "@app/shared/ui/skeletons";
 
@@ -32,7 +33,7 @@ function DetailDialogs({
 }: {
   invoice: Invoice;
   detail: InvoiceDetailReturn;
-  remainingBalance: number;
+  remainingBalance: Cents;
 }) {
   return (
     <>
@@ -100,7 +101,7 @@ export function InvoiceDetailContent() {
   const isPartiallyPaid = invoice.status === INVOICE_STATUS.PARTIALLY_PAID;
   const isOverdue = invoice.status === INVOICE_STATUS.OVERDUE;
   const status = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.DRAFT;
-  const remainingBalance = invoice.total - (invoice.paidAmount || 0);
+  const remainingBalance = subtractCents(invoice.total, invoice.paidAmount || asCents(0));
 
   return (
     <AppLayout>

@@ -65,6 +65,7 @@ export function BrandingTab({ profile }: BrandingTabProps) {
       address: toUndefined(profile?.address),
       taxId: toUndefined(profile?.taxId),
       defaultCurrency: profile?.defaultCurrency || BRANDING.DEFAULT_CURRENCY,
+      defaultRate: profile?.defaultRate ?? undefined,
       logoUrl: toUndefined(logoUrl),
       primaryColor: toUndefined(primaryColor),
       accentColor: toUndefined(accentColor),

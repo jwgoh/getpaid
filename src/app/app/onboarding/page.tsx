@@ -25,6 +25,7 @@ import { extractApiErrorMessage } from "@app/shared/api/error-message";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { AuthLayout } from "@app/shared/layout/auth-layout";
 import { SenderProfileFormInput, senderProfileFormSchema } from "@app/shared/schemas";
+import { fromDollars } from "@app/shared/types/money";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 import { senderProfileApi } from "@app/features/settings";
@@ -64,7 +65,10 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      await senderProfileApi.create(data);
+      await senderProfileApi.create({
+        ...data,
+        defaultRate: data.defaultRate !== undefined ? fromDollars(data.defaultRate) : undefined,
+      });
 
       toast.success("Profile saved successfully!");
       router.push("/app/invoices");

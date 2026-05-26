@@ -3,6 +3,7 @@ import { InvoiceStatus, Prisma } from "@prisma/client";
 import { INVOICE_STATUS, type InvoiceStatusValue } from "@app/shared/config/invoice-status";
 import { isOverdue } from "@app/shared/lib/invoice-status-predicates";
 import type { InvoiceId, PublicId, UserId } from "@app/shared/types/ids";
+import { asCents, type Cents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 
@@ -31,8 +32,8 @@ function computeOverdueStatus(invoice: {
   status: InvoiceStatus;
   dueDate: Date;
   paidAt: Date | null;
-  paidAmount?: number;
-  total?: number;
+  paidAmount?: Cents;
+  total?: Cents;
 }): InvoiceStatusValue {
   if (invoice.status === INVOICE_STATUS.PAID || invoice.paidAt) {
     return INVOICE_STATUS.PAID;
@@ -61,7 +62,16 @@ export async function getInvoices(userId: UserId): Promise<InvoiceListItemDTO[]>
     orderBy: { createdAt: "desc" },
   });
 
-  return invoices.map((invoice) => toInvoiceListItemDTO(invoice, computeOverdueStatus(invoice)));
+  return invoices.map((invoice) =>
+    toInvoiceListItemDTO(
+      invoice,
+      computeOverdueStatus({
+        ...invoice,
+        paidAmount: asCents(invoice.paidAmount),
+        total: asCents(invoice.total),
+      })
+    )
+  );
 }
 
 export async function getInvoice(id: InvoiceId, userId: UserId): Promise<InvoiceDetailDTO | null> {
@@ -74,7 +84,14 @@ export async function getInvoice(id: InvoiceId, userId: UserId): Promise<Invoice
     return null;
   }
 
-  return toInvoiceDetailDTO(invoice, computeOverdueStatus(invoice));
+  return toInvoiceDetailDTO(
+    invoice,
+    computeOverdueStatus({
+      ...invoice,
+      paidAmount: asCents(invoice.paidAmount),
+      total: asCents(invoice.total),
+    })
+  );
 }
 
 export async function getInvoiceByPublicId(
@@ -91,6 +108,10 @@ export async function getInvoiceByPublicId(
 
   return {
     ...invoice,
-    status: computeOverdueStatus(invoice),
+    status: computeOverdueStatus({
+      ...invoice,
+      paidAmount: asCents(invoice.paidAmount),
+      total: asCents(invoice.total),
+    }),
   };
 }
