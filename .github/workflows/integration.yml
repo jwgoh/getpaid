@@ -8,6 +8,8 @@ name: integration
     paths:
       - "src/server/**"
       - "src/shared/api/**"
+      - "src/shared/config/**"
+      - "src/shared/lib/**"
       - "src/shared/schemas/**"
       - "src/test/**"
       - "prisma/**"
