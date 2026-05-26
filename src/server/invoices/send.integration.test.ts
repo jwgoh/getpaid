@@ -1,6 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EMAIL_OUTBOX_KIND, EMAIL_OUTBOX_STATUS } from "@app/shared/config/email-outbox";
+import {
+  EMAIL_OUTBOX_KIND,
+  EMAIL_OUTBOX_RELATED_TYPE,
+  EMAIL_OUTBOX_STATUS,
+} from "@app/shared/config/email-outbox";
 import { INVOICE_EVENT, INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { asInvoiceId, asUserId } from "@app/shared/types/ids";
 
@@ -20,6 +24,7 @@ const factories = await import("@app/test/factories");
 
 const TOTAL_CENTS = 12_000;
 const PLACEHOLDER_KEY_PREFIX = "pending-";
+const FROZEN_NOW_MS = 1_750_000_000_000;
 
 interface SendInvoiceContext {
   invoiceId: ReturnType<typeof asInvoiceId>;
@@ -168,31 +173,26 @@ describe("sendInvoice rejected status transitions", () => {
 });
 
 describe("sendInvoice transactional guarantees", () => {
-  it("rolls back the entire transaction when an outbox-row update fails inside the commit step", async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("rolls back the entire transaction when the outbox INSERT collides with the @@unique constraint", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(FROZEN_NOW_MS));
+
     const ctx = await seedSendableInvoice();
-    const failureMessage = "simulated commit failure";
-    const originalTransaction = prisma.$transaction.bind(prisma);
-    const transactionSpy = vi
-      .spyOn(prisma, "$transaction")
-      .mockImplementationOnce((callback: unknown) =>
-        originalTransaction(async (tx) => {
-          const delegate = tx.emailOutbox;
-          const originalUpdate = delegate.update.bind(delegate);
+    const collidingKey = `${PLACEHOLDER_KEY_PREFIX}${ctx.invoiceId}-${FROZEN_NOW_MS}`;
 
-          delegate.update = (async () => {
-            delegate.update = originalUpdate;
-            throw new Error(failureMessage);
-          }) as typeof delegate.update;
+    await factories.createEmailOutbox(prisma, {
+      userId: ctx.userId,
+      kind: EMAIL_OUTBOX_KIND.INVOICE,
+      relatedType: EMAIL_OUTBOX_RELATED_TYPE.INVOICE,
+      relatedId: ctx.invoiceId,
+      idempotencyKey: collidingKey,
+    });
 
-          return (callback as (tx: typeof prisma) => Promise<unknown>)(
-            tx as unknown as typeof prisma
-          );
-        })
-      );
-
-    await expect(sendInvoice(ctx.invoiceId, ctx.userId)).rejects.toThrow(failureMessage);
-
-    transactionSpy.mockRestore();
+    await expect(sendInvoice(ctx.invoiceId, ctx.userId)).rejects.toMatchObject({ code: "P2002" });
 
     const invoice = await prisma.invoice.findUniqueOrThrow({ where: { id: ctx.invoiceId } });
 
@@ -204,9 +204,12 @@ describe("sendInvoice transactional guarantees", () => {
 
     expect(events).toBe(0);
 
-    const outboxRows = await prisma.emailOutbox.count({ where: { relatedId: ctx.invoiceId } });
+    const outboxRowsForInvoice = await prisma.emailOutbox.findMany({
+      where: { relatedId: ctx.invoiceId },
+    });
 
-    expect(outboxRows).toBe(0);
+    expect(outboxRowsForInvoice).toHaveLength(1);
+    expect(outboxRowsForInvoice[0].idempotencyKey).toBe(collidingKey);
     expect(sendEmailMock).not.toHaveBeenCalled();
   });
 
