@@ -19,11 +19,7 @@ import {
   mapInvoiceItemGroups,
 } from "@app/server/email/invoice-email-dto";
 import { buildOutboxIdempotencyKey, createEmailOutbox } from "@app/server/email/outbox";
-import {
-  type InvoiceWithRelations,
-  logInvoiceEvent,
-  updateInvoiceStatus,
-} from "@app/server/invoices";
+import { type InvoiceWithRelations, logInvoiceEvent } from "@app/server/invoices";
 import { ITEM_GROUPS_INCLUDE } from "@app/server/invoices/item-groups";
 
 const generateReference = customAlphabet(
@@ -130,7 +126,14 @@ async function commitSendInvoice(input: CommitSendInvoiceInput): Promise<string>
   const invoiceId = asInvoiceId(invoice.id);
 
   return prisma.$transaction(async (tx) => {
-    await updateInvoiceStatus(invoiceId, INVOICE_STATUS.SENT, { sentAt, paymentReference }, tx);
+    const claimed = await tx.invoice.updateMany({
+      where: { id: invoiceId, status: INVOICE_STATUS.DRAFT },
+      data: { status: INVOICE_STATUS.SENT, sentAt, paymentReference },
+    });
+
+    if (claimed.count !== 1) {
+      throw new InvoiceAlreadySentError();
+    }
 
     await logInvoiceEvent(invoiceId, INVOICE_EVENT.SENT, { clientEmail: invoice.client.email }, tx);
 

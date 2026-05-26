@@ -1,12 +1,12 @@
 import { defineConfig } from "vitest/config";
 
+const INTEGRATION_TEST_TIMEOUT_MS = 15_000;
+
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
   test: {
-    environment: "node",
-    include: ["src/**/*.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
@@ -19,7 +19,40 @@ export default defineConfig({
         "**/index.ts",
         "prisma/**",
         "scripts/**",
+        "src/test/**",
       ],
     },
+    projects: [
+      {
+        resolve: {
+          tsconfigPaths: true,
+        },
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["src/**/*.test.ts"],
+          exclude: ["src/**/*.integration.test.ts"],
+        },
+      },
+      {
+        resolve: {
+          tsconfigPaths: true,
+        },
+        test: {
+          name: "integration",
+          environment: "node",
+          include: ["src/**/*.integration.test.ts"],
+          setupFiles: ["src/test/setup-integration.ts"],
+          pool: "forks",
+          fileParallelism: false,
+          testTimeout: INTEGRATION_TEST_TIMEOUT_MS,
+          server: {
+            deps: {
+              inline: ["next-auth", "@auth/core"],
+            },
+          },
+        },
+      },
+    ],
   },
 });

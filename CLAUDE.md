@@ -158,17 +158,52 @@ export const POST = withAuth(
 ## Common Commands
 
 ```bash
-pnpm dev               # Start dev server
-pnpm build             # Production build
-pnpm lint              # Run ESLint
-pnpm typecheck         # TypeScript checking
-pnpm format            # Format with Prettier
-pnpm test              # Run unit tests (vitest)
-pnpm test:watch        # Run unit tests in watch mode
-pnpm db:migrate        # prisma migrate dev — local schema iteration
-pnpm db:migrate:deploy # prisma migrate deploy — apply migrations to a target DB (CI / prod)
-pnpm db:studio         # Open Prisma Studio
+pnpm dev                    # Start dev server
+pnpm build                  # Production build
+pnpm lint                   # Run ESLint
+pnpm typecheck              # TypeScript checking
+pnpm format                 # Format with Prettier
+pnpm test                   # Run unit tests only (vitest --project=unit)
+pnpm test:watch             # Run unit tests in watch mode
+pnpm test:integration       # Run integration tests (requires Postgres + DATABASE_URL_TEST)
+pnpm test:integration:up    # Boot test Postgres (docker-compose.test.yml) + apply migrations
+pnpm test:integration:down  # Tear down test Postgres (data is wiped — tmpfs)
+pnpm db:migrate             # prisma migrate dev — local schema iteration
+pnpm db:migrate:deploy      # prisma migrate deploy — apply migrations to a target DB (CI / prod)
+pnpm db:studio              # Open Prisma Studio
 ```
+
+## Testing
+
+Two test tiers, run independently. `pnpm test` is scoped to the unit project — it does NOT run integration tests.
+
+### Tiers and conventions
+
+- **Unit tests** — `*.test.ts`, colocated with source. Mock Prisma at the module boundary via `vi.mock("@app/server/db", …)`. No DB required, sub-second suite.
+- **Integration tests** — `*.integration.test.ts`, colocated with source. Import `prisma` from `@app/server/db` directly; hit a real Postgres. Tables are TRUNCATEd between every test (`src/test/setup-integration.ts`).
+- **Factories** — `src/test/factories/<model>.ts`, re-exported from the barrel `@app/test/factories`. Each model exposes `make<X>(overrides?)` (pure object builder, for unit tests) and `create<X>(prisma, overrides?)` (writes to DB, returns the row — for integration tests).
+
+When to write integration vs unit:
+
+- Integration — anything that exercises real DB CHECK constraints, `@@unique` constraints, `prisma.$transaction` semantics, or concurrent writes. The atomicity / claim-before-handler / paid-vs-total guards are provably untestable with mocks.
+- Unit — pure logic (calculators, schema parsers, format helpers, mock-friendly state machines).
+
+### Running integration tests locally
+
+1. `DATABASE_URL_TEST="postgresql://postgres:postgres@localhost:5434/getpaid_test"` in `.env` (see `.env.example`).
+2. `pnpm test:integration:up` — boots `postgres:16-alpine` on host port `5434` via `docker-compose.test.yml` and runs `prisma migrate deploy` against it. Storage is `tmpfs`, so data is wiped on every `down`.
+3. `pnpm test:integration` — runs the suite.
+4. `pnpm test:integration:down` when finished.
+
+### Safety: harness refuses to wipe non-test DBs
+
+`DATABASE_URL_TEST` is REQUIRED — the harness throws on startup if it's unset. The harness parses the database name from the URL, asserts it contains the substring `"test"` (case-insensitive), and cross-checks it against Postgres' `SELECT current_database()` before issuing TRUNCATE. A misconfigured shell pointing at prod cannot wipe it: the name predicate fires first. `DATABASE_URL_TEST` is operator-facing only and is intentionally NOT in `src/shared/config/env.ts`.
+
+### CI
+
+`.github/workflows/integration.yml` runs the integration suite on every PR that touches server/test paths (see the workflow's `paths` for the exact list). It spins up a fresh Postgres 16 service, applies migrations, then runs `pnpm test:integration`.
+
+See `docs/runbooks/testing.md` for the operator-side runbook (first-time setup, failure modes, single-file invocation).
 
 ## Database migrations
 

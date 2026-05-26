@@ -131,7 +131,7 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["src/**/*.ts", "src/**/*.tsx"],
-    ignores: ["src/shared/config/env.ts", "src/proxy.ts"],
+    ignores: ["src/shared/config/env.ts", "src/proxy.ts", "src/test/**"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -196,6 +196,7 @@ const eslintConfig = defineConfig([
         { type: "shared", pattern: "src/shared/**" },
         { type: "providers", pattern: "src/providers/**" },
         { type: "types", pattern: "src/types/**" },
+        { type: "test", pattern: "src/test/**" },
       ],
     },
     rules: {

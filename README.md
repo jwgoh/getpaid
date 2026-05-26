@@ -168,19 +168,28 @@ src/
 
 ## Scripts
 
-| Script                   | Description                                                                                                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm dev`               | Start development server                                                                                                                                                       |
-| `pnpm build`             | Production build                                                                                                                                                               |
-| `pnpm lint`              | Run ESLint                                                                                                                                                                     |
-| `pnpm typecheck`         | TypeScript type checking                                                                                                                                                       |
-| `pnpm format`            | Format code with Prettier                                                                                                                                                      |
-| `pnpm db:migrate`        | Create and apply migrations during development (`prisma migrate dev`)                                                                                                          |
-| `pnpm db:migrate:deploy` | Apply pending migrations to a database (`prisma migrate deploy`) — used in CI / prod                                                                                           |
-| `pnpm db:seed`           | Seed demo data                                                                                                                                                                 |
-| `pnpm db:studio`         | Open Prisma Studio                                                                                                                                                             |
-| `pnpm outbox:run`        | Dispatch PENDING outbox emails (cron worker — see [`docs/runbooks/cron.md`](./docs/runbooks/cron.md))                                                                          |
-| `pnpm prune:expired`     | Delete expired idempotency keys, sent/failed outbox rows, orphan waitlist entries; pass `--dry-run` to preview counts (see [`docs/runbooks/cron.md`](./docs/runbooks/cron.md)) |
+| Script                       | Description                                                                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`                   | Start development server                                                                                                                                                       |
+| `pnpm build`                 | Production build                                                                                                                                                               |
+| `pnpm lint`                  | Run ESLint                                                                                                                                                                     |
+| `pnpm typecheck`             | TypeScript type checking                                                                                                                                                       |
+| `pnpm format`                | Format code with Prettier                                                                                                                                                      |
+| `pnpm test`                  | Run unit tests only (no DB required)                                                                                                                                           |
+| `pnpm test:integration`      | Run integration tests against a real Postgres (see [`docs/runbooks/testing.md`](./docs/runbooks/testing.md))                                                                   |
+| `pnpm test:integration:up`   | Boot the test Postgres container and apply migrations                                                                                                                          |
+| `pnpm test:integration:down` | Stop the test Postgres container (data is wiped — tmpfs)                                                                                                                       |
+| `pnpm db:migrate`            | Create and apply migrations during development (`prisma migrate dev`)                                                                                                          |
+| `pnpm db:migrate:deploy`     | Apply pending migrations to a database (`prisma migrate deploy`) — used in CI / prod                                                                                           |
+| `pnpm db:seed`               | Seed demo data                                                                                                                                                                 |
+| `pnpm db:studio`             | Open Prisma Studio                                                                                                                                                             |
+| `pnpm outbox:run`            | Dispatch PENDING outbox emails (cron worker — see [`docs/runbooks/cron.md`](./docs/runbooks/cron.md))                                                                          |
+| `pnpm prune:expired`         | Delete expired idempotency keys, sent/failed outbox rows, orphan waitlist entries; pass `--dry-run` to preview counts (see [`docs/runbooks/cron.md`](./docs/runbooks/cron.md)) |
+
+## Testing
+
+- `pnpm test` — unit tests (no DB required, sub-second).
+- `pnpm test:integration` — integration tests against a real Postgres. Requires Docker and `DATABASE_URL_TEST` (see `.env.example`). Operator guide: [`docs/runbooks/testing.md`](./docs/runbooks/testing.md).
 
 ## Production migrations
 
