@@ -14,6 +14,7 @@ import {
 
 import { formatCurrency } from "@app/shared/lib/format";
 import type { InvoiceItemGroupResponse, InvoiceItemResponse } from "@app/shared/schemas/api";
+import { sumCents } from "@app/shared/types/money";
 
 interface InvoiceItemsTableProps {
   items: InvoiceItemResponse[];
@@ -42,7 +43,7 @@ export function InvoiceItemsTable({ items, itemGroups, currency, size }: Invoice
         </TableHead>
         <TableBody>
           {itemGroups?.map((group) => {
-            const groupTotal = group.items.reduce((sum, item) => sum + item.amount, 0);
+            const groupTotal = sumCents(group.items.map((item) => item.amount));
 
             return (
               <React.Fragment key={group.id}>

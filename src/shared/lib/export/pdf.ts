@@ -4,7 +4,7 @@ import autoTable from "jspdf-autotable";
 import { DISCOUNT_TYPE, type DiscountTypeValue } from "@app/shared/config/invoice-status";
 import { formatCurrency, formatDate } from "@app/shared/lib/format";
 import type { InvoiceItemGroupResponse, InvoiceItemResponse } from "@app/shared/schemas/api";
-import { sumCents } from "@app/shared/types/money";
+import { type Cents, sumCents } from "@app/shared/types/money";
 
 import { LAYOUT, PDF_COLORS, STATUS_COLORS } from "./pdf-constants";
 
@@ -12,13 +12,13 @@ interface InvoicePdfData {
   publicId: string;
   status: string;
   currency: string;
-  subtotal: number;
+  subtotal: Cents;
   discountType?: DiscountTypeValue | null;
   discountValue?: number;
   discountAmount?: number;
   taxRate?: number;
   taxAmount?: number;
-  total: number;
+  total: Cents;
   dueDate: string;
   createdAt: string;
   paidAt?: string | null;

@@ -222,7 +222,10 @@ export const timeTrackingWorkspaceSchema = z.object({
   id: z.string(),
   name: z.string(),
   defaultCurrency: z.string().nullable(),
-  defaultHourlyRateCents: z.number().nullable(),
+  defaultHourlyRateCents: z
+    .number()
+    .nullable()
+    .transform((v) => (v === null ? null : asCents(v))),
   roundingDirection: z.string(),
   roundingMinutes: z.number(),
 });
