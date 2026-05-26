@@ -170,13 +170,29 @@ describe("sendInvoice rejected status transitions", () => {
 describe("sendInvoice transactional guarantees", () => {
   it("rolls back the entire transaction when an outbox-row update fails inside the commit step", async () => {
     const ctx = await seedSendableInvoice();
-    const updateSpy = vi
-      .spyOn(prisma.emailOutbox, "update")
-      .mockRejectedValueOnce(new Error("simulated commit failure"));
+    const failureMessage = "simulated commit failure";
+    const originalTransaction = prisma.$transaction.bind(prisma);
+    const transactionSpy = vi
+      .spyOn(prisma, "$transaction")
+      .mockImplementationOnce((callback: unknown) =>
+        originalTransaction(async (tx) => {
+          const delegate = tx.emailOutbox;
+          const originalUpdate = delegate.update.bind(delegate);
 
-    await expect(sendInvoice(ctx.invoiceId, ctx.userId)).rejects.toThrow(
-      "simulated commit failure"
-    );
+          delegate.update = (async () => {
+            delegate.update = originalUpdate;
+            throw new Error(failureMessage);
+          }) as typeof delegate.update;
+
+          return (callback as (tx: typeof prisma) => Promise<unknown>)(
+            tx as unknown as typeof prisma
+          );
+        })
+      );
+
+    await expect(sendInvoice(ctx.invoiceId, ctx.userId)).rejects.toThrow(failureMessage);
+
+    transactionSpy.mockRestore();
 
     const invoice = await prisma.invoice.findUniqueOrThrow({ where: { id: ctx.invoiceId } });
 
@@ -192,8 +208,6 @@ describe("sendInvoice transactional guarantees", () => {
 
     expect(outboxRows).toBe(0);
     expect(sendEmailMock).not.toHaveBeenCalled();
-
-    updateSpy.mockRestore();
   });
 
   it("under concurrent calls writes at most one PENDING outbox row per invoice", async () => {
