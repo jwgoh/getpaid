@@ -147,10 +147,15 @@ describe("markInvoiceViewed — CROSS-006 / REL-004 first-view-wins claim", () =
     expect(events).toHaveLength(1);
   });
 
-  it("logs exactly one VIEWED event when two concurrent markInvoiceViewed calls race", async () => {
+  it("logs exactly one VIEWED event and sets viewedAt exactly once when two concurrent markInvoiceViewed calls race", async () => {
     const seed = await seedSentInvoice(0);
 
-    await Promise.all([markInvoiceViewed(seed.publicId), markInvoiceViewed(seed.publicId)]);
+    const settled = await Promise.allSettled([
+      markInvoiceViewed(seed.publicId),
+      markInvoiceViewed(seed.publicId),
+    ]);
+
+    expect(settled.every((r) => r.status === "fulfilled")).toBe(true);
 
     const events = await prisma.invoiceEvent.findMany({
       where: { invoiceId: seed.invoiceRowId, type: INVOICE_EVENT.VIEWED },
@@ -158,11 +163,18 @@ describe("markInvoiceViewed — CROSS-006 / REL-004 first-view-wins claim", () =
 
     expect(events).toHaveLength(1);
 
-    const persisted = await prisma.invoice.findUniqueOrThrow({
+    const firstRead = await prisma.invoice.findUniqueOrThrow({
       where: { id: seed.invoiceRowId },
     });
 
-    expect(persisted.viewedAt).not.toBeNull();
+    expect(firstRead.viewedAt).not.toBeNull();
+    expect(firstRead.status).toBe(INVOICE_STATUS.VIEWED);
+
+    const secondRead = await prisma.invoice.findUniqueOrThrow({
+      where: { id: seed.invoiceRowId },
+    });
+
+    expect(secondRead.viewedAt?.getTime()).toBe(firstRead.viewedAt?.getTime());
   });
 
   it("is a no-op on an already-viewed invoice (claim count = 0 branch)", async () => {
