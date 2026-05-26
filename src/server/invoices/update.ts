@@ -9,6 +9,7 @@ import {
 import { InvoiceItemInput, UpdateInvoiceInput } from "@app/shared/schemas";
 import { SCHEMA_LIMITS } from "@app/shared/schemas/limits";
 import type { InvoiceId, UserId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 
@@ -170,7 +171,11 @@ export async function updateInvoice(
       const discount = resolveDiscount(data, invoice);
       const taxRate = data.taxRate !== undefined ? data.taxRate : invoice.taxRate;
       const itemsForCalc = await getItemsForCalculation(tx, id, data);
-      const totals = calculateTotals(itemsForCalc, discount, taxRate);
+      const itemsForTotals = itemsForCalc.map((item) => ({
+        quantity: item.quantity,
+        unitPrice: asCents(item.unitPrice),
+      }));
+      const totals = calculateTotals(itemsForTotals, discount, taxRate);
 
       if (isMoneyLimitExceeded(totals, SCHEMA_LIMITS.MONEY_MAX_CENTS)) {
         throw new MoneyOverflowError();

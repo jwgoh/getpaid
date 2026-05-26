@@ -5,6 +5,7 @@ import { INVOICE_STATUS } from "@app/shared/config/invoice-status";
 import { buildDiscountInput, calculateTotals } from "@app/shared/lib/calculations";
 import { parseInvoiceTags } from "@app/shared/schemas/invoice";
 import type { InvoiceId, UserId } from "@app/shared/types/ids";
+import { asCents } from "@app/shared/types/money";
 
 import { prisma } from "@app/server/db";
 import type { InvoiceWithRelations } from "@app/server/invoices";
@@ -32,8 +33,12 @@ export async function duplicateInvoice(
   const ungroupedItems = invoice.items.filter((item) => !item.groupId);
   const groupedItems = invoice.itemGroups.flatMap((g) => g.items);
   const discount = buildDiscountInput(invoice.discountType, invoice.discountValue);
+  const itemsForTotals = [...ungroupedItems, ...groupedItems].map((item) => ({
+    quantity: item.quantity,
+    unitPrice: asCents(item.unitPrice),
+  }));
   const { subtotal, discountAmount, taxAmount, total } = calculateTotals(
-    [...ungroupedItems, ...groupedItems],
+    itemsForTotals,
     discount,
     invoice.taxRate
   );

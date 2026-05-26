@@ -3,6 +3,7 @@ import { z } from "zod";
 import { BRANDING, INVOICE } from "@app/shared/config/config";
 import { DISCOUNT_TYPE } from "@app/shared/config/invoice-status";
 import { calculateTotals } from "@app/shared/lib/calculations";
+import { asCents } from "@app/shared/types/money";
 
 import { dateSchema, optionalDateSchema } from "./date";
 import { SCHEMA_LIMITS } from "./limits";
@@ -59,7 +60,11 @@ function refineInvoiceTotalsCeiling(data: InvoiceTotalsInput, ctx: z.RefinementC
     ...(data.items ?? []),
     ...(data.itemGroups?.flatMap((group) => group.items) ?? []),
   ];
-  const { subtotal, total } = calculateTotals(allItems, data.discount, data.taxRate);
+  const itemsForTotals = allItems.map((item) => ({
+    quantity: item.quantity,
+    unitPrice: asCents(item.unitPrice),
+  }));
+  const { subtotal, total } = calculateTotals(itemsForTotals, data.discount, data.taxRate);
 
   if (subtotal > SCHEMA_LIMITS.MONEY_MAX_CENTS || total > SCHEMA_LIMITS.MONEY_MAX_CENTS) {
     ctx.addIssue({

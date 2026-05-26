@@ -1,12 +1,17 @@
 import { DISCOUNT_TYPE, isDiscountType } from "@app/shared/config/invoice-status";
 import { buildDiscountInput, calculateTotals } from "@app/shared/lib/calculations";
 import type { Template, TemplateFormData } from "@app/shared/schemas";
+import { asCents } from "@app/shared/types/money";
 
 export function calculateEstimatedTotal(template: Template) {
   const allItems = [...template.items, ...template.itemGroups.flatMap((g) => g.items)];
+  const itemsForTotals = allItems.map((item) => ({
+    quantity: item.quantity,
+    unitPrice: asCents(item.unitPrice),
+  }));
 
   const { total } = calculateTotals(
-    allItems,
+    itemsForTotals,
     buildDiscountInput(template.discountType, template.discountValue),
     template.taxRate
   );
