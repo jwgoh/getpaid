@@ -287,6 +287,33 @@ Any -> PAID (manual payment recording)
 Any -> PARTIALLY_PAID (partial payment recorded)
 ```
 
+## Money — `Cents` brand
+
+Money is stored in Postgres as integer cents (BigInt-safe within `MoneyMaxCents = SCHEMA_LIMITS.MONEY_MAX_CENTS`). At the TypeScript level, every money field is branded `Cents` (a phantom type — `Cents extends number`, so `Cents` is assignable wherever `number` is, but a raw `number` is NOT assignable to `Cents` without an explicit boundary call). The brand prevents a future dollar-vs-cents class of bug at compile time.
+
+Type and helpers live in `src/shared/types/money.ts`:
+
+- `Cents` — `Branded<number, "Cents">` (reuses the brand helper from `shared/types/ids.ts`).
+- `asCents(n: number): Cents` — boundary cast (use at Prisma-row read sites, Zod `.transform(...)`, integration test fixtures).
+- `fromDollars(d: number): Cents` — `Math.round(d * 100) as Cents`. Use at the form submit boundary (user-typed dollar input → API cents payload).
+- `toDollars(c: Cents): number` — `c / 100`. Use at the API → display/export boundary (CSV, copy-to-clipboard, user-facing dollar string).
+- `sumCents`, `addCents`, `subtractCents`, `applyPercent`, `multiplyCentsByQuantity`, `clampNonNegative` — arithmetic that preserves the brand.
+
+Where the brand applies vs not:
+
+- **API wire schemas** (`src/shared/schemas/api.ts`) — money fields are `z.number().transform(asCents)` (or the nullable-preserving variant). After `.safeParse`, the value is `Cents`.
+- **Form-side schemas** (`clientFormSchema`, `senderProfileFormSchema`, etc.) — same `.transform(asCents)` but the form-input type alias uses `z.input<typeof schema>` so RHF state stays raw dollar `number`. Submit handlers explicitly call `fromDollars(formValue)` when constructing the API payload. NEVER bypass the explicit `fromDollars(...)` at submit — without it, dollar values would silently be persisted as cents (off by 100×).
+- **Form-input props** (`subtotal`, `defaultUnitPrice` on `invoice-form-totals.tsx` / `invoice-form-line-items.tsx`) — STAY `number` because they carry dollar-denominated RHF state.
+- **`DiscountInput.value` and `taxRate`** — stay plain `number` (mixed-unit / percent semantics; see SMELL-018 in the audit history).
+- **Test factories** (`src/test/factories/**`) — stay plain `number`. Factories produce `Prisma.*UncheckedCreateInput` shapes; Prisma accepts `number` directly.
+
+Formatting:
+
+- `formatCurrency(amount: number, currency)` — legacy callsite signature, still accepts `number` (since `Cents extends number`). 55 callsites today.
+- `formatCents(amount: Cents, currency)` / `formatCentsCompact(amount: Cents, currency)` — typed wrappers. Use for new callsites. A future cleanup PR may migrate all 55 `formatCurrency` sites to `formatCents` and remove the legacy name.
+
+When adding a new money field: brand it at the schema (`.transform(asCents)`); type the prop / DTO field as `Cents`; convert at the boundary via `fromDollars` (dollar input) or `toDollars` (display output).
+
 ## Error Handling
 
 API responses follow this format:
