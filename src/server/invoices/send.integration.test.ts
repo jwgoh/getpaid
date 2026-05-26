@@ -224,14 +224,15 @@ describe("sendInvoice transactional guarantees", () => {
     const fulfilled = settled.filter((r) => r.status === "fulfilled");
     const rejected = settled.filter((r) => r.status === "rejected");
 
-    expect(fulfilled.length + rejected.length).toBe(2);
-    expect(fulfilled.length).toBeGreaterThanOrEqual(1);
+    expect(fulfilled.length).toBe(1);
+    expect(rejected.length).toBe(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(InvoiceAlreadySentError);
 
     const outboxRows = await prisma.emailOutbox.findMany({
       where: { relatedId: ctx.invoiceId, kind: EMAIL_OUTBOX_KIND.INVOICE },
     });
 
-    expect(outboxRows.length).toBeLessThanOrEqual(1);
+    expect(outboxRows.length).toBe(1);
 
     const invoice = await prisma.invoice.findUniqueOrThrow({ where: { id: ctx.invoiceId } });
 
