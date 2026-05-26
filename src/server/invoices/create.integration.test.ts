@@ -49,8 +49,8 @@ function buildBaseInput(clientId: string): CreateInvoiceInput {
   };
 }
 
-let consoleWarn: ReturnType<typeof vi.spyOn>;
-let consoleError: ReturnType<typeof vi.spyOn>;
+let consoleWarn: ReturnType<typeof vi.spyOn> | undefined;
+let consoleError: ReturnType<typeof vi.spyOn> | undefined;
 
 beforeAll(() => {
   consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -58,13 +58,13 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  consoleWarn.mockClear();
-  consoleError.mockClear();
+  consoleWarn?.mockClear();
+  consoleError?.mockClear();
 });
 
 afterAll(() => {
-  consoleWarn.mockRestore();
-  consoleError.mockRestore();
+  consoleWarn?.mockRestore();
+  consoleError?.mockRestore();
 });
 
 describe("createInvoice — happy path", () => {
