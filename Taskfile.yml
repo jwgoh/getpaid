@@ -61,7 +61,6 @@ tasks:
     cmds:
       - pnpm install
       - pnpm db:generate
-      - pnpm lefthook install
 
   check:
     desc: Run all checks (typecheck, lint, test, format) — mirrors CI

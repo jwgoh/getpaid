@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: "${POSTGRES_DB:-getpaid}"
-      POSTGRES_USER: "${POSTGRES_USER:-getpaid}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set — generate via: openssl rand -base64 32}"
+      POSTGRES_DB: "getpaid"
+      POSTGRES_USER: "getpaid"
+      POSTGRES_PASSWORD: "7EDdiFvbVHGcyBiY64sRJpBZ7D1q8BRzeJ1K35DXVk"
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -25,7 +25,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-getpaid}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set — generate via: openssl rand -base64 32}@db:5432/${POSTGRES_DB:-getpaid}?schema=public"
+      DATABASE_URL: "postgresql://getpaid:7EDdiFvbVHGcyBiY64sRJpBZ7D1q8BRzeJ1K35DXVk@db:5432/getpaid"
       NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:?NEXTAUTH_SECRET must be set — generate via: openssl rand -base64 32}"
       NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3000}"
       AUTH_TRUST_HOST: "true"

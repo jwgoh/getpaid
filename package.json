@@ -27,7 +27,6 @@
     "outbox:run": "tsx scripts/process-outbox.ts",
     "prune:expired": "tsx scripts/prune-expired.ts",
     "postinstall": "prisma generate",
-    "prepare": "lefthook install",
     "db:seed": "prisma db seed"
   },
   "dependencies": {
@@ -74,7 +73,6 @@
     "eslint-plugin-boundaries": "^6.0.2",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
-    "lefthook": "^2.1.0",
     "prettier": "^3.8.1",
     "prisma": "^7.8.0",
     "tsx": "^4.21.0",

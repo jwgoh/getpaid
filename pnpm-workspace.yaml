@@ -11,4 +11,3 @@ ignoredBuiltDependencies:
 onlyBuiltDependencies:
   - '@prisma/client'
   - core-js
-  - lefthook

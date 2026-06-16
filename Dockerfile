@@ -4,6 +4,7 @@ RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 # --- Dependencies ---
 FROM base AS deps
 WORKDIR /app
+RUN apk add --no-cache git
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
