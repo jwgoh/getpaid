@@ -22,10 +22,11 @@ import { type FormMode } from "@app/shared/config/config";
 import { useIsMobileDialog } from "@app/shared/hooks/use-is-mobile-dialog";
 import { useToast } from "@app/shared/hooks/use-toast";
 import { type Client, ClientFormInput, clientFormSchema } from "@app/shared/schemas";
-import { asCents, fromDollars, toDollars } from "@app/shared/types/money";
+import { asCents, toDollars } from "@app/shared/types/money";
 import { LoadingButton } from "@app/shared/ui/loading-button";
 
 import { useCreateClient, useUpdateClient } from "../hooks";
+import { buildClientPayload } from "../lib/build-client-payload";
 
 interface ClientDialogProps {
   open: boolean;
@@ -73,10 +74,7 @@ export function ClientDialog({ open, onClose, mode, client }: ClientDialogProps)
 
   const onSubmit = (formData: ClientFormInput) => {
     setError(null);
-    const data = {
-      ...formData,
-      defaultRate: formData.defaultRate ? fromDollars(formData.defaultRate) : undefined,
-    };
+    const data = buildClientPayload(formData);
 
     if (mode === "create") {
       createMutation.mutate(data, {
