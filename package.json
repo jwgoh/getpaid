@@ -26,7 +26,6 @@
     "db:generate": "prisma generate",
     "outbox:run": "tsx scripts/process-outbox.ts",
     "prune:expired": "tsx scripts/prune-expired.ts",
-    "postinstall": "prisma generate",
     "db:seed": "prisma db seed"
   },
   "dependencies": {
