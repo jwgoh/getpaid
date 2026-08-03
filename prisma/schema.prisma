@@ -150,6 +150,9 @@ model Invoice {
 
   paymentReference String? @unique
 
+  lastReminderStage Int      @default(0)
+  lastReminderAt    DateTime?
+
   user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   client     Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
   itemGroups InvoiceItemGroup[]
@@ -160,6 +163,7 @@ model Invoice {
   @@index([userId])
   @@index([clientId])
   @@index([publicId])
+  @@index([status, dueDate])
 }
 
 model InvoiceItemGroup {
