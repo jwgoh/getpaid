@@ -60,7 +60,7 @@ async function processInvoiceDunning(
       await logInvoiceEvent(
         invoiceId,
         INVOICE_EVENT.STATUS_CHANGED,
-        { from: invoice.status, to: INVOICE_STATUS.OVERDUE },
+        { to: INVOICE_STATUS.OVERDUE },
         tx
       );
       transitioned = true;
@@ -96,8 +96,8 @@ async function processInvoiceDunning(
 export async function runDunning(now: Date = new Date()): Promise<RunDunningResult> {
   const candidates = await prisma.invoice.findMany({
     where: {
-      status: { in: [INVOICE_STATUS.SENT, INVOICE_STATUS.VIEWED, INVOICE_STATUS.OVERDUE] },
-      dueDate: DUNNING_POLICY.overdueInclusive ? { lte: now } : { lt: now },
+      status: INVOICE_STATUS.SENT,
+      dueDate: { lte: now },
     },
     include: INVOICE_FOR_REMINDER_INCLUDE,
   });
