@@ -60,7 +60,7 @@ async function processInvoiceDunning(
       await logInvoiceEvent(
         invoiceId,
         INVOICE_EVENT.STATUS_CHANGED,
-        { from: invoice.status, to: INVOICE_STATUS.OVERDUE },
+        { to: INVOICE_STATUS.OVERDUE },
         tx
       );
       transitioned = true;
