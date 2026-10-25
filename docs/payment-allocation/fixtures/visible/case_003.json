@@ -1,0 +1,41 @@
+{
+  "name": "case_003",
+  "client": {
+    "id": "c1"
+  },
+  "openInvoices": [
+    {
+      "id": "iA",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 50000,
+      "paidAmount": 20000,
+      "status": "PARTIALLY_PAID"
+    },
+    {
+      "id": "iB",
+      "issuedAt": "2026-01-02T00:00:00.000Z",
+      "dueAt": "2026-03-01T00:00:00.000Z",
+      "total": 30000,
+      "paidAmount": 0,
+      "status": "SENT"
+    }
+  ],
+  "payment": {
+    "amountCents": 60000,
+    "paidAt": "2026-03-15"
+  },
+  "expected": {
+    "allocations": [
+      {
+        "invoiceId": "iA",
+        "amountCents": 30000
+      },
+      {
+        "invoiceId": "iB",
+        "amountCents": 30000
+      }
+    ],
+    "unappliedCents": 0
+  }
+}

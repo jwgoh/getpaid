@@ -1,0 +1,41 @@
+{
+  "name": "case_029",
+  "client": {
+    "id": "cPartialRank"
+  },
+  "openInvoices": [
+    {
+      "id": "z_sent",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 30000,
+      "paidAmount": 0,
+      "status": "SENT"
+    },
+    {
+      "id": "a_partial",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 40000,
+      "paidAmount": 10000,
+      "status": "PARTIALLY_PAID"
+    }
+  ],
+  "payment": {
+    "amountCents": 35000,
+    "paidAt": "2026-02-10"
+  },
+  "expected": {
+    "allocations": [
+      {
+        "invoiceId": "a_partial",
+        "amountCents": 30000
+      },
+      {
+        "invoiceId": "z_sent",
+        "amountCents": 5000
+      }
+    ],
+    "unappliedCents": 0
+  }
+}

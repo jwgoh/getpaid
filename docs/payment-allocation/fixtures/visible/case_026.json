@@ -1,0 +1,26 @@
+{
+  "name": "case_026",
+  "client": {
+    "id": "c1"
+  },
+  "openInvoices": [
+    {
+      "id": "iSent",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 30000,
+      "paidAmount": 0,
+      "status": "SENT"
+    }
+  ],
+  "payment": {
+    "amountCents": 30000,
+    "paidAt": "2026-02-15"
+  },
+  "targetInvoiceIds": [
+    "iGhost"
+  ],
+  "expected": {
+    "error": "PaymentAllocationError"
+  }
+}

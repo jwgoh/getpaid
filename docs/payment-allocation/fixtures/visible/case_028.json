@@ -1,0 +1,37 @@
+{
+  "name": "case_028",
+  "client": {
+    "id": "cIdTie"
+  },
+  "openInvoices": [
+    {
+      "id": "b_second",
+      "issuedAt": "2026-02-01T00:00:00.000Z",
+      "dueAt": "2026-03-01T00:00:00.000Z",
+      "total": 20000,
+      "paidAmount": 0,
+      "status": "SENT"
+    },
+    {
+      "id": "a_first",
+      "issuedAt": "2026-02-01T00:00:00.000Z",
+      "dueAt": "2026-03-01T00:00:00.000Z",
+      "total": 20000,
+      "paidAmount": 0,
+      "status": "SENT"
+    }
+  ],
+  "payment": {
+    "amountCents": 15000,
+    "paidAt": "2026-03-15"
+  },
+  "expected": {
+    "allocations": [
+      {
+        "invoiceId": "a_first",
+        "amountCents": 15000
+      }
+    ],
+    "unappliedCents": 0
+  }
+}

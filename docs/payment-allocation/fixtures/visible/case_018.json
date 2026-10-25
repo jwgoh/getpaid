@@ -1,0 +1,37 @@
+{
+  "name": "case_018",
+  "client": {
+    "id": "c1"
+  },
+  "openInvoices": [
+    {
+      "id": "iSentEarlyIssue",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 30000,
+      "paidAmount": 0,
+      "status": "SENT"
+    },
+    {
+      "id": "iPartialLateIssue",
+      "issuedAt": "2026-01-15T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 40000,
+      "paidAmount": 10000,
+      "status": "PARTIALLY_PAID"
+    }
+  ],
+  "payment": {
+    "amountCents": 20000,
+    "paidAt": "2026-02-15"
+  },
+  "expected": {
+    "allocations": [
+      {
+        "invoiceId": "iPartialLateIssue",
+        "amountCents": 20000
+      }
+    ],
+    "unappliedCents": 0
+  }
+}

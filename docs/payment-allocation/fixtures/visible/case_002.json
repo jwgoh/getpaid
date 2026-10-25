@@ -1,0 +1,41 @@
+{
+  "name": "case_002",
+  "client": {
+    "id": "c1"
+  },
+  "openInvoices": [
+    {
+      "id": "iOverdue",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-01-15T00:00:00.000Z",
+      "total": 30000,
+      "paidAmount": 0,
+      "status": "OVERDUE"
+    },
+    {
+      "id": "iSent",
+      "issuedAt": "2026-01-02T00:00:00.000Z",
+      "dueAt": "2026-02-15T00:00:00.000Z",
+      "total": 20000,
+      "paidAmount": 0,
+      "status": "SENT"
+    }
+  ],
+  "payment": {
+    "amountCents": 40000,
+    "paidAt": "2026-03-01"
+  },
+  "expected": {
+    "allocations": [
+      {
+        "invoiceId": "iOverdue",
+        "amountCents": 30000
+      },
+      {
+        "invoiceId": "iSent",
+        "amountCents": 10000
+      }
+    ],
+    "unappliedCents": 0
+  }
+}

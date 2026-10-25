@@ -1,0 +1,35 @@
+{
+  "name": "case_027",
+  "client": {
+    "id": "cPaidError"
+  },
+  "openInvoices": [
+    {
+      "id": "iPaidTarget",
+      "issuedAt": "2026-01-10T00:00:00.000Z",
+      "dueAt": "2026-02-15T00:00:00.000Z",
+      "total": 40000,
+      "paidAmount": 40000,
+      "status": "PAID"
+    },
+    {
+      "id": "iEligible",
+      "issuedAt": "2026-01-11T00:00:00.000Z",
+      "dueAt": "2026-03-01T00:00:00.000Z",
+      "total": 25000,
+      "paidAmount": 0,
+      "status": "SENT"
+    }
+  ],
+  "payment": {
+    "amountCents": 20000,
+    "paidAt": "2026-03-10"
+  },
+  "targetInvoiceIds": [
+    "iPaidTarget",
+    "iEligible"
+  ],
+  "expected": {
+    "error": "PaymentAllocationError"
+  }
+}

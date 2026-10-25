@@ -1,0 +1,41 @@
+{
+  "name": "case_006",
+  "client": {
+    "id": "c1"
+  },
+  "openInvoices": [
+    {
+      "id": "iAPartial",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 50000,
+      "paidAmount": 20000,
+      "status": "PARTIALLY_PAID"
+    },
+    {
+      "id": "iBPartial",
+      "issuedAt": "2026-01-02T00:00:00.000Z",
+      "dueAt": "2026-03-01T00:00:00.000Z",
+      "total": 60000,
+      "paidAmount": 10000,
+      "status": "PARTIALLY_PAID"
+    }
+  ],
+  "payment": {
+    "amountCents": 60000,
+    "paidAt": "2026-03-15"
+  },
+  "expected": {
+    "allocations": [
+      {
+        "invoiceId": "iAPartial",
+        "amountCents": 30000
+      },
+      {
+        "invoiceId": "iBPartial",
+        "amountCents": 30000
+      }
+    ],
+    "unappliedCents": 0
+  }
+}

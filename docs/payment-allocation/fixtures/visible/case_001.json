@@ -1,0 +1,49 @@
+{
+  "name": "case_001",
+  "client": {
+    "id": "c1"
+  },
+  "openInvoices": [
+    {
+      "id": "iDraft",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 90000,
+      "paidAmount": 0,
+      "status": "DRAFT"
+    },
+    {
+      "id": "iPartial",
+      "issuedAt": "2026-01-02T00:00:00.000Z",
+      "dueAt": "2026-03-01T00:00:00.000Z",
+      "total": 40000,
+      "paidAmount": 10000,
+      "status": "PARTIALLY_PAID"
+    },
+    {
+      "id": "iSent",
+      "issuedAt": "2026-01-03T00:00:00.000Z",
+      "dueAt": "2026-04-01T00:00:00.000Z",
+      "total": 50000,
+      "paidAmount": 0,
+      "status": "SENT"
+    }
+  ],
+  "payment": {
+    "amountCents": 70000,
+    "paidAt": "2026-04-15"
+  },
+  "expected": {
+    "allocations": [
+      {
+        "invoiceId": "iPartial",
+        "amountCents": 30000
+      },
+      {
+        "invoiceId": "iSent",
+        "amountCents": 40000
+      }
+    ],
+    "unappliedCents": 0
+  }
+}

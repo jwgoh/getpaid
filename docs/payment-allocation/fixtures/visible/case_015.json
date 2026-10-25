@@ -1,0 +1,32 @@
+{
+  "name": "case_015",
+  "client": {
+    "id": "c1"
+  },
+  "openInvoices": [
+    {
+      "id": "iDraft1",
+      "issuedAt": "2026-01-01T00:00:00.000Z",
+      "dueAt": "2026-02-01T00:00:00.000Z",
+      "total": 50000,
+      "paidAmount": 0,
+      "status": "DRAFT"
+    },
+    {
+      "id": "iDraft2",
+      "issuedAt": "2026-01-02T00:00:00.000Z",
+      "dueAt": "2026-03-01T00:00:00.000Z",
+      "total": 30000,
+      "paidAmount": 0,
+      "status": "DRAFT"
+    }
+  ],
+  "payment": {
+    "amountCents": 20000,
+    "paidAt": "2026-02-15"
+  },
+  "expected": {
+    "allocations": [],
+    "unappliedCents": 20000
+  }
+}
